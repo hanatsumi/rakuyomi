@@ -1,13 +1,14 @@
 local Menu = require("ui/widget/menu")
 local UIManager = require("ui/uimanager")
 local Screen = require("device").screen
-local logger = require("logger")
 local Backend = require("Backend")
 local ChapterListing = require("ChapterListing")
 
 -- FIXME maybe rename to screen i think ill do it
 local MangaSearchResults = Menu:extend {
+  name = "manga_search_results",
   is_enable_shortcut = false,
+  is_popout = false,
   title = "Search results...",
 }
 
@@ -42,7 +43,13 @@ function MangaSearchResults:onMenuSelect(item)
   local manga = item.manga
 
   Backend.listChapters(manga.source_id, manga.id, function(chapter_results)
-    ChapterListing:show(chapter_results)
+    local onReturnCallback = function()
+      UIManager:show(self)
+    end
+
+    UIManager:close(self)
+
+    ChapterListing:show(chapter_results, onReturnCallback)
   end)
 end
 

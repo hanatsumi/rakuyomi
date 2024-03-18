@@ -1,11 +1,11 @@
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
-local InfoMessage = require("ui/widget/infomessage")
 local InputDialog = require("ui/widget/inputdialog")
 local UIManager = require("ui/uimanager")
 local logger = require("logger")
 local _ = require("gettext")
 
 local Backend = require("Backend")
+local MangaReader = require("MangaReader")
 local MangaSearchResults = require("MangaSearchResults")
 
 logger.info("Loading Rakuyomi plugin...")
@@ -15,8 +15,16 @@ local Rakuyomi = WidgetContainer:extend({
   name = "rakuyomi"
 })
 
+-- We can get initialized from two contexts:
+-- - when the `FileManager` is initialized, we're called 
+-- - when the `ReaderUI` is initialized, we're also called
+-- so we should register to the menu accordingly
 function Rakuyomi:init()
-  self.ui.menu:registerToMainMenu(self)
+  if self.ui.name == "ReaderUI" then
+    self.ui.menu:registerToMainMenu(MangaReader)
+  else
+    self.ui.menu:registerToMainMenu(self)
+  end
 end
 
 function Rakuyomi:addToMainMenu(menu_items)

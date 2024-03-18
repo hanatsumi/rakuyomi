@@ -2,22 +2,45 @@ local Menu = require("ui/widget/menu")
 local InfoMessage = require("ui/widget/infomessage")
 local UIManager = require("ui/uimanager")
 local Screen = require("device").screen
-local Backend = require("Backend")
 local DataStorage = require("datastorage")
 local logger = require("logger")
 
+local Backend = require("Backend")
+local MangaReader = require("MangaReader")
+
 -- FIXME maybe rename to screen i think ill do it
 local ChapterListing = Menu:extend {
+  name = "chapter_listing",
   is_enable_shortcut = false,
+  is_popout = false,
   title = "Chapter listing",
+
+  -- list of chapters
+  results = nil,
+  -- callback to be called when pressing the back button
+  on_return_callback = nil,
 }
 
 function ChapterListing:init()
+  logger.info("chapter listing init called with on_return_callback", self.on_return_callback)
+
   self.results = self.results or {}
   self.item_table = self:generateItemTableFromResults(self.results)
   self.width = Screen:getWidth()
   self.height = Screen:getHeight()
   Menu.init(self)
+
+  -- we need to fill this with *something* in order to Koreader actually recognize
+  -- that the back button is active, so yeah
+  -- we also need to set this _after_ the `Menu.init` call, because it changes
+  -- this value to {}
+  self.paths = {
+    { callback = self.on_return_callback },
+  }
+  -- idk might make some gc shenanigans actually work
+  self.on_return_callback = nil
+  -- we need to do this after updating 
+  self:updateItems()
 end
 
 function ChapterListing:generateItemTableFromResults(results)
@@ -50,9 +73,17 @@ function ChapterListing:generateItemTableFromResults(results)
   return item_table
 end
 
-function ChapterListing:show(results)
+function ChapterListing:onReturn()
+  local path = table.remove(self.paths)
+
+  self:onClose()
+  path.callback()
+end
+
+function ChapterListing:show(results, onReturnCallback)
   UIManager:show(ChapterListing:new {
     results = results,
+    on_return_callback = onReturnCallback,
     covers_fullscreen = true, -- hint for UIManager:_repaint()
   })
 end
@@ -71,15 +102,14 @@ function ChapterListing:onMenuSelect(item)
   -- FIXME when the backend functions become actually async we can get rid of this probably
   UIManager:nextTick(function()
     Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id, outputPath, function()
-      -- took this from opds reader
-      local Event = require("ui/event")
-      UIManager:broadcastEvent(Event:new("SetupShowReader"))
+      local onReturnCallback = function()
+        UIManager:show(self)
+      end
 
       self:onClose()
       UIManager:close(downloadingMessage)
 
-      local ReaderUI = require("apps/reader/readerui")
-      ReaderUI:showReader(outputPath)
+      MangaReader:show(outputPath, onReturnCallback)
     end)
   end)
 end
