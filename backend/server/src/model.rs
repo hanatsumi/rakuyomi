@@ -1,7 +1,4 @@
-use cli::{
-    model::{Chapter as DomainChapter, MangaInformation},
-    usecases::fetch_all_manga_chapters::ProgressReport,
-};
+use cli::model::{Chapter as DomainChapter, MangaInformation};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -70,21 +67,4 @@ pub enum DownloadAllChaptersProgress {
     Initializing,
     Progressing { downloaded: usize, total: usize },
     Finished,
-    Errored { message: String },
-}
-
-impl From<&ProgressReport> for DownloadAllChaptersProgress {
-    fn from(value: &ProgressReport) -> Self {
-        match value {
-            ProgressReport::Initializing => Self::Initializing,
-            ProgressReport::Progressing { downloaded, total } => Self::Progressing {
-                downloaded: downloaded.to_owned(),
-                total: total.to_owned(),
-            },
-            ProgressReport::Finished => Self::Finished,
-            ProgressReport::Errored(e) => Self::Errored {
-                message: e.to_string(),
-            },
-        }
-    }
 }
