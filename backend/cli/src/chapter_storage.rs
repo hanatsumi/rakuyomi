@@ -25,11 +25,8 @@ impl ChapterStorage {
         }
     }
 
-    pub fn create_file_to_store_chapter(&self, id: &ChapterId) -> Result<(PathBuf, File)> {
-        let path = self.path_for_chapter(id);
-        let file = File::create(&path)?;
-
-        Ok((path, file))
+    pub fn get_path_to_store_chapter(&self, id: &ChapterId) -> PathBuf {
+        self.path_for_chapter(id)
     }
 
     fn path_for_chapter(&self, chapter_id: &ChapterId) -> PathBuf {

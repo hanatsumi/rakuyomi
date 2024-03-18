@@ -4,6 +4,7 @@ use std::{
     io::Write,
     path::{Path, PathBuf},
 };
+use tempfile::NamedTempFile;
 
 use anyhow::anyhow;
 use zip::{write::FileOptions, CompressionMethod, ZipWriter};
@@ -34,10 +35,20 @@ pub async fn ensure_chapter_is_in_storage(
         .await
         .map_err(Error::DownloadError)?;
 
-    let (output_path, output_file) = chapter_storage.create_file_to_store_chapter(chapter_id)?;
-    download_chapter_pages_as_cbz(output_file, pages)
+    let output_path = chapter_storage.get_path_to_store_chapter(chapter_id);
+
+    // Write chapter pages to a temporary file, so that if things go wrong
+    // we do not have a borked .cbz file in the chapter storage.
+    let temporary_file = NamedTempFile::new().map_err(|e| Error::Other(e.into()))?;
+    download_chapter_pages_as_cbz(&temporary_file, pages)
         .await
         .map_err(Error::DownloadError)?;
+
+    // If we succeeded downloading all the chapter pages, persist our temporary
+    // file into the chapter storage definitively.
+    temporary_file
+        .persist(&output_path)
+        .map_err(|e| Error::Other(e.into()))?;
 
     Ok(output_path)
 }

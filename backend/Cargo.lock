@@ -577,6 +577,7 @@ dependencies = [
  "sqlx",
  "surge-ping",
  "syn 2.0.48",
+ "tempfile",
  "thiserror",
  "tokio",
  "tokio-util",
