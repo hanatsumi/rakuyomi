@@ -108,13 +108,10 @@ function Backend.listChapters(source_id, manga_id, callback)
   }))
 end
 
-function Backend.downloadChapter(source_id, manga_id, chapter_id, output_path, callback)
+function Backend.downloadChapter(source_id, manga_id, chapter_id, callback)
   callback(requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/" .. chapter_id .. "/download",
     method = "POST",
-    body = {
-      output_path = output_path,
-    },
   }))
 end
 

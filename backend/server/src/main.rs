@@ -10,10 +10,10 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{extract::State as StateExtractor, Json, Router};
 use clap::Parser;
-use cli::chapter_downloader::download_chapter_pages_as_cbz;
 use cli::database::Database;
-use cli::model::{MangaId, SourceId};
+use cli::model::{ChapterId, MangaId, MangaInformation, SourceId};
 use cli::source::Source;
+use cli::usecases::fetch_manga_chapter::fetch_manga_chapter;
 use cli::usecases::{
     get_manga_chapters::get_manga_chapters as get_manga_chapters_usecase,
     get_manga_chapters::Response as GetMangaChaptersUsecaseResponse, search_mangas::search_mangas,
@@ -32,18 +32,23 @@ struct Args {
 struct State {
     source: Arc<Mutex<Source>>,
     database: Arc<Database>,
+    downloads_folder_path: PathBuf,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let source_path = args.home_path.join("sources/source.aix");
-    let source = Source::from_aix_file(&source_path)?;
     let database_path = args.home_path.join("database.db");
+    let downloads_folder_path = args.home_path.join("downloads");
+
+    let source = Source::from_aix_file(&source_path)?;
     let database = Database::new(&database_path).await?;
+
     let state = State {
         source: Arc::new(Mutex::new(source)),
         database: Arc::new(database),
+        downloads_folder_path,
     };
 
     let app = Router::new()
@@ -52,6 +57,8 @@ async fn main() -> anyhow::Result<()> {
             "/mangas/:source_id/:manga_id/chapters",
             get(get_manga_chapters),
         )
+        // FIXME i dont think the route should be named download because it doesnt
+        // always download the file...
         .route(
             "/mangas/:source_id/:manga_id/chapters/:chapter_id/download",
             post(download_manga_chapter),
@@ -93,7 +100,9 @@ struct GetMangaChaptersParams {
 }
 
 async fn get_manga_chapters(
-    StateExtractor(State { source, database }): StateExtractor<State>,
+    StateExtractor(State {
+        source, database, ..
+    }): StateExtractor<State>,
     Path(GetMangaChaptersParams {
         source_id,
         manga_id,
@@ -121,30 +130,29 @@ struct DownloadMangaChapterParams {
     chapter_id: String,
 }
 
-#[derive(Deserialize)]
-struct DownloadMangaChapterBody {
-    output_path: PathBuf,
-}
-
 async fn download_manga_chapter(
-    StateExtractor(State { source, .. }): StateExtractor<State>,
+    StateExtractor(State {
+        source,
+        downloads_folder_path,
+        ..
+    }): StateExtractor<State>,
     Path(DownloadMangaChapterParams {
+        source_id,
         manga_id,
         chapter_id,
-        ..
     }): Path<DownloadMangaChapterParams>,
-    Json(DownloadMangaChapterBody { output_path }): Json<DownloadMangaChapterBody>,
-) -> Result<Json<()>, AppError> {
-    let pages = source
-        .lock()
-        .await
-        .get_page_list(manga_id, chapter_id)
-        .await?;
+) -> Result<Json<String>, AppError> {
+    let chapter_id = ChapterId {
+        manga_id: MangaId {
+            manga_id,
+            source_id: SourceId(source_id),
+        },
+        chapter_id,
+    };
+    let output_path =
+        fetch_manga_chapter(&*source.lock().await, &downloads_folder_path, &chapter_id).await?;
 
-    let output_file = fs::File::create(output_path)?;
-    download_chapter_pages_as_cbz(output_file, pages).await?;
-
-    Ok(Json(()))
+    Ok(Json(output_path.to_string_lossy().into()))
 }
 
 // Make our own error that wraps `anyhow::Error`.

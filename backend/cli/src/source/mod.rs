@@ -67,11 +67,7 @@ impl Source {
         spawn_blocking(move || blocking_source.lock().unwrap().get_chapter_list(manga_id)).await?
     }
 
-    pub async fn get_page_list(
-        &mut self,
-        manga_id: String,
-        chapter_id: String,
-    ) -> Result<Vec<Page>> {
+    pub async fn get_page_list(&self, manga_id: String, chapter_id: String) -> Result<Vec<Page>> {
         let blocking_source = self.0.clone();
 
         spawn_blocking(move || {

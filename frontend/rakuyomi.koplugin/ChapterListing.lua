@@ -88,8 +88,6 @@ end
 
 function ChapterListing:onMenuSelect(item)
   local chapter = item.chapter
-  local outputFilename = chapter.source_id .. "-" .. chapter.id .. ".cbz"
-  local outputPath = DataStorage:getDataDir() .. "/rakuyomi/downloads/" .. outputFilename
 
   local downloadingMessage = InfoMessage:new{
       text = "Downloading chapter…",
@@ -101,7 +99,7 @@ function ChapterListing:onMenuSelect(item)
   UIManager:nextTick(function()
     local time = require("ui/time")
     local startTime = time.now()
-    Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id, outputPath, function()
+    Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id, function(outputPath)
       logger.info("Downloaded chapter in ", time.to_ms(time.since(startTime)), "ms")
       local onReturnCallback = function()
         UIManager:show(self)

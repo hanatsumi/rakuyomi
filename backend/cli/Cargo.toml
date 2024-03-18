@@ -30,6 +30,7 @@ wasmi = "0.31.1"
 futures = "0.3.30"
 rust_decimal = "1.33.1"
 sqlx = { version = "0.7.3", features = ["sqlite", "runtime-tokio"] }
+thiserror = "1.0.56"
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["async_tokio"] }
