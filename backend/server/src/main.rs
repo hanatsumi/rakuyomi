@@ -11,7 +11,13 @@ use axum::routing::{get, post};
 use axum::{extract::State as StateExtractor, Json, Router};
 use clap::Parser;
 use cli::chapter_downloader::download_chapter_pages_as_cbz;
+use cli::database::Database;
+use cli::model::{MangaId, SourceId};
 use cli::source::Source;
+use cli::usecases::{
+    get_manga_chapters::get_manga_chapters as get_manga_chapters_usecase,
+    get_manga_chapters::Response as GetMangaChaptersUsecaseResponse, search_mangas::search_mangas,
+};
 use serde::Deserialize;
 use tokio::sync::Mutex;
 
@@ -19,21 +25,25 @@ use model::{Chapter, Manga};
 
 #[derive(Parser, Debug)]
 struct Args {
-    sources_path: PathBuf,
+    home_path: PathBuf,
 }
 
 #[derive(Clone)]
 struct State {
     source: Arc<Mutex<Source>>,
+    database: Arc<Database>,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    let source_path = args.sources_path.join("source.aix");
+    let source_path = args.home_path.join("sources/source.aix");
     let source = Source::from_aix_file(&source_path)?;
+    let database_path = args.home_path.join("database.db");
+    let database = Database::new(&database_path).await?;
     let state = State {
         source: Arc::new(Mutex::new(source)),
+        database: Arc::new(database),
     };
 
     let app = Router::new()
@@ -64,13 +74,10 @@ struct GetMangasQuery {
 }
 
 async fn get_mangas(
-    StateExtractor(State { source }): StateExtractor<State>,
+    StateExtractor(State { source, .. }): StateExtractor<State>,
     Query(GetMangasQuery { q }): Query<GetMangasQuery>,
 ) -> Result<Json<Vec<Manga>>, AppError> {
-    let mangas = source
-        .lock()
-        .await
-        .search_mangas(q)
+    let mangas = search_mangas(&*source.lock().await, q)
         .await?
         .into_iter()
         .map(|source_manga| Manga::from(source_manga))
@@ -86,16 +93,22 @@ struct GetMangaChaptersParams {
 }
 
 async fn get_manga_chapters(
-    StateExtractor(State { source }): StateExtractor<State>,
-    Path(GetMangaChaptersParams { manga_id, .. }): Path<GetMangaChaptersParams>,
+    StateExtractor(State { source, database }): StateExtractor<State>,
+    Path(GetMangaChaptersParams {
+        source_id,
+        manga_id,
+    }): Path<GetMangaChaptersParams>,
 ) -> Result<Json<Vec<Chapter>>, AppError> {
-    let chapters = source
-        .lock()
-        .await
-        .get_chapter_list(manga_id)
-        .await?
+    let manga_id = MangaId {
+        source_id: SourceId(source_id),
+        manga_id,
+    };
+    let GetMangaChaptersUsecaseResponse(_, chapters) =
+        get_manga_chapters_usecase(&database, &*source.lock().await, manga_id).await?;
+
+    let chapters = chapters
         .into_iter()
-        .map(|source_chapter| Chapter::from(source_chapter))
+        .map(|(source_chapter, _)| Chapter::from(source_chapter))
         .collect();
 
     Ok(Json(chapters))
@@ -114,7 +127,7 @@ struct DownloadMangaChapterBody {
 }
 
 async fn download_manga_chapter(
-    StateExtractor(State { source }): StateExtractor<State>,
+    StateExtractor(State { source, .. }): StateExtractor<State>,
     Path(DownloadMangaChapterParams {
         manga_id,
         chapter_id,

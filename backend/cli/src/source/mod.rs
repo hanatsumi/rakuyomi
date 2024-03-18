@@ -1,3 +1,4 @@
+use crate::model::MangaId;
 use anyhow::{anyhow, bail, Context, Result};
 use scopeguard::defer;
 use serde::Deserialize;
@@ -11,6 +12,8 @@ use std::{
 use tokio::task::spawn_blocking;
 use wasmi::*;
 use zip::ZipArchive;
+
+use crate::model::MangaInformation;
 
 use self::{
     model::{Chapter, Filter, Manga, MangaPageResult, Page},

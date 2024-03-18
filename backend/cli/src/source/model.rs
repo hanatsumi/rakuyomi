@@ -50,6 +50,7 @@ pub struct Manga {
     pub status: PublishingStatus,
     pub nsfw: MangaContentRating,
     pub viewer: MangaViewer,
+    // FIXME i dont think those are needed, the sources have no way of creating them
     pub last_updated: Option<DateTime<chrono_tz::Tz>>,
     pub last_opened: Option<DateTime<chrono_tz::Tz>>,
     pub last_read: Option<DateTime<chrono_tz::Tz>>,

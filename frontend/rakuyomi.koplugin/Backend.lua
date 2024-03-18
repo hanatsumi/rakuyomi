@@ -81,10 +81,10 @@ function Backend.initialize()
   -- spawn subprocess and store the pid
   local pid = C.fork()
   if pid == 0 then
-    local sourcesPath = DataStorage:getDataDir() .. "/rakuyomi/sources"
+    local homePath = DataStorage:getDataDir() .. "/rakuyomi"
 
     local serverPath = DataStorage:getDataDir() .. "/plugins/rakuyomi.koplugin/server"
-    local args = table.pack(serverPath, sourcesPath)
+    local args = table.pack(serverPath, homePath)
 
     os.exit(C.execl(serverPath, unpack(args, 1, args.n+1))) -- Last arg must be a NULL pointer
   end

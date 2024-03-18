@@ -1,4 +1,4 @@
-use cli::source::model::{Chapter as SourceChapter, Manga as SourceManga};
+use cli::model::{ChapterInformation, MangaInformation};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -10,11 +10,11 @@ pub struct Manga {
     title: String,
 }
 
-impl From<SourceManga> for Manga {
-    fn from(value: SourceManga) -> Self {
+impl From<MangaInformation> for Manga {
+    fn from(value: MangaInformation) -> Self {
         Self {
-            id: value.id,
-            source_id: value.source_id,
+            id: value.id.manga_id,
+            source_id: value.id.source_id.0,
             // FIXME what the fuck
             title: value.title.unwrap_or("Unknown title".into()),
         }
@@ -32,16 +32,21 @@ pub struct Chapter {
     volume_num: Option<f32>,
 }
 
-impl From<SourceChapter> for Chapter {
-    fn from(value: SourceChapter) -> Self {
+impl From<ChapterInformation> for Chapter {
+    fn from(value: ChapterInformation) -> Self {
         Self {
-            source_id: value.source_id,
-            manga_id: value.manga_id,
-            id: value.id,
+            // FIXME what the fuck why
+            source_id: value.id.manga_id.source_id.0,
+            manga_id: value.id.manga_id.manga_id,
+            id: value.id.chapter_id,
             title: value.title.unwrap_or("Unknown title".into()),
             scanlator: value.scanlator,
-            chapter_num: value.chapter_num,
-            volume_num: value.volume_num,
+            chapter_num: value
+                .chapter_number
+                .map(|decimal| decimal.try_into().unwrap()),
+            volume_num: value
+                .chapter_number
+                .map(|decimal| decimal.try_into().unwrap()),
         }
     }
 }
