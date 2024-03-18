@@ -233,6 +233,7 @@ function ChapterListing:onDownloadAllChapters()
     local onDownloadFinished = function()
       -- FIXME I don't think mutating the chapter list here is the way to go, but it's quicker
       -- than making another call to list the chapters from the backend...
+      -- this also behaves wrong when the download fails but manages to download some chapters.
       -- some possible alternatives:
       -- - return the chapter list from the backend on the `downloadAllChapters` call
       -- - biting the bullet and making the API call
@@ -245,7 +246,8 @@ function ChapterListing:onDownloadAllChapters()
       self:updateItems()
     end
 
-    local updateProgress = nil
+    local updateProgress = function () end
+
     local cancellationRequested = false
     local onCancellationRequested = function()
       local response = Backend.cancelDownloadAllChapters(self.manga.source_id, self.manga.id)
@@ -253,6 +255,8 @@ function ChapterListing:onDownloadAllChapters()
       assert(response.type == 'SUCCESS')
 
       cancellationRequested = true
+
+      updateProgress()
     end
 
     local onCancelled = function()
@@ -264,6 +268,12 @@ function ChapterListing:onDownloadAllChapters()
     end
 
     updateProgress = function()
+      -- Remove any scheduled `updateProgress` calls, because we do not want this to be
+      -- called again if not scheduled by ourselves. This may happen when `updateProgress` is called
+      -- from another place that's not from the scheduler (eg. the `onCancellationRequested` handler),
+      -- which could result in an additional `updateProgress` call that was already scheduled previously,
+      -- even if we do not schedule it at the end of the method.
+      UIManager:unschedule(updateProgress)
       UIManager:close(downloadingMessage)
 
       local response = Backend.getDownloadAllChaptersProgress(self.manga.source_id, self.manga.id)
@@ -279,6 +289,14 @@ function ChapterListing:onDownloadAllChapters()
       local isCancellable = false
       if downloadProgress.type == "INITIALIZING" then
         messageText = "Downloading all chapters, this will take a while…"
+      elseif downloadProgress.type == "FINISHED" then
+        onDownloadFinished()
+
+        return
+      elseif downloadProgress.type == "CANCELLED" then
+        onCancelled()
+
+        return
       elseif cancellationRequested then
         messageText = "Waiting for download to be cancelled…"
       elseif downloadProgress.type == "PROGRESSING" then
@@ -288,14 +306,6 @@ function ChapterListing:onDownloadAllChapters()
             "Tap outside this message to cancel."
 
         isCancellable = true
-      elseif downloadProgress.type == "FINISHED" then
-        onDownloadFinished()
-
-        return
-      elseif downloadProgress.type == "CANCELLED" then
-        onCancelled()
-
-        return
       else
         logger.err("unexpected download progress message", downloadProgress)
 
