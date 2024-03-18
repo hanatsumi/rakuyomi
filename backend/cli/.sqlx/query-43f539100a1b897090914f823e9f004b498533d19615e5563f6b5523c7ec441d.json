@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n                SELECT * FROM chapter_informations\n                WHERE source_id = ?1 AND manga_id = ?2;\n            ",
+  "query": "\n                SELECT * FROM chapter_informations\n                WHERE source_id = ?1 AND manga_id = ?2\n                ORDER BY manga_order ASC;\n            ",
   "describe": {
     "columns": [
       {
@@ -19,23 +19,28 @@
         "type_info": "Text"
       },
       {
-        "name": "title",
+        "name": "manga_order",
         "ordinal": 3,
-        "type_info": "Text"
+        "type_info": "Int64"
       },
       {
-        "name": "scanlator",
+        "name": "title",
         "ordinal": 4,
         "type_info": "Text"
       },
       {
-        "name": "chapter_number",
+        "name": "scanlator",
         "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "chapter_number",
+        "ordinal": 6,
         "type_info": "Float"
       },
       {
         "name": "volume_number",
-        "ordinal": 6,
+        "ordinal": 7,
         "type_info": "Float"
       }
     ],
@@ -46,11 +51,12 @@
       false,
       false,
       false,
+      false,
       true,
       true,
       true,
       true
     ]
   },
-  "hash": "e30d034e189c8b076db0f35431406ba96151b39cedf433b5b33b2991690d36c4"
+  "hash": "43f539100a1b897090914f823e9f004b498533d19615e5563f6b5523c7ec441d"
 }

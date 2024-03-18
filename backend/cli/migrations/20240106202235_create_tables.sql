@@ -13,6 +13,7 @@ CREATE TABLE chapter_informations (
     source_id TEXT NOT NULL,
     manga_id TEXT NOT NULL,
     chapter_id TEXT NOT NULL,
+    manga_order INTEGER NOT NULL,
     title TEXT NULL,
     scanlator TEXT NULL,
     chapter_number REAL NULL,

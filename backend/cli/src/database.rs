@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
+use futures::{stream, StreamExt, TryStreamExt};
 use sqlx::{sqlite::SqliteConnectOptions, Pool, Sqlite};
 
 use crate::model::{
@@ -81,7 +82,8 @@ impl Database {
             ChapterInformationsRow,
             r#"
                 SELECT * FROM chapter_informations
-                WHERE source_id = ?1 AND manga_id = ?2;
+                WHERE source_id = ?1 AND manga_id = ?2
+                ORDER BY manga_order ASC;
             "#,
             manga_id.source_id.0,
             manga_id.manga_id
@@ -115,32 +117,39 @@ impl Database {
         ).execute(&self.pool).await.unwrap();
     }
 
-    pub async fn upsert_cached_chapter_information(&self, information: ChapterInformation) {
-        let chapter_number = information
-            .chapter_number
-            .map(|dec| f64::try_from(dec).unwrap());
-        let volume_number = information
-            .volume_number
-            .map(|dec| f64::try_from(dec).unwrap());
+    pub async fn upsert_cached_chapter_informations(&self, informations: Vec<ChapterInformation>) {
+        stream::iter(informations.into_iter().enumerate()).then(|(index, information)| async move {
+            let index = index as i64;
+            let chapter_number = information
+                .chapter_number
+                .map(|dec| f64::try_from(dec).unwrap());
+            let volume_number = information
+                .volume_number
+                .map(|dec| f64::try_from(dec).unwrap());
 
-        sqlx::query!(
-            r#"
-                INSERT INTO chapter_informations (source_id, manga_id, chapter_id, title, scanlator, chapter_number, volume_number)
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
-                ON CONFLICT DO UPDATE SET
-                    title = excluded.title,
-                    scanlator = excluded.scanlator,
-                    chapter_number = excluded.chapter_number,
-                    volume_number = excluded.volume_number
-            "#,
-            information.id.manga_id.source_id.0,
-            information.id.manga_id.manga_id,
-            information.id.chapter_id,
-            information.title,
-            information.scanlator,
-            chapter_number,
-            volume_number
-        ).execute(&self.pool).await.unwrap();
+            sqlx::query!(
+                r#"
+                    INSERT INTO chapter_informations (source_id, manga_id, chapter_id, manga_order, title, scanlator, chapter_number, volume_number)
+                    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+                    ON CONFLICT DO UPDATE SET
+                        manga_order = excluded.manga_order,
+                        title = excluded.title,
+                        scanlator = excluded.scanlator,
+                        chapter_number = excluded.chapter_number,
+                        volume_number = excluded.volume_number
+                "#,
+                information.id.manga_id.source_id.0,
+                information.id.manga_id.manga_id,
+                information.id.chapter_id,
+                index,
+                information.title,
+                information.scanlator,
+                chapter_number,
+                volume_number,
+            ).execute(&self.pool).await?;
+
+            Ok::<(), anyhow::Error>(())
+        }).try_collect::<()>().await.unwrap();
     }
 
     pub async fn find_manga_state(&self, id: &MangaId) -> Option<MangaState> {
@@ -200,6 +209,7 @@ struct ChapterInformationsRow {
     source_id: String,
     manga_id: String,
     chapter_id: String,
+    manga_order: i64,
     title: Option<String>,
     scanlator: Option<String>,
     chapter_number: Option<f64>,

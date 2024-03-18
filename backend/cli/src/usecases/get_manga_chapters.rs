@@ -14,8 +14,7 @@ pub async fn get_manga_chapters(db: &Database, source: &Source, id: MangaId) -> 
     };
 
     if !cached {
-        stream::iter(&chapters)
-            .for_each(|information| db.upsert_cached_chapter_information(information.clone()))
+        db.upsert_cached_chapter_informations(chapters.clone())
             .await;
     }
 
