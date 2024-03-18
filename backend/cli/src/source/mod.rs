@@ -1,7 +1,14 @@
 use anyhow::{anyhow, bail, Context, Result};
 use scopeguard::defer;
 use serde::Deserialize;
-use std::{collections::HashMap, fs, io::Read, path::Path};
+use std::{
+    collections::HashMap,
+    fs,
+    io::Read,
+    path::Path,
+    sync::{Arc, Mutex},
+};
+use tokio::task::spawn_blocking;
 use wasmi::*;
 use zip::ZipArchive;
 
@@ -19,24 +26,79 @@ pub mod model;
 mod wasm_imports;
 mod wasm_store;
 
+pub struct Source(
+    /// In order to avoid issues when calling functions that block inside the `Source` from an
+    /// async context, we wrap all data and functions that need to block inside `BlockingSource`
+    /// and call them using `spawn_blocking` from within the facades exposed by `Source`.
+    /// Particularly, all calls to `reqwest::blocking` methods from an async context causes the
+    /// program to panic (see https://github.com/seanmonstar/reqwest/issues/1017), and we do call
+    /// them inside the `net` module.
+    ///
+    /// This also provides interior mutability, but we probably could also do it inside the
+    /// `BlockingSource` itself, by placing things inside a mutex. It might be a cleaner design.
+    Arc<Mutex<BlockingSource>>,
+);
+
+impl Source {
+    pub fn from_aix_file(path: &Path) -> Result<Self> {
+        let blocking_source = BlockingSource::from_aix_file(path)?;
+
+        Ok(Self(Arc::new(Mutex::new(blocking_source))))
+    }
+
+    pub async fn get_manga_list(&self) -> Result<Vec<Manga>> {
+        let blocking_source = self.0.clone();
+
+        spawn_blocking(move || blocking_source.lock().unwrap().get_manga_list()).await?
+    }
+
+    pub async fn search_mangas(&self, query: String) -> Result<Vec<Manga>> {
+        let blocking_source = self.0.clone();
+
+        spawn_blocking(move || blocking_source.lock().unwrap().search_mangas(query)).await?
+    }
+
+    pub async fn get_chapter_list(&self, manga_id: String) -> Result<Vec<Chapter>> {
+        let blocking_source = self.0.clone();
+
+        spawn_blocking(move || blocking_source.lock().unwrap().get_chapter_list(manga_id)).await?
+    }
+
+    pub async fn get_page_list(
+        &mut self,
+        manga_id: String,
+        chapter_id: String,
+    ) -> Result<Vec<Page>> {
+        let blocking_source = self.0.clone();
+
+        spawn_blocking(move || {
+            blocking_source
+                .lock()
+                .unwrap()
+                .get_page_list(manga_id, chapter_id)
+        })
+        .await?
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
-pub struct SourceInfo {
+struct SourceInfo {
     pub id: String,
     pub lang: String,
     pub name: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct SourceManifest {
+struct SourceManifest {
     pub info: SourceInfo,
 }
 
-pub struct Source {
+struct BlockingSource {
     store: Store<WasmStore>,
     instance: Instance,
 }
 
-impl Source {
+impl BlockingSource {
     pub fn from_aix_file(path: &Path) -> Result<Self> {
         let file = fs::File::open(path)?;
         let mut archive = ZipArchive::new(file)?;

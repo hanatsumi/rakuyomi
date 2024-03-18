@@ -2,7 +2,7 @@ mod model;
 
 use std::fs;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
@@ -13,7 +13,7 @@ use clap::Parser;
 use cli::chapter_downloader::download_chapter_pages_as_cbz;
 use cli::source::Source;
 use serde::Deserialize;
-use tokio::task::spawn_blocking;
+use tokio::sync::Mutex;
 
 use model::{Chapter, Manga};
 
@@ -67,20 +67,14 @@ async fn get_mangas(
     StateExtractor(State { source }): StateExtractor<State>,
     Query(GetMangasQuery { q }): Query<GetMangasQuery>,
 ) -> Result<Json<Vec<Manga>>, AppError> {
-    // HACK we need to call these inside `spawn_blocking` because otherwise reqwest::blocking (used inside
-    // the `net` import in Aidoku) panics...
-    // i dont think we'll ever be able to make the WASM imports async, so maybe there's no way around it,
-    // or maybe we could move this call inside the `Source` itself and make it asynchronous
-    let mangas = spawn_blocking(move || -> Result<Vec<Manga>, AppError> {
-        Ok(source
-            .lock()
-            .unwrap()
-            .search_mangas(q)?
-            .into_iter()
-            .map(|source_manga| Manga::from(source_manga))
-            .collect())
-    })
-    .await??;
+    let mangas = source
+        .lock()
+        .await
+        .search_mangas(q)
+        .await?
+        .into_iter()
+        .map(|source_manga| Manga::from(source_manga))
+        .collect();
 
     Ok(Json(mangas))
 }
@@ -95,16 +89,14 @@ async fn get_manga_chapters(
     StateExtractor(State { source }): StateExtractor<State>,
     Path(GetMangaChaptersParams { manga_id, .. }): Path<GetMangaChaptersParams>,
 ) -> Result<Json<Vec<Chapter>>, AppError> {
-    let chapters = spawn_blocking(move || -> Result<Vec<Chapter>, AppError> {
-        Ok(source
-            .lock()
-            .unwrap()
-            .get_chapter_list(manga_id)?
-            .into_iter()
-            .map(|source_chapter| Chapter::from(source_chapter))
-            .collect())
-    })
-    .await??;
+    let chapters = source
+        .lock()
+        .await
+        .get_chapter_list(manga_id)
+        .await?
+        .into_iter()
+        .map(|source_chapter| Chapter::from(source_chapter))
+        .collect();
 
     Ok(Json(chapters))
 }
@@ -130,8 +122,11 @@ async fn download_manga_chapter(
     }): Path<DownloadMangaChapterParams>,
     Json(DownloadMangaChapterBody { output_path }): Json<DownloadMangaChapterBody>,
 ) -> Result<Json<()>, AppError> {
-    let pages = spawn_blocking(move || source.lock().unwrap().get_page_list(manga_id, chapter_id))
-        .await??;
+    let pages = source
+        .lock()
+        .await
+        .get_page_list(manga_id, chapter_id)
+        .await?;
 
     let output_file = fs::File::create(output_path)?;
     download_chapter_pages_as_cbz(output_file, pages).await?;
