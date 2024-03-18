@@ -1,3 +1,4 @@
+#![allow(clippy::too_many_arguments)]
 use std::collections::HashMap;
 
 use anyhow::Result;
@@ -492,11 +493,7 @@ fn object_keys(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
             None
         }?;
 
-        let keys: Vec<Value> = hashmap_object
-            .keys()
-            .cloned()
-            .map(|s| Value::String(s))
-            .collect();
+        let keys: Vec<Value> = hashmap_object.keys().cloned().map(Value::String).collect();
         Some(wasm_store.store_std_value(Value::Array(keys), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
@@ -631,33 +628,19 @@ impl FieldAsValue for Manga {
         match field {
             "source_id" => Some(Value::String(self.source_id.clone())),
             "id" => Some(Value::String(self.id.clone())),
-            "title" => self
-                .title
-                .clone()
-                .and_then(|s| Some(Value::String(s)))
-                .or(Some(Value::Null)),
-            "author" => self
-                .author
-                .clone()
-                .and_then(|s| Some(Value::String(s)))
-                .or(Some(Value::Null)),
-            "artist" => self
-                .artist
-                .clone()
-                .and_then(|s| Some(Value::String(s)))
-                .or(Some(Value::Null)),
+            "title" => self.title.clone().map(Value::String).or(Some(Value::Null)),
+            "author" => self.author.clone().map(Value::String).or(Some(Value::Null)),
+            "artist" => self.artist.clone().map(Value::String).or(Some(Value::Null)),
             "description" => self
                 .description
                 .clone()
-                .and_then(|s| Some(Value::String(s)))
+                .map(Value::String)
                 .or(Some(Value::Null)),
             "tags" => self
                 .tags
                 .clone()
-                .and_then(|tags| {
-                    Some(Value::Array(
-                        tags.iter().map(|tag| Value::String(tag.clone())).collect(),
-                    ))
+                .map(|tags| {
+                    Value::Array(tags.iter().map(|tag| Value::String(tag.clone())).collect())
                 })
                 .or(Some(Value::Null)),
             "cover_url" => self
@@ -673,22 +656,10 @@ impl FieldAsValue for Manga {
             "status" => Some(Value::Int(self.status.clone() as i64)),
             "nsfw" => Some(Value::Int(self.nsfw.clone() as i64)),
             "viewer" => Some(Value::Int(self.viewer.clone() as i64)),
-            "last_updated" => self
-                .last_updated
-                .and_then(|d| Some(Value::Date(d)))
-                .or(Some(Value::Null)),
-            "last_opened" => self
-                .last_opened
-                .and_then(|d| Some(Value::Date(d)))
-                .or(Some(Value::Null)),
-            "last_read" => self
-                .last_read
-                .and_then(|d| Some(Value::Date(d)))
-                .or(Some(Value::Null)),
-            "date_added" => self
-                .date_added
-                .and_then(|d| Some(Value::Date(d)))
-                .or(Some(Value::Null)),
+            "last_updated" => self.last_updated.map(Value::Date).or(Some(Value::Null)),
+            "last_opened" => self.last_opened.map(Value::Date).or(Some(Value::Null)),
+            "last_read" => self.last_read.map(Value::Date).or(Some(Value::Null)),
+            "date_added" => self.date_added.map(Value::Date).or(Some(Value::Null)),
             _ => None,
         }
     }

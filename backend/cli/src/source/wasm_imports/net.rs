@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::util::has_internet_connection;
 use anyhow::Result;
 use futures::executor;
@@ -39,7 +37,7 @@ pub fn register_net_imports(linker: &mut Linker<WasmStore>) -> Result<()> {
     Ok(())
 }
 
-const DEFAULT_USER_AGENT: &'static str =
+const DEFAULT_USER_AGENT: &str =
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:107.0) Gecko/20100101 Firefox/107.0";
 
 #[derive(Debug, Default, FromPrimitive)]
@@ -69,7 +67,7 @@ impl From<AidokuHttpMethod> for Method {
 fn init(mut caller: Caller<'_, WasmStore>, method: i32) -> i32 {
     let method = method
         .try_into()
-        .map(|method| AidokuHttpMethod::from_primitive(method))
+        .map(AidokuHttpMethod::from_primitive)
         .unwrap_or_default();
     let wasm_store = caller.data_mut();
 
@@ -376,7 +374,7 @@ fn html(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> i32 {
 
         // FIXME this is duplicated from the html module. not sure it's really worth refactoring
         // but here's a note
-        let fragment = Arc::new(Html::parse_fragment(&html_string));
+        let fragment = Html::parse_fragment(&html_string);
         let node_id = fragment.root_element().id();
         let html_element = HTMLElement {
             document: fragment,

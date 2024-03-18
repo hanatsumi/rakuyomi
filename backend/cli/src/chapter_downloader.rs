@@ -50,7 +50,7 @@ pub enum Error {
     Other(#[from] anyhow::Error),
 }
 
-async fn download_chapter_pages_as_cbz<W>(output: W, pages: Vec<Page>) -> anyhow::Result<()>
+pub async fn download_chapter_pages_as_cbz<W>(output: W, pages: Vec<Page>) -> anyhow::Result<()>
 where
     W: Write + Seek,
 {

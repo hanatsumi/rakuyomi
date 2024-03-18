@@ -13,7 +13,7 @@ pub async fn search_mangas(
         .await
         .map_err(Error::SourceError)?
         .into_iter()
-        .map(|source_manga| MangaInformation::from(source_manga))
+        .map(MangaInformation::from)
         .collect();
 
     // Write through to the database

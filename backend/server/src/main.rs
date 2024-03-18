@@ -131,7 +131,7 @@ async fn get_manga_library(
     let mangas = get_manga_library_usecase(&database)
         .await?
         .into_iter()
-        .map(|source_manga| Manga::from(source_manga))
+        .map(Manga::from)
         .collect();
 
     Ok(Json(mangas))
@@ -152,7 +152,7 @@ async fn get_mangas(
         .await
         .map_err(AppError::from_search_mangas_error)?
         .into_iter()
-        .map(|source_manga| Manga::from(source_manga))
+        .map(Manga::from)
         .collect();
 
     Ok(Json(mangas))
@@ -195,10 +195,7 @@ async fn get_manga_chapters(
         get_manga_chapters_usecase(&database, &*source.lock().await, &chapter_storage, manga_id)
             .await?;
 
-    let chapters = chapters
-        .into_iter()
-        .map(|domain_chapter| Chapter::from(domain_chapter))
-        .collect();
+    let chapters = chapters.into_iter().map(Chapter::from).collect();
 
     Ok(Json(chapters))
 }
@@ -220,7 +217,7 @@ async fn download_all_manga_chapters(
     tokio::spawn(async move {
         let source = &*source.lock().await;
         let (cancellation_token, progress_report_stream) =
-            fetch_all_manga_chapters(&source, &database, &chapter_storage, manga_id);
+            fetch_all_manga_chapters(source, &database, &chapter_storage, manga_id);
 
         *download_all_chapters_state.lock().await = DownloadAllChaptersState::Initializing;
 
@@ -229,12 +226,10 @@ async fn download_all_manga_chapters(
         let mut terminated = false;
         while !terminated {
             let progress_report = progress_report_stream.next().await.unwrap();
-            terminated = match &progress_report {
-                ProgressReport::Finished
-                | ProgressReport::Errored(_)
-                | ProgressReport::Cancelled => true,
-                _ => false,
-            };
+            terminated = matches!(
+                &progress_report,
+                ProgressReport::Finished | ProgressReport::Errored(_) | ProgressReport::Cancelled
+            );
 
             *download_all_chapters_state.lock().await = match progress_report {
                 ProgressReport::Progressing { downloaded, total } => {

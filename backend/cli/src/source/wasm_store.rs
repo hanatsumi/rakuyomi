@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use chrono::DateTime;
 use ego_tree::NodeId;
@@ -8,6 +8,10 @@ use scraper::{ElementRef, Html};
 use super::model::{Chapter, DeepLink, Filter, Manga, MangaPageResult, Page};
 
 #[derive(Debug, Clone)]
+// FIXME Apply the suggestion from the following `clippy` lint
+// This enum is needlessly large, maybe we could measure the impact of
+// actually changing this.
+#[allow(clippy::large_enum_variant)]
 pub enum ObjectValue {
     HashMap(HashMap<String, Value>),
     Manga(Manga),
@@ -20,7 +24,7 @@ pub enum ObjectValue {
 
 #[derive(Debug, Clone)]
 pub struct HTMLElement {
-    pub document: Arc<Html>,
+    pub document: Html,
     pub node_id: NodeId,
 }
 
@@ -34,6 +38,8 @@ impl HTMLElement {
 unsafe impl Send for HTMLElement {}
 
 #[derive(Debug, Clone)]
+// FIXME See above.
+#[allow(clippy::large_enum_variant)]
 pub enum Value {
     Null,
     Int(i64),

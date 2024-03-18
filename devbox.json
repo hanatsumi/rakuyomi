@@ -14,13 +14,14 @@
     "init_hook": [
       "cachix use rakuyomi",
       ". conf/set-env.sh",
-      "sh -c 'cd backend && cargo fetch'",
+      "sh -c 'cd $PROJECT_DIR/backend && cargo fetch'",
     ],
     "scripts": {
       "check-format": [
         "sh -c 'cd $PROJECT_DIR/backend && cargo fmt --check'",
       ],
       "check-lint": [
+        "sh -c 'cd $PROJECT_DIR/backend && cargo clippy'",
         "python3 ci/lua-language-server-check.py frontend/"
       ]
     },

@@ -45,18 +45,18 @@ impl TryFrom<JSONValue> for Value {
             JSONValue::Null => Value::Null,
             JSONValue::Number(n) => n
                 .as_f64()
-                .map(|float| Value::Float(float))
-                .or_else(|| n.as_i64().map(|int| Value::Int(int)))
+                .map(Value::Float)
+                .or_else(|| n.as_i64().map(Value::Int))
                 .or_else(|| {
                     n.as_u64()
                         .and_then(|int| int.try_into().ok())
-                        .map(|int| Value::Int(int))
+                        .map(Value::Int)
                 })
                 .ok_or(anyhow!("could not convert {n} to a valid number"))?,
             JSONValue::Object(object) => {
                 let converted_object: HashMap<String, Value> = object
                     .iter()
-                    .map(|(k, v)| v.clone().try_into().ok().and_then(|v| Some((k.clone(), v))))
+                    .map(|(k, v)| v.clone().try_into().ok().map(|v| (k.clone(), v)))
                     .collect::<Option<_>>()
                     .ok_or(anyhow!("could not convert object to our values"))?;
 

@@ -1,5 +1,7 @@
 use cli::{chapter_downloader::download_chapter_pages_as_cbz, source::Source};
+#[allow(unused_imports)]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use futures::executor;
 use pprof::criterion::{Output, PProfProfiler};
 use std::{env, io, path::PathBuf};
 
@@ -8,8 +10,8 @@ pub fn chapter_downloader_benchmark(c: &mut Criterion) {
     let manga_id = env::var("BENCHMARK_MANGA_ID").unwrap();
     let chapter_id = env::var("BENCHMARK_CHAPTER_ID").unwrap();
 
-    let mut source = Source::from_aix_file(source_path.as_ref()).unwrap();
-    let pages = source.get_page_list(manga_id, chapter_id).unwrap();
+    let source = Source::from_aix_file(source_path.as_ref()).unwrap();
+    let pages = executor::block_on(source.get_page_list(manga_id, chapter_id)).unwrap();
 
     let runtime = tokio::runtime::Runtime::new().unwrap();
 

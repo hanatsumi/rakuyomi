@@ -1,3 +1,4 @@
+#![allow(clippy::too_many_arguments)]
 use anyhow::Result;
 use chrono::DateTime;
 use num_enum::FromPrimitive;
@@ -54,15 +55,15 @@ fn create_manga(
         let status = status_i32
             .try_into()
             .ok()
-            .map(|status| PublishingStatus::from_primitive(status))?;
+            .map(PublishingStatus::from_primitive)?;
         let nsfw = nsfw_i32
             .try_into()
             .ok()
-            .map(|nsfw| MangaContentRating::from_primitive(nsfw))?;
+            .map(MangaContentRating::from_primitive)?;
         let viewer = viewer_i32
             .try_into()
             .ok()
-            .map(|viewer| MangaViewer::from_primitive(viewer))?;
+            .map(MangaViewer::from_primitive)?;
 
         let memory = get_memory(&mut caller)?;
         let tags_array = if let (Some(tags), Some(tag_str_lens), Some(tag_count)) =

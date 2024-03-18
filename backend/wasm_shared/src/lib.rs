@@ -52,8 +52,8 @@ impl<T> TryFromWasmValues<T> for String {
             ))?;
 
         let memory = get_memory(caller).ok_or(anyhow!("could not get WASM memory"))?;
-        Ok(read_string(&memory, caller, offset, length)
-            .ok_or(anyhow!("could not read string from WASM memory"))?)
+        read_string(&memory, caller, offset, length)
+            .ok_or(anyhow!("could not read string from WASM memory"))
     }
 }
 
@@ -108,8 +108,8 @@ impl<T> TryFromWasmValues<T> for Vec<u8> {
             ))?;
 
         let memory = get_memory(caller).ok_or(anyhow!("could not get WASM memory"))?;
-        Ok(read_bytes(&memory, caller, offset, length)
-            .ok_or(anyhow!("could not read bytes from WASM memory"))?)
+        read_bytes(&memory, caller, offset, length)
+            .ok_or(anyhow!("could not read bytes from WASM memory"))
     }
 }
 

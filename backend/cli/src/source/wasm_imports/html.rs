@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use anyhow::Result;
 use scraper::{Element, Html, Node, Selector};
 use wasm_macros::{aidoku_wasm_function, register_wasm_function};
@@ -55,7 +53,7 @@ pub fn register_html_imports(linker: &mut Linker<WasmStore>) -> Result<()> {
 #[aidoku_wasm_function]
 fn parse(mut caller: Caller<'_, WasmStore>, data: Option<String>) -> i32 {
     || -> Option<i32> {
-        let document = Arc::new(Html::parse_document(&data?));
+        let document = Html::parse_document(&data?);
         let node_id = document.root_element().id();
         let html_element = HTMLElement { document, node_id };
         let wasm_store = caller.data_mut();
@@ -68,7 +66,7 @@ fn parse(mut caller: Caller<'_, WasmStore>, data: Option<String>) -> i32 {
 #[aidoku_wasm_function]
 fn parse_fragment(mut caller: Caller<'_, WasmStore>, data: Option<String>) -> i32 {
     || -> Option<i32> {
-        let fragment = Arc::new(Html::parse_fragment(&data?));
+        let fragment = Html::parse_fragment(&data?);
         let node_id = fragment.root_element().id();
         let html_element = HTMLElement {
             document: fragment,
