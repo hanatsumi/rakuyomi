@@ -142,6 +142,8 @@ function ChapterListing:openChapterOnReader(chapter)
     local time = require("ui/time")
     local startTime = time.now()
     local outputPath, err = Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id)
+    chapter.downloaded = true
+
     UIManager:close(downloadingMessage)
 
     if err ~= nil then
@@ -152,6 +154,8 @@ function ChapterListing:openChapterOnReader(chapter)
 
     logger.info("Downloaded chapter in ", time.to_ms(time.since(startTime)), "ms")
     local onReturnCallback = function()
+      self:updateItems()
+
       UIManager:show(self)
     end
 
