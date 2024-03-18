@@ -46,7 +46,6 @@ impl Source {
             .with_context(|| "while loading source.json")?;
         let manifest: SourceManifest = serde_json::from_reader(manifest_file)?;
 
-        let mut wasm_file_contents: Vec<u8> = Vec::new();
         let wasm_file = archive
             .by_name("Payload/main.wasm")
             .with_context(|| "while loading main.wasm")?;
