@@ -68,18 +68,19 @@ function ChapterListing:onMenuSelect(item)
 
   UIManager:show(downloadingMessage)
 
+  -- FIXME when the backend functions become actually async we can get rid of this probably
   UIManager:nextTick(function()
-    Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id, outputPath)
+    Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id, outputPath, function()
+      -- took this from opds reader
+      local Event = require("ui/event")
+      UIManager:broadcastEvent(Event:new("SetupShowReader"))
 
-    -- took this from opds reader
-    local Event = require("ui/event")
-    UIManager:broadcastEvent(Event:new("SetupShowReader"))
+      self:onClose()
+      UIManager:close(downloadingMessage)
 
-    self:onClose()
-    UIManager:close(downloadingMessage)
-
-    local ReaderUI = require("apps/reader/readerui")
-    ReaderUI:showReader(outputPath)
+      local ReaderUI = require("apps/reader/readerui")
+      ReaderUI:showReader(outputPath)
+    end)
   end)
 end
 

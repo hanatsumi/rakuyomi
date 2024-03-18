@@ -2,7 +2,7 @@
 
 members = [
     "cli",
-    "lua_module",
+    "server",
     "wasm_macros",
     "wasm_shared"
 ]

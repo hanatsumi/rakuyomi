@@ -40,9 +40,10 @@ end
 
 function MangaSearchResults:onMenuSelect(item)
   local manga = item.manga
-  local chapter_results = Backend.listChapters(manga.source_id, manga.id)
 
-  ChapterListing:show(chapter_results)
+  Backend.listChapters(manga.source_id, manga.id, function(chapter_results)
+    ChapterListing:show(chapter_results)
+  end)
 end
 
 return MangaSearchResults

@@ -62,12 +62,12 @@ function Rakuyomi:openSearchMangasDialog()
 end
 
 function Rakuyomi:searchMangas(search_text)
-  local results = Backend.searchMangas(search_text)
-
-  UIManager:show(MangaSearchResults:new {
-    results = results,
-    covers_fullscreen = true, -- hint for UIManager:_repaint()
-  })
+  Backend.searchMangas(search_text, function(results)
+    UIManager:show(MangaSearchResults:new {
+      results = results,
+      covers_fullscreen = true, -- hint for UIManager:_repaint()
+    })
+  end)
 end
 
 function Rakuyomi:onClose()
