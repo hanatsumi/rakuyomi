@@ -10,7 +10,7 @@
   "shell": {
     "init_hook": [
       ". conf/set-env.sh",
-      "rustup default stable",
+      "cd backend && cargo fetch",
     ]
   },
   "nixpkgs": {
