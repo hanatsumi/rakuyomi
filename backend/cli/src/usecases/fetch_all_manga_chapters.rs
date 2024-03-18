@@ -28,7 +28,9 @@ pub async fn fetch_all_manga_chapters(
     db.upsert_cached_chapter_informations(chapter_informations.clone())
         .await;
 
-    stream::iter(chapter_informations)
+    // We download the chapters in reverse order, in order to prioritize earlier chapters.
+    // Normal source order has recent chapters first.
+    stream::iter(chapter_informations.into_iter().rev())
         .then(|information| async move {
             ensure_chapter_is_in_storage(chapter_storage, source, &information.id).await?;
 

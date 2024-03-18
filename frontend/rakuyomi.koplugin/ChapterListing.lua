@@ -138,7 +138,7 @@ function ChapterListing:openChapterOnReader(chapter)
 
   UIManager:show(downloadingMessage)
 
-  UIManager:scheduleIn(2, function()
+  UIManager:tickAfterNext(function()
     local time = require("ui/time")
     local startTime = time.now()
     local outputPath, err = Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id)

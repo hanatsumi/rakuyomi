@@ -36,7 +36,7 @@ impl ChapterStorage {
         let output_filename = format!(
             "{}-{}.cbz",
             chapter_id.source_id().value(),
-            chapter_id.source_id().value()
+            chapter_id.value()
         );
 
         self.downloads_folder_path.join(output_filename)
