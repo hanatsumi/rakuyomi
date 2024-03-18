@@ -1,6 +1,5 @@
 mod model;
 
-use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -81,10 +80,12 @@ struct GetMangasQuery {
 }
 
 async fn get_mangas(
-    StateExtractor(State { source, .. }): StateExtractor<State>,
+    StateExtractor(State {
+        source, database, ..
+    }): StateExtractor<State>,
     Query(GetMangasQuery { q }): Query<GetMangasQuery>,
 ) -> Result<Json<Vec<Manga>>, AppError> {
-    let mangas = search_mangas(&*source.lock().await, q)
+    let mangas = search_mangas(&*source.lock().await, &database, q)
         .await?
         .into_iter()
         .map(|source_manga| Manga::from(source_manga))

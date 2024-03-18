@@ -3,18 +3,22 @@ use url::Url;
 
 use crate::source::model::{Chapter as SourceChapter, Manga as SourceManga};
 
+#[derive(Clone)]
 pub struct SourceId(pub String);
 
+#[derive(Clone)]
 pub struct MangaId {
     pub source_id: SourceId,
     pub manga_id: String,
 }
 
+#[derive(Clone)]
 pub struct ChapterId {
     pub manga_id: MangaId,
     pub chapter_id: String,
 }
 
+#[derive(Clone)]
 pub struct MangaInformation {
     pub id: MangaId,
     pub title: Option<String>,
@@ -23,6 +27,7 @@ pub struct MangaInformation {
     pub cover_url: Option<Url>,
 }
 
+#[derive(Clone)]
 pub struct ChapterInformation {
     pub id: ChapterId,
     pub title: Option<String>,

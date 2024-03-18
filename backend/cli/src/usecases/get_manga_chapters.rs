@@ -7,18 +7,16 @@ use crate::{
     source::Source,
 };
 
-pub async fn get_manga_chapters(
-    db: &Database,
-    source: &Source,
-    id: MangaId,
-) -> Result<Response> {
+pub async fn get_manga_chapters(db: &Database, source: &Source, id: MangaId) -> Result<Response> {
     let (cached, chapters) = match source.get_chapter_list(id.manga_id.clone()).await {
         Ok(chapters) => (false, chapters.into_iter().map(|c| c.into()).collect()),
         Err(_) => (true, db.find_cached_chapter_informations(&id).await),
     };
 
     if !cached {
-        // TODO Update the information on the database
+        stream::iter(&chapters)
+            .for_each(|information| db.upsert_cached_chapter_information(information.clone()))
+            .await;
     }
 
     let chapters_with_state = stream::iter(chapters)

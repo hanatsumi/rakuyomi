@@ -78,6 +78,56 @@ impl Database {
         rows.into_iter().map(|row| row.into()).collect()
     }
 
+    pub async fn upsert_cached_manga_information(&self, information: MangaInformation) {
+        let cover_url = information.cover_url.map(|url| url.to_string());
+
+        sqlx::query!(
+            r#"
+                INSERT INTO manga_informations (source_id, manga_id, title, author, artist, cover_url)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                ON CONFLICT DO UPDATE SET
+                    title = excluded.title,
+                    author = excluded.author,
+                    artist = excluded.artist,
+                    cover_url = excluded.cover_url
+            "#,
+            information.id.source_id.0,
+            information.id.manga_id,
+            information.title,
+            information.author,
+            information.artist,
+            cover_url
+        ).execute(&self.pool).await.unwrap();
+    }
+
+    pub async fn upsert_cached_chapter_information(&self, information: ChapterInformation) {
+        let chapter_number = information
+            .chapter_number
+            .map(|dec| f64::try_from(dec).unwrap());
+        let volume_number = information
+            .volume_number
+            .map(|dec| f64::try_from(dec).unwrap());
+
+        sqlx::query!(
+            r#"
+                INSERT INTO chapter_informations (source_id, manga_id, chapter_id, title, scanlator, chapter_number, volume_number)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+                ON CONFLICT DO UPDATE SET
+                    title = excluded.title,
+                    scanlator = excluded.scanlator,
+                    chapter_number = excluded.chapter_number,
+                    volume_number = excluded.volume_number
+            "#,
+            information.id.manga_id.source_id.0,
+            information.id.manga_id.manga_id,
+            information.id.chapter_id,
+            information.title,
+            information.scanlator,
+            chapter_number,
+            volume_number
+        ).execute(&self.pool).await.unwrap();
+    }
+
     pub async fn find_manga_state(&self, id: &MangaId) -> Option<MangaState> {
         todo!()
     }
