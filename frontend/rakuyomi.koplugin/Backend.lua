@@ -3,7 +3,6 @@ local logger = require("logger")
 local C = require("ffi").C
 local ffiutil = require("ffi/util")
 local rapidjson = require("rapidjson")
-local logger = require("logger")
 
 local Backend = {}
 
@@ -110,56 +109,56 @@ function Backend.initialize()
   Backend.server_pid = pid
 end
 
-function Backend.getMangasInLibrary(callback)
-  callback(requestJson({
+function Backend.getMangasInLibrary()
+  return requestJson({
     url = "http://localhost:30727/library",
-  }))
+  })
 end
 
-function Backend.addMangaToLibrary(source_id, manga_id, callback)
-  callback(requestJson({
+function Backend.addMangaToLibrary(source_id, manga_id)
+  return requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/add-to-library",
     method = "POST"
-  }))
+  })
 end
 
-function Backend.searchMangas(search_text, callback)
-  callback(requestJson({
+function Backend.searchMangas(search_text)
+  return requestJson({
     url = "http://localhost:30727/mangas",
     query_params = {
       q = search_text
     }
-  }))
+  })
 end
 
-function Backend.listChapters(source_id, manga_id, callback)
-  callback(requestJson({
+function Backend.listChapters(source_id, manga_id)
+  return requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters",
-  }))
+  })
 end
 
-function Backend.downloadAllChapters(source_id, manga_id, callback)
-  callback(requestJson({
+function Backend.downloadAllChapters(source_id, manga_id)
+  return requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/download-all",
     method = "POST",
     -- FIXME this is really stupid, we should find a way to report progress to the user
     -- and not just wait forever for it to complete
     timeout = 3600,
-  }))
+  })
 end
 
-function Backend.downloadChapter(source_id, manga_id, chapter_id, callback)
-  callback(requestJson({
+function Backend.downloadChapter(source_id, manga_id, chapter_id)
+  return requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/" .. chapter_id .. "/download",
     method = "POST",
-  }))
+  })
 end
 
-function Backend.markChapterAsRead(source_id, manga_id, chapter_id, callback)
-  callback(requestJson({
+function Backend.markChapterAsRead(source_id, manga_id, chapter_id)
+  return requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/" .. chapter_id .. "/mark-as-read",
     method = "POST",
-  }))
+  })
 end
 
 function Backend.cleanup()

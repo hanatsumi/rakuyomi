@@ -119,47 +119,64 @@ end
 function ChapterListing:onMenuSelect(item)
   local chapter = item.chapter
 
+  self:openChapterOnReader(chapter)
+end
+
+function ChapterListing:openChapterOnReader(chapter)
+  local index = self:findChapterIndex(chapter)
+  assert(index ~= nil)
+
+  local nextChapter = nil
+  if index > 1 then
+    -- Chapters are shown in source order, which means that newer chapters come _first_
+    nextChapter = self.chapters[index - 1]
+  end
+
   local downloadingMessage = InfoMessage:new{
       text = "Downloading chapter…",
   }
 
   UIManager:show(downloadingMessage)
 
-  -- FIXME when the backend functions become actually async we can get rid of this probably
-  UIManager:nextTick(function()
+  UIManager:scheduleIn(2, function()
     local time = require("ui/time")
     local startTime = time.now()
-    Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id, function(outputPath, err)
-      UIManager:close(downloadingMessage)
+    local outputPath, err = Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id)
+    UIManager:close(downloadingMessage)
 
-      if err ~= nil then
-        ErrorDialog:show(err)
+    if err ~= nil then
+      ErrorDialog:show(err)
 
-        return
-      end
+      return
+    end
 
-      logger.info("Downloaded chapter in ", time.to_ms(time.since(startTime)), "ms")
-      local onReturnCallback = function()
-        UIManager:show(self)
-      end
+    logger.info("Downloaded chapter in ", time.to_ms(time.since(startTime)), "ms")
+    local onReturnCallback = function()
+      UIManager:show(self)
+    end
 
-      local onEndOfBookCallback = function()
-        UIManager:show(self)
+    local onEndOfBookCallback = function()
+      Backend.markChapterAsRead(chapter.source_id, chapter.manga_id, chapter.id)
+      -- `chapter` here is one of the elements of the `self.chapters` array, so mutating it
+      -- here will also change the one inside of the array, and therefore the display will
+      -- get updated when we call `updateItems` below
+      chapter.read = true
 
-        Backend.markChapterAsRead(chapter.source_id, chapter.manga_id, chapter.id, function()
-          -- `chapter` here is one of the elements of the `self.chapters` array, so mutating it
-          -- here will also change the one inside of the array, and therefore the display will
-          -- get updated when we call `updateItems` below
-          chapter.read = true
-
+      if nextChapter ~= nil then
+        logger.info("opening next chapter", nextChapter)
+        self:openChapterOnReader(nextChapter)
+      else
+        MangaReader:closeReaderUi(function()
           self:updateItems()
+
+          UIManager:show(self)
         end)
       end
+    end
 
-      self:onClose()
+    self:onClose()
 
-      MangaReader:show(outputPath, onReturnCallback, onEndOfBookCallback)
-    end)
+    MangaReader:show(outputPath, onReturnCallback, onEndOfBookCallback)
   end)
 end
 
@@ -197,29 +214,46 @@ function ChapterListing:onDownloadAllChapters()
   UIManager:nextTick(function()
     local time = require("ui/time")
     local startTime = time.now()
-    Backend.downloadAllChapters(self.manga.source_id, self.manga.id, function(_, err)
-      UIManager:close(downloadingMessage)
+    local _, err = Backend.downloadAllChapters(self.manga.source_id, self.manga.id)
+    UIManager:close(downloadingMessage)
 
-      if err ~= nil then
-        ErrorDialog:show(err)
+    if err ~= nil then
+      ErrorDialog:show(err)
 
-        return
-      end
+      return
+    end
 
-      -- FIXME I don't think mutating the chapter list here is the way to go, but it's quicker
-      -- than making another call to list the chapters from the backend...
-      -- some possible alternatives:
-      -- - return the chapter list from the backend on the `downloadAllChapters` call
-      -- - biting the bullet and making the API call
-      for _, chapter in ipairs(self.chapters) do
-        chapter.downloaded = true
-      end
+    -- FIXME I don't think mutating the chapter list here is the way to go, but it's quicker
+    -- than making another call to list the chapters from the backend...
+    -- some possible alternatives:
+    -- - return the chapter list from the backend on the `downloadAllChapters` call
+    -- - biting the bullet and making the API call
+    for _, chapter in ipairs(self.chapters) do
+      chapter.downloaded = true
+    end
 
-      logger.info("Downloaded all chapters in ", time.to_ms(time.since(startTime)), "ms")
+    logger.info("Downloaded all chapters in ", time.to_ms(time.since(startTime)), "ms")
 
-      self:updateItems()
-    end)
+    self:updateItems()
   end)
+end
+
+--- Finds the index of the given chapter on the chapter listing.
+---@param needle table The chapter being looked for.
+---@return number|nil The index of the chapter on the listing, or nil, if it could not be found.
+function ChapterListing:findChapterIndex(needle)
+  local function isSameChapter(a, b)
+    return a.source_id == b.source_id and a.manga_id == b.manga_id and a.id == b.id
+  end
+
+  for i, chapter in ipairs(self.chapters) do
+    if isSameChapter(chapter, needle) then
+      logger.info("same chapters", chapter, needle, i)
+      return i
+    end
+  end
+
+  return nil
 end
 
 return ChapterListing

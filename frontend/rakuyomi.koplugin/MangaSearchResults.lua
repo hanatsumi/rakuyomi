@@ -72,22 +72,21 @@ end
 
 function MangaSearchResults:onMenuSelect(item)
   local manga = item.manga
+  local chapter_results, err = Backend.listChapters(manga.source_id, manga.id)
 
-  Backend.listChapters(manga.source_id, manga.id, function(chapter_results, err)
-    if err ~= nil then
-      ErrorDialog:show(err)
+  if err ~= nil then
+    ErrorDialog:show(err)
 
-      return
-    end
+    return
+  end
 
-    local onReturnCallback = function()
-      UIManager:show(self)
-    end
+  local onReturnCallback = function()
+    UIManager:show(self)
+  end
 
-    UIManager:close(self)
+  UIManager:close(self)
 
-    ChapterListing:show(manga, chapter_results, onReturnCallback)
-  end)
+  ChapterListing:show(manga, chapter_results, onReturnCallback)
 end
 
 function MangaSearchResults:onMenuHold(item)
@@ -96,15 +95,13 @@ function MangaSearchResults:onMenuHold(item)
     text = "Do you want to add \"" .. manga.title .. "\" to your library?",
     ok_text = "Add",
     ok_callback = function()
-      Backend.addMangaToLibrary(manga.source_id, manga.id, function(_, err)
-        if err ~= nil then
-          ErrorDialog:show(err)
+      local _, err = Backend.addMangaToLibrary(manga.source_id, manga.id)
 
-          return
-        end
+      if err ~= nil then
+        ErrorDialog:show(err)
 
-        -- FIXME should we do something here?
-      end)
+        return
+      end
     end
   })
 end

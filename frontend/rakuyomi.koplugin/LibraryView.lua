@@ -47,38 +47,36 @@ function LibraryView:generateItemTableFromMangas(mangas)
 end
 
 function LibraryView:show()
-  Backend.getMangasInLibrary(function(mangas, err)
-    if err ~= nil then
-      ErrorDialog:show(err)
+  local mangas, err = Backend.getMangasInLibrary()
+  if err ~= nil then
+    ErrorDialog:show(err)
 
-      return
-    end
+    return
+  end
 
-    UIManager:show(LibraryView:new {
-      mangas = mangas,
-      covers_fullscreen = true, -- hint for UIManager:_repaint()
-    })
-  end)
+  UIManager:show(LibraryView:new {
+    mangas = mangas,
+    covers_fullscreen = true, -- hint for UIManager:_repaint()
+  })
 end
 
 function LibraryView:onMenuSelect(item)
   local manga = item.manga
 
-  Backend.listChapters(manga.source_id, manga.id, function(chapter_results, err)
-    if err ~= nil then
-      ErrorDialog:show(err)
+  local chapter_results, err = Backend.listChapters(manga.source_id, manga.id)
+  if err ~= nil then
+    ErrorDialog:show(err)
 
-      return
-    end
+    return
+  end
 
-    local onReturnCallback = function()
-      self:show()
-    end
+  local onReturnCallback = function()
+    self:show()
+  end
 
-    self:onClose(self)
+  self:onClose(self)
 
-    ChapterListing:show(manga, chapter_results, onReturnCallback)
-  end)
+  ChapterListing:show(manga, chapter_results, onReturnCallback)
 end
 
 function LibraryView:openSearchMangasDialog()
@@ -114,21 +112,20 @@ function LibraryView:openSearchMangasDialog()
 end
 
 function LibraryView:searchMangas(search_text)
-  Backend.searchMangas(search_text, function(results, err)
-    if err ~= nil then
-      ErrorDialog:show(err)
+  local results, err = Backend.searchMangas(search_text)
+  if err ~= nil then
+    ErrorDialog:show(err)
 
-      return
-    end
+    return
+  end
 
-    local onReturnCallback = function()
-      self:show()
-    end
+  local onReturnCallback = function()
+    self:show()
+  end
 
-    self:onClose()
+  self:onClose()
 
-    MangaSearchResults:show(results, onReturnCallback)
-  end)
+  MangaSearchResults:show(results, onReturnCallback)
 end
 
 
