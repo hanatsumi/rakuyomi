@@ -2,7 +2,7 @@ local Menu = require("ui/widget/menu")
 local UIManager = require("ui/uimanager")
 local Screen = require("device").screen
 local logger = require("logger")
-local backend = require("backend")
+local Backend = require("Backend")
 local ChapterListing = require("ChapterListing")
 
 -- FIXME maybe rename to screen i think ill do it
@@ -40,7 +40,7 @@ end
 
 function MangaSearchResults:onMenuSelect(item)
   local manga = item.manga
-  local chapter_results = backend.list_chapters(manga.source_id, manga.id)
+  local chapter_results = Backend.listChapters(manga.source_id, manga.id)
 
   ChapterListing:show(chapter_results)
 end

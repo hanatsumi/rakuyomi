@@ -4,8 +4,8 @@ local InputDialog = require("ui/widget/inputdialog")
 local UIManager = require("ui/uimanager")
 local logger = require("logger")
 local _ = require("gettext")
-local backend = require("backend")
-local DataStorage = require("datastorage")
+
+local Backend = require("Backend")
 local MangaSearchResults = require("MangaSearchResults")
 
 logger.info("Loading Rakuyomi plugin...")
@@ -15,8 +15,7 @@ local Rakuyomi = WidgetContainer:extend({
 })
 
 function Rakuyomi:init()
-  local sourcesPath = DataStorage:getDataDir() .. "/rakuyomi/sources"
-  backend.initialize(sourcesPath)
+  Backend.initialize()
   self.ui.menu:registerToMainMenu(self)
 end
 
@@ -63,12 +62,27 @@ function Rakuyomi:openSearchMangasDialog()
 end
 
 function Rakuyomi:searchMangas(search_text)
-  local results = backend.search_mangas(search_text)
+  local results = Backend.searchMangas(search_text)
 
   UIManager:show(MangaSearchResults:new {
     results = results,
     covers_fullscreen = true, -- hint for UIManager:_repaint()
   })
+end
+
+function Rakuyomi:onClose()
+  logger.info("onClose called!")
+  Backend.cleanup()
+end
+
+function Rakuyomi:onExit()
+  logger.info("onExit called!")
+  Backend.cleanup()
+end
+
+function Rakuyomi:onRestart()
+  logger.info("onRestart called!")
+  Backend.cleanup()
 end
 
 return Rakuyomi

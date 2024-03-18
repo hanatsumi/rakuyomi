@@ -2,7 +2,7 @@ local Menu = require("ui/widget/menu")
 local InfoMessage = require("ui/widget/infomessage")
 local UIManager = require("ui/uimanager")
 local Screen = require("device").screen
-local backend = require("backend")
+local Backend = require("Backend")
 local DataStorage = require("datastorage")
 local logger = require("logger")
 
@@ -69,7 +69,7 @@ function ChapterListing:onMenuSelect(item)
   UIManager:show(downloadingMessage)
 
   UIManager:nextTick(function()
-    backend.download_chapter(chapter.source_id, chapter.manga_id, chapter.id, outputPath)
+    Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id, outputPath)
 
     -- took this from opds reader
     local Event = require("ui/event")
