@@ -5,6 +5,7 @@ local Screen = require("device").screen
 local logger = require("logger")
 
 local Backend = require("Backend")
+local ErrorDialog = require("ErrorDialog")
 local MangaReader = require("MangaReader")
 
 -- FIXME maybe rename to screen i think ill do it
@@ -98,14 +99,21 @@ function ChapterListing:onMenuSelect(item)
   UIManager:nextTick(function()
     local time = require("ui/time")
     local startTime = time.now()
-    Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id, function(outputPath)
+    Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id, function(outputPath, err)
+      UIManager:close(downloadingMessage)
+
+      if err ~= nil then
+        ErrorDialog:show(err)
+
+        return
+      end
+
       logger.info("Downloaded chapter in ", time.to_ms(time.since(startTime)), "ms")
       local onReturnCallback = function()
         UIManager:show(self)
       end
 
       self:onClose()
-      UIManager:close(downloadingMessage)
 
       MangaReader:show(outputPath, onReturnCallback)
     end)

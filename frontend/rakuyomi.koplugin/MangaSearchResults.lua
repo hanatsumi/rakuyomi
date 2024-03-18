@@ -2,7 +2,9 @@ local ConfirmBox = require("ui/widget/confirmbox")
 local Menu = require("ui/widget/menu")
 local UIManager = require("ui/uimanager")
 local Screen = require("device").screen
+
 local Backend = require("Backend")
+local ErrorDialog = require("ErrorDialog")
 local ChapterListing = require("ChapterListing")
 
 -- FIXME maybe rename to screen i think ill do it
@@ -64,7 +66,13 @@ end
 function MangaSearchResults:onMenuSelect(item)
   local manga = item.manga
 
-  Backend.listChapters(manga.source_id, manga.id, function(chapter_results)
+  Backend.listChapters(manga.source_id, manga.id, function(chapter_results, err)
+    if err ~= nil then
+      ErrorDialog:show(err)
+
+      return
+    end
+
     local onReturnCallback = function()
       UIManager:show(self)
     end
@@ -81,7 +89,13 @@ function MangaSearchResults:onMenuHold(item)
     text = "Do you want to add \"" .. manga.title .. "\" to your library?",
     ok_text = "Add",
     ok_callback = function()
-      Backend.addMangaToLibrary(manga.source_id, manga.id, function()
+      Backend.addMangaToLibrary(manga.source_id, manga.id, function(_, err)
+        if err ~= nil then
+          ErrorDialog:show(err)
+
+          return
+        end
+
         -- FIXME should we do something here?
       end)
     end

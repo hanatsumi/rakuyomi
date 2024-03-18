@@ -3,6 +3,7 @@ local logger = require("logger")
 local C = require("ffi").C
 local ffiutil = require("ffi/util")
 local rapidjson = require("rapidjson")
+local logger = require("logger")
 
 local Backend = {}
 
@@ -64,15 +65,20 @@ local function requestJson(request)
   })
 
   local response_body = table.concat(sink)
-
-  if not (status_code and status_code >= 200 and status_code <= 299) then
-    error("Request failed with status code " .. status_code .. " and body " .. response_body)
-  end
-
+  -- Under normal conditions, we should always have a request body, even when the status code
+  -- is not 2xx
   local parsed_body, err = rapidjson.decode(response_body)
   assert(not err)
 
-  return replaceRapidJsonNullWithNilRecursively(parsed_body)
+  if not (status_code and status_code >= 200 and status_code <= 299) then
+    logger.err("Request failed with status code", status_code, "and body", parsed_body)
+    local error_message = parsed_body.message
+    assert(error_message ~= nil, "Request failed without error message")
+
+    return nil, error_message
+  end
+
+  return replaceRapidJsonNullWithNilRecursively(parsed_body), nil
 end
 
 function Backend.initialize()

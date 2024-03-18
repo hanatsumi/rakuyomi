@@ -20,12 +20,14 @@ pub async fn fetch_manga_chapter(
         return Ok(output_path);
     }
 
+    // FIXME like downloaderror is a really bad name??
     let pages = source
         .get_page_list(
             chapter_id.manga_id.manga_id.clone(),
             chapter_id.chapter_id.clone(),
         )
-        .await?;
+        .await
+        .map_err(Error::DownloadError)?;
 
     let output_file = fs::File::create(&output_path).map_err(|e| anyhow::Error::from(e))?;
     download_chapter_pages_as_cbz(output_file, pages)

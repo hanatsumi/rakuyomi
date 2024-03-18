@@ -8,6 +8,7 @@ local logger = require("logger")
 local _ = require("gettext")
 
 local Backend = require("Backend")
+local ErrorDialog = require("ErrorDialog")
 local ChapterListing = require("ChapterListing")
 local MangaSearchResults = require("MangaSearchResults")
 
@@ -46,7 +47,13 @@ function LibraryView:generateItemTableFromMangas(mangas)
 end
 
 function LibraryView:show()
-  Backend.getMangasInLibrary(function(mangas)
+  Backend.getMangasInLibrary(function(mangas, err)
+    if err ~= nil then
+      ErrorDialog:show(err)
+
+      return
+    end
+
     UIManager:show(LibraryView:new {
       mangas = mangas,
       covers_fullscreen = true, -- hint for UIManager:_repaint()
@@ -57,7 +64,13 @@ end
 function LibraryView:onMenuSelect(item)
   local manga = item.manga
 
-  Backend.listChapters(manga.source_id, manga.id, function(chapter_results)
+  Backend.listChapters(manga.source_id, manga.id, function(chapter_results, err)
+    if err ~= nil then
+      ErrorDialog:show(err)
+
+      return
+    end
+
     local onReturnCallback = function()
       self:show()
     end
@@ -101,7 +114,13 @@ function LibraryView:openSearchMangasDialog()
 end
 
 function LibraryView:searchMangas(search_text)
-  Backend.searchMangas(search_text, function(results)
+  Backend.searchMangas(search_text, function(results, err)
+    if err ~= nil then
+      ErrorDialog:show(err)
+
+      return
+    end
+
     local onReturnCallback = function()
       self:show()
     end

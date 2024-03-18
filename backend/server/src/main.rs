@@ -12,15 +12,16 @@ use clap::Parser;
 use cli::database::Database;
 use cli::model::{ChapterId, MangaId, MangaInformation, SourceId};
 use cli::source::Source;
-use cli::usecases::fetch_manga_chapter::fetch_manga_chapter;
 use cli::usecases::{
     add_manga_to_library::add_manga_to_library as add_manga_to_library_usecase,
+    fetch_manga_chapter::fetch_manga_chapter,
+    fetch_manga_chapter::Error as FetchMangaChaptersError,
     get_manga_chapters::get_manga_chapters as get_manga_chapters_usecase,
     get_manga_chapters::Response as GetMangaChaptersUsecaseResponse,
     get_manga_library::get_manga_library as get_manga_library_usecase,
-    search_mangas::search_mangas,
+    search_mangas::search_mangas, search_mangas::Error as SearchMangasError,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
 use model::{Chapter, Manga};
@@ -106,7 +107,8 @@ async fn get_mangas(
     Query(GetMangasQuery { q }): Query<GetMangasQuery>,
 ) -> Result<Json<Vec<Manga>>, AppError> {
     let mangas = search_mangas(&*source.lock().await, &database, q)
-        .await?
+        .await
+        .map_err(AppError::from_search_mangas_error)?
         .into_iter()
         .map(|source_manga| Manga::from(source_manga))
         .collect();
@@ -188,20 +190,52 @@ async fn download_manga_chapter(
         chapter_id,
     };
     let output_path =
-        fetch_manga_chapter(&*source.lock().await, &downloads_folder_path, &chapter_id).await?;
+        fetch_manga_chapter(&*source.lock().await, &downloads_folder_path, &chapter_id)
+            .await
+            .map_err(AppError::from_fetch_manga_chapters_error)?;
 
     Ok(Json(output_path.to_string_lossy().into()))
 }
 
 // Make our own error that wraps `anyhow::Error`.
-struct AppError(anyhow::Error);
+enum AppError {
+    NetworkFailure(anyhow::Error),
+    Other(anyhow::Error),
+}
+
+#[derive(Serialize)]
+struct ErrorResponse {
+    message: String,
+}
+
+impl AppError {
+    fn from_search_mangas_error(value: SearchMangasError) -> Self {
+        match value {
+            SearchMangasError::SourceError(e) => Self::NetworkFailure(e),
+        }
+    }
+
+    fn from_fetch_manga_chapters_error(value: FetchMangaChaptersError) -> Self {
+        match value {
+            FetchMangaChaptersError::DownloadError(e) => Self::NetworkFailure(e),
+            FetchMangaChaptersError::Other(e) => Self::Other(e),
+        }
+    }
+}
 
 // Tell axum how to convert `AppError` into a response.
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
+        let message = match self {
+            Self::NetworkFailure(_) => {
+                "There was a network error. Check your connection and try again.".to_string()
+            }
+            Self::Other(e) => format!("Something went wrong: {}", e),
+        };
+
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Something went wrong: {}", self.0),
+            Json(ErrorResponse { message }),
         )
             .into_response()
     }
@@ -214,6 +248,6 @@ where
     E: Into<anyhow::Error>,
 {
     fn from(err: E) -> Self {
-        Self(err.into())
+        Self::Other(err.into())
     }
 }
