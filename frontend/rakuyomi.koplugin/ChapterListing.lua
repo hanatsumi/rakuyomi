@@ -1,3 +1,4 @@
+local ButtonDialog = require("ui/widget/buttondialog")
 local Menu = require("ui/widget/menu")
 local InfoMessage = require("ui/widget/infomessage")
 local UIManager = require("ui/uimanager")
@@ -17,6 +18,7 @@ local ChapterListing = Menu:extend {
   align_baselines = true,
 
   -- list of chapters
+  manga = nil,
   results = nil,
   -- callback to be called when pressing the back button
   on_return_callback = nil,
@@ -27,6 +29,11 @@ local FA_DOWNLOAD_ICON = "\u{F019}"
 
 function ChapterListing:init()
   self.results = self.results or {}
+  self.title_bar_left_icon = "appbar.menu"
+  self.onLeftButtonTap = function()
+    self:openMenu()
+  end
+
   self.item_table = self:generateItemTableFromResults(self.results)
   self.width = Screen:getWidth()
   self.height = Screen:getHeight()
@@ -93,8 +100,9 @@ function ChapterListing:onReturn()
   path.callback()
 end
 
-function ChapterListing:show(results, onReturnCallback)
+function ChapterListing:show(manga, results, onReturnCallback)
   UIManager:show(ChapterListing:new {
+    manga = manga,
     results = results,
     on_return_callback = onReturnCallback,
     covers_fullscreen = true, -- hint for UIManager:_repaint()
@@ -131,6 +139,65 @@ function ChapterListing:onMenuSelect(item)
       self:onClose()
 
       MangaReader:show(outputPath, onReturnCallback)
+    end)
+  end)
+end
+
+function ChapterListing:openMenu()
+  local dialog
+
+  local buttons = {
+    {
+      {
+        text = FA_DOWNLOAD_ICON .. " Download all chapters",
+        callback = function()
+          UIManager:close(dialog)
+
+          self:onDownloadAllChapters()
+        end
+      }
+    }
+  }
+
+  dialog = ButtonDialog:new {
+    buttons = buttons,
+  }
+
+  UIManager:show(dialog)
+end
+
+function ChapterListing:onDownloadAllChapters()
+  local downloadingMessage = InfoMessage:new{
+      text = "Downloading all chapters, this will take a while…",
+  }
+
+  UIManager:show(downloadingMessage)
+
+  -- FIXME when the backend functions become actually async we can get rid of this probably
+  UIManager:nextTick(function()
+    local time = require("ui/time")
+    local startTime = time.now()
+    Backend.downloadAllChapters(self.manga.source_id, self.manga.id, function(_, err)
+      UIManager:close(downloadingMessage)
+
+      if err ~= nil then
+        ErrorDialog:show(err)
+
+        return
+      end
+
+      -- FIXME I don't think mutating the chapter list here is the way to go, but it's quicker
+      -- than making another call to list the chapters from the backend...
+      -- some possible alternatives:
+      -- - return the chapter list from the backend on the `downloadAllChapters` call
+      -- - biting the bullet and making the API call
+      for _, chapter in ipairs(self.results) do
+        chapter.downloaded = true
+      end
+
+      logger.info("Downloaded all chapters in ", time.to_ms(time.since(startTime)), "ms")
+
+      self:updateItems()
     end)
   end)
 end

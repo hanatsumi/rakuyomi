@@ -79,7 +79,7 @@ function MangaSearchResults:onMenuSelect(item)
 
     UIManager:close(self)
 
-    ChapterListing:show(chapter_results, onReturnCallback)
+    ChapterListing:show(manga, chapter_results, onReturnCallback)
   end)
 end
 

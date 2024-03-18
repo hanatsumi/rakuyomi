@@ -4,15 +4,16 @@ use anyhow::Result;
 use futures::{stream, StreamExt};
 
 use crate::{
+    chapter_storage::ChapterStorage,
     database::Database,
-    model::{Chapter, ChapterInformation, ChapterState, MangaId},
+    model::{Chapter, MangaId},
     source::Source,
 };
 
 pub async fn get_manga_chapters(
     db: &Database,
     source: &Source,
-    downloads_folder_path: &Path,
+    chapter_storage: &ChapterStorage,
     id: MangaId,
 ) -> Result<Response> {
     let (cached, chapter_informations) = match source.get_chapter_list(id.manga_id.clone()).await {
@@ -31,14 +32,9 @@ pub async fn get_manga_chapters(
                 .find_chapter_state(&information.id)
                 .await
                 .unwrap_or_default();
-
-            // TODO unify logic with `fetch_manga_chapter`
-            let output_filename = format!(
-                "{}-{}.cbz",
-                &information.id.manga_id.source_id.0, &information.id.chapter_id
-            );
-            let output_path = downloads_folder_path.join(output_filename);
-            let downloaded = output_path.exists();
+            let downloaded = chapter_storage
+                .get_stored_chapter(&information.id)
+                .is_some();
 
             Chapter {
                 information,

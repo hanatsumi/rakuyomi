@@ -1,14 +1,56 @@
 use futures::{stream, StreamExt, TryStreamExt};
-use std::{io::Seek, io::Write, path::Path};
+use std::{
+    io::Seek,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
-use anyhow::{anyhow, Ok, Result};
+use anyhow::anyhow;
 use zip::{write::FileOptions, CompressionMethod, ZipWriter};
 
-use crate::source::model::Page;
+use crate::{
+    chapter_storage::ChapterStorage,
+    model::ChapterId,
+    source::{model::Page, Source},
+};
 
 const CONCURRENT_REQUESTS: usize = 4;
 
-pub async fn download_chapter_pages_as_cbz<W>(output: W, pages: Vec<Page>) -> Result<()>
+pub async fn ensure_chapter_is_in_storage(
+    chapter_storage: &ChapterStorage,
+    source: &Source,
+    chapter_id: &ChapterId,
+) -> Result<PathBuf, Error> {
+    if let Some(path) = chapter_storage.get_stored_chapter(chapter_id) {
+        return Ok(path);
+    }
+
+    // FIXME like downloaderror is a really bad name??
+    let pages = source
+        .get_page_list(
+            chapter_id.manga_id.manga_id.clone(),
+            chapter_id.chapter_id.clone(),
+        )
+        .await
+        .map_err(Error::DownloadError)?;
+
+    let (output_path, output_file) = chapter_storage.create_file_to_store_chapter(chapter_id)?;
+    download_chapter_pages_as_cbz(output_file, pages)
+        .await
+        .map_err(Error::DownloadError)?;
+
+    Ok(output_path)
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error("an error occurred while downloading the chapter pages")]
+    DownloadError(#[source] anyhow::Error),
+    #[error("unknown error")]
+    Other(#[from] anyhow::Error),
+}
+
+async fn download_chapter_pages_as_cbz<W>(output: W, pages: Vec<Page>) -> anyhow::Result<()>
 where
     W: Write + Seek,
 {
@@ -37,7 +79,7 @@ where
                 // would save a bit of memory but i dont think its a big deal
                 let response_bytes = client.get(image_url).send().await?.bytes().await?;
 
-                Ok((filename, response_bytes))
+                anyhow::Ok((filename, response_bytes))
             }
         })
         .buffer_unordered(CONCURRENT_REQUESTS)

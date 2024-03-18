@@ -77,7 +77,7 @@ function LibraryView:onMenuSelect(item)
 
     self:onClose(self)
 
-    ChapterListing:show(chapter_results, onReturnCallback)
+    ChapterListing:show(manga, chapter_results, onReturnCallback)
   end)
 end
 

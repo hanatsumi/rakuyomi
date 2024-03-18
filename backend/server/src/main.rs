@@ -9,11 +9,14 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{extract::State as StateExtractor, Json, Router};
 use clap::Parser;
+use cli::chapter_storage::ChapterStorage;
 use cli::database::Database;
-use cli::model::{ChapterId, MangaId, MangaInformation, SourceId};
+use cli::model::{ChapterId, MangaId, SourceId};
 use cli::source::Source;
 use cli::usecases::{
     add_manga_to_library::add_manga_to_library as add_manga_to_library_usecase,
+    fetch_all_manga_chapters::fetch_all_manga_chapters,
+    fetch_all_manga_chapters::Error as FetchAllMangaChaptersError,
     fetch_manga_chapter::fetch_manga_chapter,
     fetch_manga_chapter::Error as FetchMangaChaptersError,
     get_manga_chapters::get_manga_chapters as get_manga_chapters_usecase,
@@ -35,7 +38,7 @@ struct Args {
 struct State {
     source: Arc<Mutex<Source>>,
     database: Arc<Database>,
-    downloads_folder_path: PathBuf,
+    chapter_storage: ChapterStorage,
 }
 
 #[tokio::main]
@@ -47,11 +50,12 @@ async fn main() -> anyhow::Result<()> {
 
     let source = Source::from_aix_file(&source_path)?;
     let database = Database::new(&database_path).await?;
+    let chapter_storage = ChapterStorage::new(downloads_folder_path);
 
     let state = State {
         source: Arc::new(Mutex::new(source)),
         database: Arc::new(database),
-        downloads_folder_path,
+        chapter_storage,
     };
 
     let app = Router::new()
@@ -64,6 +68,10 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/mangas/:source_id/:manga_id/chapters",
             get(get_manga_chapters),
+        )
+        .route(
+            "/mangas/:source_id/:manga_id/chapters/download-all",
+            post(download_all_manga_chapters),
         )
         // FIXME i dont think the route should be named download because it doesnt
         // always download the file...
@@ -117,17 +125,17 @@ async fn get_mangas(
 }
 
 #[derive(Deserialize)]
-struct MangaChapterPathParams {
+struct MangaChaptersPathParams {
     source_id: String,
     manga_id: String,
 }
 
 async fn add_manga_to_library(
     StateExtractor(State { database, .. }): StateExtractor<State>,
-    Path(MangaChapterPathParams {
+    Path(MangaChaptersPathParams {
         source_id,
         manga_id,
-    }): Path<MangaChapterPathParams>,
+    }): Path<MangaChaptersPathParams>,
 ) -> Result<Json<()>, AppError> {
     let manga_id = MangaId {
         source_id: SourceId(source_id),
@@ -143,25 +151,21 @@ async fn get_manga_chapters(
     StateExtractor(State {
         source,
         database,
-        downloads_folder_path,
+        chapter_storage,
         ..
     }): StateExtractor<State>,
-    Path(MangaChapterPathParams {
+    Path(MangaChaptersPathParams {
         source_id,
         manga_id,
-    }): Path<MangaChapterPathParams>,
+    }): Path<MangaChaptersPathParams>,
 ) -> Result<Json<Vec<Chapter>>, AppError> {
     let manga_id = MangaId {
         source_id: SourceId(source_id),
         manga_id,
     };
-    let GetMangaChaptersUsecaseResponse(_, chapters) = get_manga_chapters_usecase(
-        &database,
-        &*source.lock().await,
-        &downloads_folder_path,
-        manga_id,
-    )
-    .await?;
+    let GetMangaChaptersUsecaseResponse(_, chapters) =
+        get_manga_chapters_usecase(&database, &*source.lock().await, &chapter_storage, manga_id)
+            .await?;
 
     let chapters = chapters
         .into_iter()
@@ -169,6 +173,30 @@ async fn get_manga_chapters(
         .collect();
 
     Ok(Json(chapters))
+}
+
+async fn download_all_manga_chapters(
+    StateExtractor(State {
+        source,
+        database,
+        chapter_storage,
+        ..
+    }): StateExtractor<State>,
+    Path(MangaChaptersPathParams {
+        source_id,
+        manga_id,
+    }): Path<MangaChaptersPathParams>,
+) -> Result<Json<()>, AppError> {
+    let manga_id = MangaId {
+        source_id: SourceId(source_id),
+        manga_id,
+    };
+
+    fetch_all_manga_chapters(&*source.lock().await, &database, &chapter_storage, manga_id)
+        .await
+        .map_err(AppError::from_fetch_all_manga_chapters_error)?;
+
+    Ok(Json(()))
 }
 
 #[derive(Deserialize)]
@@ -181,7 +209,7 @@ struct DownloadMangaChapterParams {
 async fn download_manga_chapter(
     StateExtractor(State {
         source,
-        downloads_folder_path,
+        chapter_storage,
         ..
     }): StateExtractor<State>,
     Path(DownloadMangaChapterParams {
@@ -197,10 +225,9 @@ async fn download_manga_chapter(
         },
         chapter_id,
     };
-    let output_path =
-        fetch_manga_chapter(&*source.lock().await, &downloads_folder_path, &chapter_id)
-            .await
-            .map_err(AppError::from_fetch_manga_chapters_error)?;
+    let output_path = fetch_manga_chapter(&*source.lock().await, &chapter_storage, &chapter_id)
+        .await
+        .map_err(AppError::from_fetch_manga_chapters_error)?;
 
     Ok(Json(output_path.to_string_lossy().into()))
 }
@@ -220,6 +247,13 @@ impl AppError {
     fn from_search_mangas_error(value: SearchMangasError) -> Self {
         match value {
             SearchMangasError::SourceError(e) => Self::NetworkFailure(e),
+        }
+    }
+
+    fn from_fetch_all_manga_chapters_error(value: FetchAllMangaChaptersError) -> Self {
+        match value {
+            FetchAllMangaChaptersError::DownloadError(e) => Self::NetworkFailure(e),
+            FetchAllMangaChaptersError::Other(e) => Self::Other(e),
         }
     }
 

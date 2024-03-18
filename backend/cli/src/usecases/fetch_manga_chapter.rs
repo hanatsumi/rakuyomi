@@ -1,40 +1,22 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::path::PathBuf;
 
-use crate::{chapter_downloader::download_chapter_pages_as_cbz, model::ChapterId, source::Source};
+use crate::{
+    chapter_downloader::ensure_chapter_is_in_storage,
+    chapter_downloader::Error as ChapterDownloaderError, chapter_storage::ChapterStorage,
+    model::ChapterId, source::Source,
+};
 
 pub async fn fetch_manga_chapter(
     source: &Source,
-    downloads_folder_path: &Path,
+    chapter_storage: &ChapterStorage,
     chapter_id: &ChapterId,
 ) -> Result<PathBuf, Error> {
-    let output_filename = format!(
-        "{}-{}.cbz",
-        &chapter_id.manga_id.source_id.0, &chapter_id.chapter_id
-    );
-    let output_path = downloads_folder_path.join(output_filename);
-
-    if output_path.exists() {
-        return Ok(output_path);
-    }
-
-    // FIXME like downloaderror is a really bad name??
-    let pages = source
-        .get_page_list(
-            chapter_id.manga_id.manga_id.clone(),
-            chapter_id.chapter_id.clone(),
-        )
+    ensure_chapter_is_in_storage(chapter_storage, source, chapter_id)
         .await
-        .map_err(Error::DownloadError)?;
-
-    let output_file = fs::File::create(&output_path).map_err(|e| anyhow::Error::from(e))?;
-    download_chapter_pages_as_cbz(output_file, pages)
-        .await
-        .map_err(Error::DownloadError)?;
-
-    Ok(output_path)
+        .map_err(|e| match e {
+            ChapterDownloaderError::DownloadError(e) => Error::DownloadError(e),
+            ChapterDownloaderError::Other(e) => Error::Other(e),
+        })
 }
 
 #[derive(thiserror::Error, Debug)]

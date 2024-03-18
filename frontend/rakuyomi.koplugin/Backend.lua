@@ -30,6 +30,7 @@ local function requestJson(request)
   local url = require("socket.url")
   local ltn12 = require("ltn12")
   local http = require("socket.http")
+  local socketutil = require("socketutil")
   local parsed_url = url.parse(request.url)
 
   -- FIXME naming
@@ -53,6 +54,12 @@ local function requestJson(request)
     headers["Content-Length"] = serialized_body:len()
   end
 
+  -- Specify a timeout for the given request
+  local timeout = request.timeout or nil
+  if timeout ~= nil then
+    socketutil:set_timeout(timeout, timeout)
+  end
+
   logger.info("Requesting to ", parsed_url, built_query_params)
 
   local sink = {}
@@ -64,11 +71,15 @@ local function requestJson(request)
     sink = ltn12.sink.table(sink)
   })
 
+  socketutil:reset_timeout()
+
   local response_body = table.concat(sink)
   -- Under normal conditions, we should always have a request body, even when the status code
   -- is not 2xx
   local parsed_body, err = rapidjson.decode(response_body)
-  assert(not err)
+  if err then
+    error("Expected to be able to decode the response body as JSON: " .. response_body)
+  end
 
   if not (status_code and status_code >= 200 and status_code <= 299) then
     logger.err("Request failed with status code", status_code, "and body", parsed_body)
@@ -124,6 +135,16 @@ end
 function Backend.listChapters(source_id, manga_id, callback)
   callback(requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters",
+  }))
+end
+
+function Backend.downloadAllChapters(source_id, manga_id, callback)
+  callback(requestJson({
+    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/download-all",
+    method = "POST",
+    -- FIXME this is really stupid, we should find a way to report progress to the user
+    -- and not just wait forever for it to complete
+    timeout = 3600,
   }))
 end
 
