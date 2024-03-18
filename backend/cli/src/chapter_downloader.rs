@@ -39,7 +39,8 @@ pub async fn ensure_chapter_is_in_storage(
 
     // Write chapter pages to a temporary file, so that if things go wrong
     // we do not have a borked .cbz file in the chapter storage.
-    let temporary_file = NamedTempFile::new().map_err(|e| Error::Other(e.into()))?;
+    let temporary_file =
+        NamedTempFile::new_in(output_path.parent().unwrap()).map_err(|e| Error::Other(e.into()))?;
     download_chapter_pages_as_cbz(&temporary_file, pages)
         .await
         .map_err(Error::DownloadError)?;
