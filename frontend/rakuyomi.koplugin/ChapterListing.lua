@@ -14,12 +14,16 @@ local ChapterListing = Menu:extend {
   is_enable_shortcut = false,
   is_popout = false,
   title = "Chapter listing",
+  align_baselines = true,
 
   -- list of chapters
   results = nil,
   -- callback to be called when pressing the back button
   on_return_callback = nil,
 }
+
+local FA_BOOK_ICON = "\u{F02D}"
+local FA_DOWNLOAD_ICON = "\u{F019}"
 
 function ChapterListing:init()
   self.results = self.results or {}
@@ -62,9 +66,20 @@ function ChapterListing:generateItemTableFromResults(results)
       text = text .. " (" .. result.scanlator .. ")"
     end
 
+    -- The text that shows to the right of the menu item
+    local mandatory = ""
+    if result.read then
+      mandatory = mandatory .. FA_BOOK_ICON
+    end
+
+    if result.downloaded then
+      mandatory = mandatory .. FA_DOWNLOAD_ICON
+    end
+
     table.insert(item_table, {
       chapter = result,
       text = text,
+      mandatory = mandatory,
     })
   end
 

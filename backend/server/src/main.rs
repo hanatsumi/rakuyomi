@@ -141,7 +141,10 @@ async fn add_manga_to_library(
 
 async fn get_manga_chapters(
     StateExtractor(State {
-        source, database, ..
+        source,
+        database,
+        downloads_folder_path,
+        ..
     }): StateExtractor<State>,
     Path(MangaChapterPathParams {
         source_id,
@@ -152,12 +155,17 @@ async fn get_manga_chapters(
         source_id: SourceId(source_id),
         manga_id,
     };
-    let GetMangaChaptersUsecaseResponse(_, chapters) =
-        get_manga_chapters_usecase(&database, &*source.lock().await, manga_id).await?;
+    let GetMangaChaptersUsecaseResponse(_, chapters) = get_manga_chapters_usecase(
+        &database,
+        &*source.lock().await,
+        &downloads_folder_path,
+        manga_id,
+    )
+    .await?;
 
     let chapters = chapters
         .into_iter()
-        .map(|(source_chapter, _)| Chapter::from(source_chapter))
+        .map(|domain_chapter| Chapter::from(domain_chapter))
         .collect();
 
     Ok(Json(chapters))

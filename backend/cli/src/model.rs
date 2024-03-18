@@ -43,6 +43,12 @@ pub struct ChapterState {
     pub read: bool,
 }
 
+pub struct Chapter {
+    pub information: ChapterInformation,
+    pub state: ChapterState,
+    pub downloaded: bool,
+}
+
 impl From<SourceManga> for MangaInformation {
     fn from(value: SourceManga) -> Self {
         Self {
