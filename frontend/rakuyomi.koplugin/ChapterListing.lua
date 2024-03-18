@@ -2,7 +2,6 @@ local Menu = require("ui/widget/menu")
 local InfoMessage = require("ui/widget/infomessage")
 local UIManager = require("ui/uimanager")
 local Screen = require("device").screen
-local DataStorage = require("datastorage")
 local logger = require("logger")
 
 local Backend = require("Backend")

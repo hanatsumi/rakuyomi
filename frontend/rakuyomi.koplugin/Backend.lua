@@ -63,12 +63,12 @@ local function requestJson(request)
     sink = ltn12.sink.table(sink)
   })
 
-  assert(
-    status_code and status_code >= 200 and status_code <= 299,
-    "Request failed with status code " .. status_code
-  )
-
   local response_body = table.concat(sink)
+
+  if not (status_code and status_code >= 200 and status_code <= 299) then
+    error("Request failed with status code " .. status_code .. " and body " .. response_body)
+  end
+
   local parsed_body, err = rapidjson.decode(response_body)
   assert(not err)
 
@@ -91,6 +91,19 @@ function Backend.initialize()
 
   logger.info("Spawned HTTP server with PID " .. pid)
   Backend.server_pid = pid
+end
+
+function Backend.getMangasInLibrary(callback)
+  callback(requestJson({
+    url = "http://localhost:30727/library",
+  }))
+end
+
+function Backend.addMangaToLibrary(source_id, manga_id, callback)
+  callback(requestJson({
+    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/add-to-library",
+    method = "POST"
+  }))
 end
 
 function Backend.searchMangas(search_text, callback)

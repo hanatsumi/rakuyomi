@@ -14,8 +14,11 @@ use cli::model::{ChapterId, MangaId, MangaInformation, SourceId};
 use cli::source::Source;
 use cli::usecases::fetch_manga_chapter::fetch_manga_chapter;
 use cli::usecases::{
+    add_manga_to_library::add_manga_to_library as add_manga_to_library_usecase,
     get_manga_chapters::get_manga_chapters as get_manga_chapters_usecase,
-    get_manga_chapters::Response as GetMangaChaptersUsecaseResponse, search_mangas::search_mangas,
+    get_manga_chapters::Response as GetMangaChaptersUsecaseResponse,
+    get_manga_library::get_manga_library as get_manga_library_usecase,
+    search_mangas::search_mangas,
 };
 use serde::Deserialize;
 use tokio::sync::Mutex;
@@ -51,7 +54,12 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let app = Router::new()
+        .route("/library", get(get_manga_library))
         .route("/mangas", get(get_mangas))
+        .route(
+            "/mangas/:source_id/:manga_id/add-to-library",
+            post(add_manga_to_library),
+        )
         .route(
             "/mangas/:source_id/:manga_id/chapters",
             get(get_manga_chapters),
@@ -72,6 +80,18 @@ async fn main() -> anyhow::Result<()> {
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+async fn get_manga_library(
+    StateExtractor(State { database, .. }): StateExtractor<State>,
+) -> Result<Json<Vec<Manga>>, AppError> {
+    let mangas = get_manga_library_usecase(&database)
+        .await?
+        .into_iter()
+        .map(|source_manga| Manga::from(source_manga))
+        .collect();
+
+    Ok(Json(mangas))
 }
 
 #[derive(Deserialize)]
@@ -95,19 +115,36 @@ async fn get_mangas(
 }
 
 #[derive(Deserialize)]
-struct GetMangaChaptersParams {
+struct MangaChapterPathParams {
     source_id: String,
     manga_id: String,
+}
+
+async fn add_manga_to_library(
+    StateExtractor(State { database, .. }): StateExtractor<State>,
+    Path(MangaChapterPathParams {
+        source_id,
+        manga_id,
+    }): Path<MangaChapterPathParams>,
+) -> Result<Json<()>, AppError> {
+    let manga_id = MangaId {
+        source_id: SourceId(source_id),
+        manga_id,
+    };
+
+    add_manga_to_library_usecase(&database, manga_id).await?;
+
+    Ok(Json(()))
 }
 
 async fn get_manga_chapters(
     StateExtractor(State {
         source, database, ..
     }): StateExtractor<State>,
-    Path(GetMangaChaptersParams {
+    Path(MangaChapterPathParams {
         source_id,
         manga_id,
-    }): Path<GetMangaChaptersParams>,
+    }): Path<MangaChapterPathParams>,
 ) -> Result<Json<Vec<Chapter>>, AppError> {
     let manga_id = MangaId {
         source_id: SourceId(source_id),

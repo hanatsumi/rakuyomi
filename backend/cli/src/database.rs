@@ -38,6 +38,21 @@ impl Database {
         rows.into_iter().map(|row| row.manga_id()).collect()
     }
 
+    pub async fn add_manga_to_library(&self, id: MangaId) {
+        sqlx::query!(
+            r#"
+                INSERT INTO manga_library (source_id, manga_id)
+                VALUES (?1, ?2)
+                ON CONFLICT DO NOTHING
+            "#,
+            id.source_id.0,
+            id.manga_id
+        )
+        .execute(&self.pool)
+        .await
+        .unwrap();
+    }
+
     pub async fn find_cached_manga_information(
         &self,
         manga_id: &MangaId,

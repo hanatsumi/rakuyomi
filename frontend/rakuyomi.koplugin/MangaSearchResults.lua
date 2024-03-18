@@ -1,3 +1,4 @@
+local ConfirmBox = require("ui/widget/confirmbox")
 local Menu = require("ui/widget/menu")
 local UIManager = require("ui/uimanager")
 local Screen = require("device").screen
@@ -51,6 +52,19 @@ function MangaSearchResults:onMenuSelect(item)
 
     ChapterListing:show(chapter_results, onReturnCallback)
   end)
+end
+
+function MangaSearchResults:onMenuHold(item)
+  local manga = item.manga
+  UIManager:show(ConfirmBox:new {
+    text = "Do you want to add \"" .. manga.title .. "\" to your library?",
+    ok_text = "Add",
+    ok_callback = function()
+      Backend.addMangaToLibrary(manga.source_id, manga.id, function()
+        -- FIXME should we do something here?
+      end)
+    end
+  })
 end
 
 return MangaSearchResults
