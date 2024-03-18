@@ -133,14 +133,8 @@ async fn download_manga_chapter(
     let pages = spawn_blocking(move || source.lock().unwrap().get_page_list(manga_id, chapter_id))
         .await??;
 
-    spawn_blocking(move || -> Result<(), anyhow::Error> {
-        let output_file = fs::File::create(output_path)?;
-        // FIXME we could make this async
-        download_chapter_pages_as_cbz(output_file, pages)?;
-
-        Ok(())
-    })
-    .await??;
+    let output_file = fs::File::create(output_path)?;
+    download_chapter_pages_as_cbz(output_file, pages).await?;
 
     Ok(Json(()))
 }

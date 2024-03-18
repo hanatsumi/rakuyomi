@@ -22,8 +22,6 @@ local ChapterListing = Menu:extend {
 }
 
 function ChapterListing:init()
-  logger.info("chapter listing init called with on_return_callback", self.on_return_callback)
-
   self.results = self.results or {}
   self.item_table = self:generateItemTableFromResults(self.results)
   self.width = Screen:getWidth()
@@ -101,7 +99,10 @@ function ChapterListing:onMenuSelect(item)
 
   -- FIXME when the backend functions become actually async we can get rid of this probably
   UIManager:nextTick(function()
+    local time = require("ui/time")
+    local startTime = time.now()
     Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id, outputPath, function()
+      logger.info("Downloaded chapter in ", time.to_ms(time.since(startTime)), "ms")
       local onReturnCallback = function()
         UIManager:show(self)
       end

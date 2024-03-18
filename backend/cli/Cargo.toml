@@ -26,3 +26,4 @@ zip = { version = "0.6.6", default-features = false, features = ["deflate", "bzi
 serde = { version = "1.0.193", features = ["derive"] }
 scopeguard = "1.2.0"
 wasmi = "0.31.1"
+futures = "0.3.30"
