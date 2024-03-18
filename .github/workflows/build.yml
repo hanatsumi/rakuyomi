@@ -1,6 +1,8 @@
 name: "Build"
 on:
   push:
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -14,4 +16,15 @@ jobs:
       with:
         name: rakuyomi
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-    - run: "nix build .#rakuyomi.${{ matrix.target }} -o build"
+    - name: Build plugin
+      run: "nix build .#rakuyomi.${{ matrix.target }} -o build/rakuyomi.koplugin"
+    - name: Package plugin contents
+      run: "cd build && zip -r rakuyomi-${{ matrix.target }}.zip rakuyomi.koplugin"
+    - name: Upload plugin to release
+      if: ${{ github.ref == 'refs/heads/main' }}
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: build/rakuyomi-${{ matrix.target }}.zip
+        tag: ${{ github.ref }}
+        overwrite: true
