@@ -9,13 +9,13 @@ local Backend = require("Backend")
 local MangaSearchResults = require("MangaSearchResults")
 
 logger.info("Loading Rakuyomi plugin...")
+Backend.initialize()
 
 local Rakuyomi = WidgetContainer:extend({
   name = "rakuyomi"
 })
 
 function Rakuyomi:init()
-  Backend.initialize()
   self.ui.menu:registerToMainMenu(self)
 end
 
@@ -68,21 +68,6 @@ function Rakuyomi:searchMangas(search_text)
       covers_fullscreen = true, -- hint for UIManager:_repaint()
     })
   end)
-end
-
-function Rakuyomi:onClose()
-  logger.info("onClose called!")
-  Backend.cleanup()
-end
-
-function Rakuyomi:onExit()
-  logger.info("onExit called!")
-  Backend.cleanup()
-end
-
-function Rakuyomi:onRestart()
-  logger.info("onRestart called!")
-  Backend.cleanup()
 end
 
 return Rakuyomi

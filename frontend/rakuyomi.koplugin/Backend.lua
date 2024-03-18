@@ -76,6 +76,8 @@ local function requestJson(request)
 end
 
 function Backend.initialize()
+  assert(Backend.server_pid == nil, "backend was already initialized!")
+
   -- spawn subprocess and store the pid
   local pid = C.fork()
   if pid == 0 then
@@ -124,9 +126,9 @@ function Backend.cleanup()
   logger.info("Subprocess is done:", done)
 end
 
--- we can't really rely upon Koreader informing us
--- it has terminated in every case, so use the
--- garbage collector to clean up stuff
+-- we can't really rely upon Koreader informing us it has terminated because
+-- the plugin lifecycle is really obscure, so use the garbage collector to
+-- detect we're done and cleanup
 if _VERSION == "Lua 5.1" then
   logger.info("setting up __gc proxy")
   local proxy = newproxy(true)
