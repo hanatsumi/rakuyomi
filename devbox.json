@@ -5,6 +5,7 @@
     "rustup@latest",
     "sqlx-cli@latest",
     "cachix@latest",
+    "python@latest",
   ],
   "env": {
     "PROJECT_DIR": "$PWD",
@@ -13,8 +14,16 @@
     "init_hook": [
       "cachix use rakuyomi",
       ". conf/set-env.sh",
-      "cd backend && cargo fetch",
+      "sh -c 'cd backend && cargo fetch'",
     ],
+    "scripts": {
+      "check-format": [
+        "sh -c 'cd $PROJECT_DIR/backend && cargo fmt --check'",
+      ],
+      "check-lint": [
+        "python3 ci/lua-language-server-check.py frontend/"
+      ]
+    },
   },
   "nixpkgs": {
     "commit": "f80ac848e3d6f0c12c52758c0f25c10c97ca3b62",

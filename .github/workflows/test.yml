@@ -1,0 +1,14 @@
+name: "Test"
+on:
+  push:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install devbox
+      uses: jetpack-io/devbox-install-action@v0.6.0
+    - name: Check format
+      run: devbox run check-format
+    - name: Check lint
+      run: devbox run check-lint

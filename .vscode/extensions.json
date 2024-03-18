@@ -1,6 +1,7 @@
 {
     "recommendations": [
         "rust-lang.rust-analyzer",
-        "sumneko.lua"
+        "sumneko.lua",
+        "ms-python.python"
     ]
 }
