@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "cli",
+    "lua_module",
+    "wasm_macros",
+    "wasm_shared"
+]
