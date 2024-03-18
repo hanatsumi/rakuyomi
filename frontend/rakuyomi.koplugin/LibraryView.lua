@@ -47,12 +47,14 @@ function LibraryView:generateItemTableFromMangas(mangas)
 end
 
 function LibraryView:show()
-  local mangas, err = Backend.getMangasInLibrary()
-  if err ~= nil then
-    ErrorDialog:show(err)
+  local response = Backend.getMangasInLibrary()
+  if response.type == 'ERROR' then
+    ErrorDialog:show(response.message)
 
     return
   end
+
+  local mangas = response.body
 
   UIManager:show(LibraryView:new {
     mangas = mangas,
@@ -63,12 +65,14 @@ end
 function LibraryView:onMenuSelect(item)
   local manga = item.manga
 
-  local chapter_results, err = Backend.listChapters(manga.source_id, manga.id)
-  if err ~= nil then
-    ErrorDialog:show(err)
+  local response = Backend.listChapters(manga.source_id, manga.id)
+  if response.type == 'ERROR' then
+    ErrorDialog:show(response.message)
 
     return
   end
+
+  local chapter_results = response.body
 
   local onReturnCallback = function()
     self:show()
@@ -112,12 +116,14 @@ function LibraryView:openSearchMangasDialog()
 end
 
 function LibraryView:searchMangas(search_text)
-  local results, err = Backend.searchMangas(search_text)
-  if err ~= nil then
-    ErrorDialog:show(err)
+  local response = Backend.searchMangas(search_text)
+  if response.type == 'ERROR' then
+    ErrorDialog:show(response.message)
 
     return
   end
+
+  local results = response.body
 
   local onReturnCallback = function()
     self:show()
@@ -127,6 +133,5 @@ function LibraryView:searchMangas(search_text)
 
   MangaSearchResults:show(results, onReturnCallback)
 end
-
 
 return LibraryView

@@ -72,13 +72,15 @@ end
 
 function MangaSearchResults:onMenuSelect(item)
   local manga = item.manga
-  local chapter_results, err = Backend.listChapters(manga.source_id, manga.id)
+  local response = Backend.listChapters(manga.source_id, manga.id)
 
-  if err ~= nil then
-    ErrorDialog:show(err)
+  if response.type == 'ERROR' then
+    ErrorDialog:show(response.message)
 
     return
   end
+
+  local chapter_results = response.body
 
   local onReturnCallback = function()
     UIManager:show(self)

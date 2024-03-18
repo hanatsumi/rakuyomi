@@ -31,13 +31,14 @@ end
 --- @field query_params table<string, string|number>? The query parameters to be sent on request.
 --- @field timeout number? The timeout used for this request. If unset, the default `luasocket` timeout will be used.
 
+--- @class SuccessfulResponse<T>: { type: 'SUCCESS', body: T }
+--- @class ErrorResponse: { type: 'ERROR', message: string }
+
 --- Performs a HTTP request, using JSON to encode the request body and to decode the response body.
 --- @param request RequestParameters The parameters used for this request.
---- @generic T
+--- @generic T: any
 --- @nodiscard
---- FIXME Change return type to a tagged union.
---- @return T # The parsed JSON response or nil, if there was an error.
---- @return string|nil # If there was an error, the error message; or nil if there was no error.
+--- @return SuccessfulResponse<T>|ErrorResponse # The parsed JSON response or nil, if there was an error.
 local function requestJson(request)
   local url = require("socket.url")
   local ltn12 = require("ltn12")
@@ -98,10 +99,10 @@ local function requestJson(request)
     local error_message = parsed_body.message
     assert(error_message ~= nil, "Request failed without error message")
 
-    return nil, error_message
+    return { type = 'ERROR', message = error_message }
   end
 
-  return replaceRapidJsonNullWithNilRecursively(parsed_body), nil
+  return { type = 'SUCCESS', body = replaceRapidJsonNullWithNilRecursively(parsed_body) }
 end
 
 function Backend.initialize()
@@ -122,12 +123,31 @@ function Backend.initialize()
   Backend.server_pid = pid
 end
 
+--- @class Manga
+--- @field id string The ID of the manga.
+--- @field source_id string The ID of the source for this manga.
+--- @field title string The title of this manga.
+
+--- @class Chapter
+--- @field id string The ID of this chapter.
+--- @field source_id string The ID of the source for this chapter.
+--- @field manga_id string The ID of the manga that this chapter belongs to.
+--- @field scanlator string? The scanlation group that worked on this chapter.
+--- @field chapter_num number? The chapter number.
+--- @field volume_num number? The volume that this chapter belongs to, if known.
+--- @field read boolean If this chapter was read to its end.
+--- @field downloaded boolean If this chapter was already downloaded to the storage.
+
+--- Lists mangas added to the user's library.
+--- @return SuccessfulResponse<Manga[]>|ErrorResponse
 function Backend.getMangasInLibrary()
   return requestJson({
     url = "http://localhost:30727/library",
   })
 end
 
+--- Adds a manga to the user's library.
+--- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.addMangaToLibrary(source_id, manga_id)
   return requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/add-to-library",
@@ -135,6 +155,8 @@ function Backend.addMangaToLibrary(source_id, manga_id)
   })
 end
 
+--- Searches manga from the manga source.
+--- @return SuccessfulResponse<Manga[]>|ErrorResponse
 function Backend.searchMangas(search_text)
   return requestJson({
     url = "http://localhost:30727/mangas",
@@ -144,12 +166,16 @@ function Backend.searchMangas(search_text)
   })
 end
 
+--- Lists chapters from a given manga.
+--- @return SuccessfulResponse<Chapter[]>|ErrorResponse
 function Backend.listChapters(source_id, manga_id)
   return requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters",
   })
 end
 
+--- Begins downloading all chapters from a given manga to the storage.
+--- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.downloadAllChapters(source_id, manga_id)
   return requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/download-all",
@@ -157,12 +183,19 @@ function Backend.downloadAllChapters(source_id, manga_id)
   })
 end
 
+--- @alias DownloadAllChaptersProgress { type: 'INITIALIZING' }|{ type: 'PROGRESSING', downloaded: number, total: number }|{ type: 'FINISHED' }|{ type: 'CANCELLED' }
+
+--- Checks the status of a "download all chapters" operation.
+--- @return SuccessfulResponse<DownloadAllChaptersProgress>|ErrorResponse
 function Backend.getDownloadAllChaptersProgress(source_id, manga_id)
   return requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/download-all-progress",
   })
 end
 
+--- Requests cancellation of a "download all chapters" operation. This can only be called
+--- when the operation status is `PROGRESSING`.
+--- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.cancelDownloadAllChapters(source_id, manga_id)
   return requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/cancel-download-all",
@@ -170,6 +203,8 @@ function Backend.cancelDownloadAllChapters(source_id, manga_id)
   })
 end
 
+--- Downloads the given chapter to the storage.
+--- @return SuccessfulResponse<string>|ErrorResponse
 function Backend.downloadChapter(source_id, manga_id, chapter_id)
   return requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/" .. chapter_id .. "/download",
@@ -177,6 +212,8 @@ function Backend.downloadChapter(source_id, manga_id, chapter_id)
   })
 end
 
+--- Marks the chapter as read.
+--- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.markChapterAsRead(source_id, manga_id, chapter_id)
   return requestJson({
     url = "http://localhost:30727/mangas/" ..

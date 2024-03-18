@@ -141,16 +141,18 @@ function ChapterListing:openChapterOnReader(chapter)
   UIManager:tickAfterNext(function()
     local time = require("ui/time")
     local startTime = time.now()
-    local outputPath, err = Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id)
+    local response = Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id)
     chapter.downloaded = true
 
     UIManager:close(downloadingMessage)
 
-    if err ~= nil then
-      ErrorDialog:show(err)
+    if response.type == 'ERROR' then
+      ErrorDialog:show(response.message)
 
       return
     end
+
+    local outputPath = response.body
 
     logger.info("Downloaded chapter in ", time.to_ms(time.since(startTime)), "ms")
     local onReturnCallback = function()
@@ -220,10 +222,10 @@ function ChapterListing:onDownloadAllChapters()
   UIManager:nextTick(function()
     local time = require("ui/time")
     local startTime = time.now()
-    local _, err = Backend.downloadAllChapters(self.manga.source_id, self.manga.id)
+    local response = Backend.downloadAllChapters(self.manga.source_id, self.manga.id)
 
-    if err ~= nil then
-      ErrorDialog:show(err)
+    if response.type == 'ERROR' then
+      ErrorDialog:show(response.message)
 
       return
     end
@@ -246,9 +248,9 @@ function ChapterListing:onDownloadAllChapters()
     local updateProgress = nil
     local cancellationRequested = false
     local onCancellationRequested = function()
-      local _, err = Backend.cancelDownloadAllChapters(self.manga.source_id, self.manga.id)
+      local response = Backend.cancelDownloadAllChapters(self.manga.source_id, self.manga.id)
       -- FIXME is it ok to assume there are no errors here?
-      assert(err == nil)
+      assert(response.type == 'SUCCESS')
 
       cancellationRequested = true
     end
@@ -264,12 +266,14 @@ function ChapterListing:onDownloadAllChapters()
     updateProgress = function()
       UIManager:close(downloadingMessage)
 
-      local downloadProgress, err = Backend.getDownloadAllChaptersProgress(self.manga.source_id, self.manga.id)
-      if err ~= nil then
-        ErrorDialog:show(err)
+      local response = Backend.getDownloadAllChaptersProgress(self.manga.source_id, self.manga.id)
+      if response.type == 'ERROR' then
+        ErrorDialog:show(response.message)
 
         return
       end
+
+      local downloadProgress = response.body
 
       local messageText = nil
       local isCancellable = false
