@@ -22,7 +22,6 @@ local MangaSearchResults = Menu:extend {
 
 function MangaSearchResults:init()
   self.results = self.results or {}
-  self.item_table = self:generateItemTableFromResults(self.results)
   self.width = Screen:getWidth()
   self.height = Screen:getHeight()
   Menu.init(self)
@@ -33,15 +32,23 @@ function MangaSearchResults:init()
     { callback = self.on_return_callback },
   }
   self.on_return_callback = nil
+
   self:updateItems()
 end
 
-function MangaSearchResults:generateItemTableFromResults(results)
+-- Updates the menu item contents with the manga information
+function MangaSearchResults:updateItems()
+  self.item_table = self:generateItemTableFromMangas(self.results)
+
+  Menu.updateItems(self)
+end
+
+function MangaSearchResults:generateItemTableFromMangas(mangas)
   local item_table = {}
-  for _, result in ipairs(results) do
+  for _, manga in ipairs(mangas) do
     table.insert(item_table, {
-      manga = result,
-      text = result.title,
+      manga = manga,
+      text = manga.title,
     })
   end
 
