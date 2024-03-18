@@ -1,0 +1,45 @@
+{
+  "lockfile_version": "1",
+  "packages": {
+    "koreader@latest": {
+      "last_modified": "2023-12-13T22:54:10Z",
+      "resolved": "github:NixOS/nixpkgs/fd04bea4cbf76f86f244b9e2549fca066db8ddff#koreader",
+      "source": "devbox-search",
+      "version": "2023.04",
+      "systems": {
+        "aarch64-linux": {
+          "store_path": "/nix/store/k31xmj69g5vxxz27krsf2238dxj2c0hp-koreader-2023.04"
+        },
+        "x86_64-linux": {
+          "store_path": "/nix/store/llhp3iyy76g6xj8fjg1kp2kgjvkyk41w-koreader-2023.04"
+        }
+      }
+    },
+    "lua-language-server@latest": {
+      "last_modified": "2023-12-13T22:54:10Z",
+      "resolved": "github:NixOS/nixpkgs/fd04bea4cbf76f86f244b9e2549fca066db8ddff#lua-language-server",
+      "source": "devbox-search",
+      "version": "3.7.3",
+      "systems": {
+        "aarch64-darwin": {
+          "store_path": "/nix/store/ckkr12q52hwnbpklsmk5h58w3q3kqicq-lua-language-server-3.7.3"
+        },
+        "aarch64-linux": {
+          "store_path": "/nix/store/gzsv5gsqa2ml0pbz5g3n2cz37akm89p3-lua-language-server-3.7.3"
+        },
+        "x86_64-darwin": {
+          "store_path": "/nix/store/xsviia92swhbmdvqkrcw5c668znz6lvp-lua-language-server-3.7.3"
+        },
+        "x86_64-linux": {
+          "store_path": "/nix/store/j4720qdqxjyy2bijs313igxdzr7chl2s-lua-language-server-3.7.3"
+        }
+      }
+    },
+    "rustup@latest": {
+      "last_modified": "2023-11-19T17:46:56Z",
+      "plugin_version": "0.0.1",
+      "resolved": "github:NixOS/nixpkgs/0bf3f5cf6a98b5d077cdcdb00a6d4b3d92bc78b5#rustup",
+      "version": "1.26.0"
+    }
+  }
+}

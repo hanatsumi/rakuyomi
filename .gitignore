@@ -1,2 +1,4 @@
+.devbox
+.rustup
 build
 **/.envrc

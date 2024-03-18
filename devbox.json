@@ -1,0 +1,19 @@
+{
+  "packages": [
+    "koreader@latest",
+    "lua-language-server@latest",
+    "rustup@latest",
+  ],
+  "env": {
+    "PROJECT_DIR": "$PWD"
+  },
+  "shell": {
+    "init_hook": [
+      ". conf/set-env.sh",
+      "rustup default stable",
+    ]
+  },
+  "nixpkgs": {
+    "commit": "f80ac848e3d6f0c12c52758c0f25c10c97ca3b62"
+  }
+}
