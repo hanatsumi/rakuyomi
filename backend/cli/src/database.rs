@@ -5,7 +5,7 @@ use futures::{stream, StreamExt, TryStreamExt};
 use sqlx::{sqlite::SqliteConnectOptions, Pool, Sqlite};
 
 use crate::model::{
-    ChapterId, ChapterInformation, ChapterState, MangaId, MangaInformation, MangaState, SourceId,
+    ChapterId, ChapterInformation, ChapterState, MangaId, MangaInformation, MangaState,
 };
 
 pub struct Database {
@@ -170,7 +170,7 @@ impl Database {
         }).try_collect::<()>().await.unwrap();
     }
 
-    pub async fn find_manga_state(&self, id: &MangaId) -> Option<MangaState> {
+    pub async fn find_manga_state(&self, _id: &MangaId) -> Option<MangaState> {
         todo!()
     }
 
@@ -250,6 +250,7 @@ struct ChapterInformationsRow {
     source_id: String,
     manga_id: String,
     chapter_id: String,
+    #[allow(dead_code)]
     manga_order: i64,
     title: Option<String>,
     scanlator: Option<String>,
@@ -286,6 +287,7 @@ impl MangaLibraryRow {
 }
 
 #[derive(sqlx::FromRow)]
+#[allow(dead_code)]
 struct ChapterStateRow {
     source_id: String,
     manga_id: String,

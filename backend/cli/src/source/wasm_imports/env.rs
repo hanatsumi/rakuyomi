@@ -12,10 +12,7 @@ pub fn register_env_imports(linker: &mut Linker<WasmStore>) -> Result<()> {
 }
 
 #[aidoku_wasm_function]
-fn print(
-    mut caller: Caller<'_, WasmStore>,
-    string: Option<String>
-) {
+fn print(_caller: Caller<'_, WasmStore>, string: Option<String>) {
     let string = string.unwrap_or_default();
 
     println!("env.print: {string}");
@@ -23,11 +20,11 @@ fn print(
 
 #[aidoku_wasm_function]
 fn abort(
-    mut caller: Caller<'_, WasmStore>,
+    _caller: Caller<'_, WasmStore>,
     msg_offset: i32,
     file_name_offset: i32,
     line: i32,
-    column: i32
+    column: i32,
 ) {
     println!("env.abort called with {msg_offset} {file_name_offset} {line} {column}");
 }

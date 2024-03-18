@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use scraper::{html, Element, Html, Node, Selector};
+use scraper::{Element, Html, Node, Selector};
 use wasm_macros::{aidoku_wasm_function, register_wasm_function};
 use wasmi::{Caller, Linker};
 
@@ -84,9 +84,9 @@ fn parse_fragment(mut caller: Caller<'_, WasmStore>, data: Option<String>) -> i3
 
 #[aidoku_wasm_function]
 fn parse_with_uri(
-    mut caller: Caller<'_, WasmStore>,
+    caller: Caller<'_, WasmStore>,
     data: Option<String>,
-    uri: Option<String>,
+    _uri: Option<String>,
 ) -> i32 {
     // TODO tratar uri :thumbsup:
     parse(caller, data)
@@ -94,9 +94,9 @@ fn parse_with_uri(
 
 #[aidoku_wasm_function]
 fn parse_fragment_with_uri(
-    mut caller: Caller<'_, WasmStore>,
+    caller: Caller<'_, WasmStore>,
     data: Option<String>,
-    uri: Option<String>,
+    _uri: Option<String>,
 ) -> i32 {
     // TODO tratar uri :thumbsup:
     parse_fragment(caller, data)
@@ -162,10 +162,10 @@ fn attr(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, selector: Option
 fn set_text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, text: Option<String>) -> i32 {
     || -> Option<i32> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
-        let text = text?;
+        let _text = text?;
 
         let wasm_store = caller.data_mut();
-        let element = match wasm_store.get_mut_std_value(descriptor)? {
+        let _element = match wasm_store.get_mut_std_value(descriptor)? {
             Value::HTMLElements(elements) if elements.len() == 1 => {
                 Some(elements.first_mut().unwrap())
             }
@@ -178,17 +178,17 @@ fn set_text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, text: Option
 }
 
 #[aidoku_wasm_function]
-fn set_html(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, text: Option<String>) -> i32 {
+fn set_html(_caller: Caller<'_, WasmStore>, _descriptor_i32: i32, _text: Option<String>) -> i32 {
     todo!("modifying the HTML document is unsupported")
 }
 
 #[aidoku_wasm_function]
-fn prepend(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, text: Option<String>) -> i32 {
+fn prepend(_caller: Caller<'_, WasmStore>, _descriptor_i32: i32, _text: Option<String>) -> i32 {
     todo!("modifying the HTML document is unsupported")
 }
 
 #[aidoku_wasm_function]
-fn append(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, text: Option<String>) -> i32 {
+fn append(_caller: Caller<'_, WasmStore>, _descriptor_i32: i32, _text: Option<String>) -> i32 {
     todo!("modifying the HTML document is unsupported")
 }
 
@@ -285,12 +285,12 @@ fn previous(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
 }
 
 #[aidoku_wasm_function]
-fn base_uri(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
+fn base_uri(_caller: Caller<'_, WasmStore>, _descriptor_i32: i32) -> i32 {
     todo!("wtf")
 }
 
 #[aidoku_wasm_function]
-fn body(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
+fn body(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     select(caller, descriptor_i32, Some("body".into()))
 }
 
@@ -370,7 +370,7 @@ fn own_text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
 }
 
 #[aidoku_wasm_function]
-fn data(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
+fn data(_caller: Caller<'_, WasmStore>, _descriptor_i32: i32) -> i32 {
     todo!("yeah idk man")
 }
 

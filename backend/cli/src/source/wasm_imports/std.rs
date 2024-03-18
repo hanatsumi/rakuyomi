@@ -1,16 +1,12 @@
-use core::panic;
-use std::{
-    collections::HashMap,
-    num::{NonZeroU32, NonZeroUsize},
-};
+use std::collections::HashMap;
 
 use anyhow::Result;
-use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, NaiveDateTime, TimeZone};
 use wasm_shared::{
     get_memory,
     memory_reader::{read_string as read_memory_string, write_bytes},
 };
-use wasmi::{core::F64, Caller, Extern, Linker, Memory};
+use wasmi::{core::F64, Caller, Linker};
 
 use crate::source::{
     model::{Filter, FilterType, Manga, MangaPageResult},
@@ -29,6 +25,7 @@ enum ObjectType {
     Object = 6,
     Date = 7,
     Node = 8,
+    #[allow(dead_code)]
     Unknown = 9,
 }
 
@@ -95,15 +92,15 @@ fn destroy(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) {
     }
 }
 
-fn create_null(mut caller: Caller<'_, WasmStore>) -> i32 {
+fn create_null(caller: Caller<'_, WasmStore>) -> i32 {
     create_value(caller, Value::Null)
 }
 
-fn create_int(mut caller: Caller<'_, WasmStore>, value: i64) -> i32 {
+fn create_int(caller: Caller<'_, WasmStore>, value: i64) -> i32 {
     create_value(caller, Value::Int(value))
 }
 
-fn create_float(mut caller: Caller<'_, WasmStore>, value: F64) -> i32 {
+fn create_float(caller: Caller<'_, WasmStore>, value: F64) -> i32 {
     create_value(caller, Value::Float(value.to_float()))
 }
 
@@ -117,15 +114,15 @@ fn create_string(mut caller: Caller<'_, WasmStore>, offset: i32, length: i32) ->
     }
 }
 
-fn create_bool(mut caller: Caller<'_, WasmStore>, value_i32: i32) -> i32 {
+fn create_bool(caller: Caller<'_, WasmStore>, value_i32: i32) -> i32 {
     create_value(caller, Value::Bool(value_i32 != 0))
 }
 
-fn create_array(mut caller: Caller<'_, WasmStore>) -> i32 {
+fn create_array(caller: Caller<'_, WasmStore>) -> i32 {
     create_value(caller, Value::Array(Vec::default()))
 }
 
-fn create_date(mut caller: Caller<'_, WasmStore>, seconds_since_1970: F64) -> i32 {
+fn create_date(caller: Caller<'_, WasmStore>, seconds_since_1970: F64) -> i32 {
     let seconds_since_1970 = seconds_since_1970.to_float();
     let full_seconds = seconds_since_1970.floor() as i64;
     let nanos_remainder = ((seconds_since_1970 - full_seconds as f64) * (10f64.powi(9))) as u32;
@@ -143,7 +140,7 @@ fn create_value(mut caller: Caller<'_, WasmStore>, value: Value) -> i32 {
     wasm_store.store_std_value(value, None) as i32
 }
 
-fn create_object(mut caller: Caller<'_, WasmStore>) -> i32 {
+fn create_object(caller: Caller<'_, WasmStore>) -> i32 {
     create_value(
         caller,
         Value::Object(ObjectValue::HashMap(HashMap::default())),
@@ -323,7 +320,7 @@ fn read_date_string(
 
         let memory = get_memory(&mut caller)?;
         let format_string = read_memory_string(&memory, &caller, format, format_len)?;
-        let locale_string = match (locale, locale_len) {
+        let _locale_string = match (locale, locale_len) {
             (Some(locale), Some(locale_len)) => {
                 Some(read_memory_string(&memory, &caller, locale, locale_len)?)
             }

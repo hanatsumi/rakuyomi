@@ -1,4 +1,4 @@
-use std::{default, rc::Rc, sync::Arc};
+use std::sync::Arc;
 
 use crate::util::has_internet_connection;
 use anyhow::Result;
@@ -163,12 +163,12 @@ fn set_body(
 }
 
 #[aidoku_wasm_function]
-fn set_rate_limit(mut caller: Caller<'_, WasmStore>, rate_limit: i32) {
+fn set_rate_limit(_caller: Caller<'_, WasmStore>, _rate_limit: i32) {
     todo!("rate-limit functions are not supported at the moment")
 }
 
 #[aidoku_wasm_function]
-fn set_rate_limit_period(mut caller: Caller<'_, WasmStore>, rate_limit_period: i32) {
+fn set_rate_limit_period(_caller: Caller<'_, WasmStore>, _rate_limit_period: i32) {
     todo!("rate-limit functions are not supported at the moment")
 }
 
@@ -271,7 +271,7 @@ fn get_data(
     || -> Option<()> {
         let request_descriptor: usize = request_descriptor_i32.try_into().ok()?;
         let buffer: usize = buffer.try_into().ok()?;
-        let size: usize = buffer.try_into().ok()?;
+        let size: usize = size.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
 

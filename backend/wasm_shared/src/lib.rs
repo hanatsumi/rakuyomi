@@ -64,7 +64,7 @@ impl<T> TryFromWasmValues<T> for DateTime<chrono_tz::Tz> {
         &[ValueType::F64]
     }
 
-    fn try_from_wasm_values(caller: &mut Caller<'_, T>, values: &[Value]) -> Result<Self> {
+    fn try_from_wasm_values(_caller: &mut Caller<'_, T>, values: &[Value]) -> Result<Self> {
         use chrono::TimeZone;
         let seconds_since_1970 = values[0]
             .f64()

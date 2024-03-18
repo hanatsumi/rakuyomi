@@ -1,5 +1,3 @@
-use std::default;
-
 use chrono::DateTime;
 use num_enum::FromPrimitive;
 use url::Url;

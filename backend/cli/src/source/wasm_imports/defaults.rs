@@ -31,6 +31,6 @@ fn get(mut caller: Caller<'_, WasmStore>, key: Option<String>) -> i32 {
 }
 
 #[aidoku_wasm_function]
-fn set(mut caller: Caller<'_, WasmStore>, key: Option<String>, value: i32) {
+fn set(_caller: Caller<'_, WasmStore>, key: Option<String>, value: i32) {
     println!("defaults.set: {:?} -> {value}", key)
 }

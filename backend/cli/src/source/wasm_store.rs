@@ -1,12 +1,9 @@
-use std::{collections::HashMap, hash::Hash, ops::Add, ops::Fn, sync::Arc, time::SystemTime};
+use std::{collections::HashMap, sync::Arc};
 
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
 use ego_tree::NodeId;
-use reqwest::{
-    blocking::Response, header::HeaderMap, Method, Request, RequestBuilder, StatusCode, Url,
-};
-use scraper::{node::Element, ElementRef, Html};
-use serde_json::Value as JSONValue;
+use reqwest::{header::HeaderMap, Method, StatusCode, Url};
+use scraper::{ElementRef, Html};
 
 use super::model::{Chapter, DeepLink, Filter, Manga, MangaPageResult, Page};
 
@@ -147,6 +144,8 @@ impl WasmStore {
         };
     }
 
+    // This might be used by some Aidoku unimplemented functions
+    #[allow(dead_code)]
     pub fn add_std_reference(&mut self, descriptor: usize, reference: usize) {
         let references_to_descriptor = self.std_references.entry(descriptor).or_default();
 

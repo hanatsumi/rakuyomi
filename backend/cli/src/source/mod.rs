@@ -76,6 +76,7 @@ impl Source {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 struct SourceInfo {
     pub id: String,
     pub lang: String,

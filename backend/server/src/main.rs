@@ -11,7 +11,7 @@ use axum::{extract::State as StateExtractor, Json, Router};
 use clap::Parser;
 use cli::chapter_storage::ChapterStorage;
 use cli::database::Database;
-use cli::model::{ChapterId, MangaId, SourceId};
+use cli::model::{ChapterId, MangaId};
 use cli::source::Source;
 use cli::usecases::{
     add_manga_to_library::add_manga_to_library as add_manga_to_library_usecase,

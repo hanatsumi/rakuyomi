@@ -9,7 +9,7 @@ use syn::{
 };
 
 #[proc_macro_attribute]
-pub fn aidoku_wasm_function(args: OGTokenStream, input: OGTokenStream) -> OGTokenStream {
+pub fn aidoku_wasm_function(_args: OGTokenStream, input: OGTokenStream) -> OGTokenStream {
     let input = parse_macro_input!(input as ItemFn);
     let Signature {
         ident,
