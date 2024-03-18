@@ -2,7 +2,7 @@ use futures::{stream, StreamExt, TryStreamExt};
 use std::{io::Seek, io::Write, path::Path};
 
 use anyhow::{anyhow, Ok, Result};
-use zip::{write::FileOptions, ZipWriter};
+use zip::{write::FileOptions, CompressionMethod, ZipWriter};
 
 use crate::source::model::Page;
 
@@ -14,6 +14,7 @@ where
 {
     let mut writer = ZipWriter::new(output);
     let client = reqwest::Client::new();
+    let file_options = FileOptions::default().compression_method(CompressionMethod::Stored);
 
     stream::iter(pages)
         .map(|page| {
@@ -44,7 +45,7 @@ where
         .await?
         .into_iter()
         .try_for_each(|(filename, response_bytes)| {
-            writer.start_file(filename, FileOptions::default())?;
+            writer.start_file(filename, file_options)?;
             writer.write_all(response_bytes.as_ref())?;
 
             Ok(())
