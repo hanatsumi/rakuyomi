@@ -22,6 +22,7 @@ use cli::usecases::{
     get_manga_chapters::get_manga_chapters as get_manga_chapters_usecase,
     get_manga_chapters::Response as GetMangaChaptersUsecaseResponse,
     get_manga_library::get_manga_library as get_manga_library_usecase,
+    mark_chapter_as_read::mark_chapter_as_read as mark_chapter_as_read_usecase,
     search_mangas::search_mangas, search_mangas::Error as SearchMangasError,
 };
 use serde::{Deserialize, Serialize};
@@ -78,6 +79,10 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/mangas/:source_id/:manga_id/chapters/:chapter_id/download",
             post(download_manga_chapter),
+        )
+        .route(
+            "/mangas/:source_id/:manga_id/chapters/:chapter_id/mark-as-read",
+            post(mark_chapter_as_read),
         )
         .with_state(state);
 
@@ -230,6 +235,27 @@ async fn download_manga_chapter(
         .map_err(AppError::from_fetch_manga_chapters_error)?;
 
     Ok(Json(output_path.to_string_lossy().into()))
+}
+
+async fn mark_chapter_as_read(
+    StateExtractor(State { database, .. }): StateExtractor<State>,
+    Path(DownloadMangaChapterParams {
+        source_id,
+        manga_id,
+        chapter_id,
+    }): Path<DownloadMangaChapterParams>,
+) -> Json<()> {
+    let chapter_id = ChapterId {
+        manga_id: MangaId {
+            manga_id,
+            source_id: SourceId(source_id),
+        },
+        chapter_id,
+    };
+
+    mark_chapter_as_read_usecase(&database, chapter_id).await;
+
+    Json(())
 }
 
 // Make our own error that wraps `anyhow::Error`.

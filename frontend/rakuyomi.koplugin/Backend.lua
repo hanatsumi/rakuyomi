@@ -155,6 +155,13 @@ function Backend.downloadChapter(source_id, manga_id, chapter_id, callback)
   }))
 end
 
+function Backend.markChapterAsRead(source_id, manga_id, chapter_id, callback)
+  callback(requestJson({
+    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/" .. chapter_id .. "/mark-as-read",
+    method = "POST",
+  }))
+end
+
 function Backend.cleanup()
   logger.info("Terminating subprocess with PID " .. Backend.server_pid)
   -- send SIGTERM to the backend

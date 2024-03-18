@@ -17,9 +17,10 @@ local ChapterListing = Menu:extend {
   title = "Chapter listing",
   align_baselines = true,
 
-  -- list of chapters
+  -- the manga we're listing
   manga = nil,
-  results = nil,
+  -- list of chapters
+  chapters = nil,
   -- callback to be called when pressing the back button
   on_return_callback = nil,
 }
@@ -28,13 +29,12 @@ local FA_BOOK_ICON = "\u{F02D}"
 local FA_DOWNLOAD_ICON = "\u{F019}"
 
 function ChapterListing:init()
-  self.results = self.results or {}
+  self.chapters = self.chapters or {}
   self.title_bar_left_icon = "appbar.menu"
   self.onLeftButtonTap = function()
     self:openMenu()
   end
 
-  self.item_table = self:generateItemTableFromResults(self.results)
   self.width = Screen:getWidth()
   self.height = Screen:getHeight()
   Menu.init(self)
@@ -52,39 +52,46 @@ function ChapterListing:init()
   self:updateItems()
 end
 
-function ChapterListing:generateItemTableFromResults(results)
+-- Updates the menu item contents with the chapter information
+function ChapterListing:updateItems()
+  self.item_table = self:generateItemTableFromChapters(self.chapters)
+
+  Menu.updateItems(self)
+end
+
+function ChapterListing:generateItemTableFromChapters(chapters)
   local item_table = {}
-  -- FIXME result -> chapter? also result -> manga in the manga screen
-  for _, result in ipairs(results) do
+
+  for _, chapter in ipairs(chapters) do
     local text = ""
-    if result.volume_num ~= nil then
+    if chapter.volume_num ~= nil then
       -- FIXME we assume there's a chapter number if there's a volume number
       -- might not be true but who knows
-      text = text .. "Volume " .. result.volume_num .. ", "
+      text = text .. "Volume " .. chapter.volume_num .. ", "
     end
 
-    if result.chapter_num ~= nil then
-      text = text .. "Chapter " .. result.chapter_num .. " - "
+    if chapter.chapter_num ~= nil then
+      text = text .. "Chapter " .. chapter.chapter_num .. " - "
     end
 
-    text = text .. result.title
+    text = text .. chapter.title
 
-    if result.scanlator ~= nil then
-      text = text .. " (" .. result.scanlator .. ")"
+    if chapter.scanlator ~= nil then
+      text = text .. " (" .. chapter.scanlator .. ")"
     end
 
     -- The text that shows to the right of the menu item
     local mandatory = ""
-    if result.read then
+    if chapter.read then
       mandatory = mandatory .. FA_BOOK_ICON
     end
 
-    if result.downloaded then
+    if chapter.downloaded then
       mandatory = mandatory .. FA_DOWNLOAD_ICON
     end
 
     table.insert(item_table, {
-      chapter = result,
+      chapter = chapter,
       text = text,
       mandatory = mandatory,
     })
@@ -100,10 +107,10 @@ function ChapterListing:onReturn()
   path.callback()
 end
 
-function ChapterListing:show(manga, results, onReturnCallback)
+function ChapterListing:show(manga, chapters, onReturnCallback)
   UIManager:show(ChapterListing:new {
     manga = manga,
-    results = results,
+    chapters = chapters,
     on_return_callback = onReturnCallback,
     covers_fullscreen = true, -- hint for UIManager:_repaint()
   })
@@ -136,9 +143,22 @@ function ChapterListing:onMenuSelect(item)
         UIManager:show(self)
       end
 
+      local onEndOfBookCallback = function()
+        UIManager:show(self)
+
+        Backend.markChapterAsRead(chapter.source_id, chapter.manga_id, chapter.id, function()
+          -- `chapter` here is one of the elements of the `self.chapters` array, so mutating it
+          -- here will also change the one inside of the array, and therefore the display will
+          -- get updated when we call `updateItems` below
+          chapter.read = true
+
+          self:updateItems()
+        end)
+      end
+
       self:onClose()
 
-      MangaReader:show(outputPath, onReturnCallback)
+      MangaReader:show(outputPath, onReturnCallback, onEndOfBookCallback)
     end)
   end)
 end
@@ -191,7 +211,7 @@ function ChapterListing:onDownloadAllChapters()
       -- some possible alternatives:
       -- - return the chapter list from the backend on the `downloadAllChapters` call
       -- - biting the bullet and making the API call
-      for _, chapter in ipairs(self.results) do
+      for _, chapter in ipairs(self.chapters) do
         chapter.downloaded = true
       end
 

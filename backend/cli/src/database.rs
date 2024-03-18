@@ -175,6 +175,24 @@ impl Database {
 
         maybe_row.map(|row| row.into())
     }
+
+    pub async fn upsert_chapter_state(&self, id: &ChapterId, state: ChapterState) {
+        sqlx::query!(
+            r#"
+                INSERT INTO chapter_state (source_id, manga_id, chapter_id, read)
+                VALUES (?1, ?2, ?3, ?4)
+                ON CONFLICT DO UPDATE SET
+                    read = excluded.read
+            "#,
+            id.manga_id.source_id.0,
+            id.manga_id.manga_id,
+            id.chapter_id,
+            state.read,
+        )
+        .execute(&self.pool)
+        .await
+        .unwrap();
+    }
 }
 
 #[derive(sqlx::FromRow)]

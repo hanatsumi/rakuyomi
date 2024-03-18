@@ -3,8 +3,11 @@ local UIManager = require("ui/uimanager")
 local logger = require("logger")
 local _ = require("gettext")
 
+local Backend = require("Backend")
+
 local MangaReader = {
   on_return_callback = nil,
+  on_end_of_book_callback = nil,
   is_showing = false,
 }
 
@@ -20,6 +23,12 @@ function MangaReader:addToMainMenu(menu_items)
 end
 
 function MangaReader:onReturn()
+  self:closeReaderUi()
+
+  self.on_return_callback()
+end
+
+function MangaReader:closeReaderUi()
   self.is_showing = false
 
   local FileManager = require("apps/filemanager/filemanager")
@@ -34,8 +43,6 @@ function MangaReader:onReturn()
   else
     FileManager:showFiles()
   end
-
-  self.on_return_callback()
 end
 
 function MangaReader:onEndOfBook()
@@ -44,13 +51,15 @@ function MangaReader:onEndOfBook()
   -- Let all event handlers run before closing the ReaderUI, because
   -- some stuff might break if we just remove it ASAP
   UIManager:nextTick(function()
-    self:onReturn()
+    self:closeReaderUi()
+    self.on_end_of_book_callback()
   end)
 end
 
-function MangaReader:show(manga_path, onReturnCallback)
+function MangaReader:show(manga_path, onReturnCallback, onEndOfBookCallback)
   self.is_showing = true
   self.on_return_callback = onReturnCallback
+  self.on_end_of_book_callback = onEndOfBookCallback
 
   -- took this from opds reader
   local Event = require("ui/event")

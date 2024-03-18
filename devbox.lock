@@ -40,6 +40,26 @@
       "plugin_version": "0.0.1",
       "resolved": "github:NixOS/nixpkgs/0bf3f5cf6a98b5d077cdcdb00a6d4b3d92bc78b5#rustup",
       "version": "1.26.0"
+    },
+    "sqlx-cli@latest": {
+      "last_modified": "2023-12-13T22:54:10Z",
+      "resolved": "github:NixOS/nixpkgs/fd04bea4cbf76f86f244b9e2549fca066db8ddff#sqlx-cli",
+      "source": "devbox-search",
+      "version": "0.7.1",
+      "systems": {
+        "aarch64-darwin": {
+          "store_path": "/nix/store/29rgrz5lxa51ysbjkfagkfhm4x31l30q-sqlx-cli-0.7.1"
+        },
+        "aarch64-linux": {
+          "store_path": "/nix/store/ipak8gvmw3sg9i69ir77dqh3wcwiiv8m-sqlx-cli-0.7.1"
+        },
+        "x86_64-darwin": {
+          "store_path": "/nix/store/jc81pywxr06qq2h99ad0sycds2ghi6zd-sqlx-cli-0.7.1"
+        },
+        "x86_64-linux": {
+          "store_path": "/nix/store/4s9hhqrf3igbmimvsn29y12frzb93c3l-sqlx-cli-0.7.1"
+        }
+      }
     }
   }
 }

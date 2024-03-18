@@ -3,17 +3,18 @@
     "koreader@latest",
     "lua-language-server@latest",
     "rustup@latest",
+    "sqlx-cli@latest",
   ],
   "env": {
-    "PROJECT_DIR": "$PWD"
+    "PROJECT_DIR": "$PWD",
   },
   "shell": {
     "init_hook": [
       ". conf/set-env.sh",
       "cd backend && cargo fetch",
-    ]
+    ],
   },
   "nixpkgs": {
-    "commit": "f80ac848e3d6f0c12c52758c0f25c10c97ca3b62"
-  }
+    "commit": "f80ac848e3d6f0c12c52758c0f25c10c97ca3b62",
+  },
 }
