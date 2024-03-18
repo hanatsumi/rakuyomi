@@ -1,6 +1,26 @@
 {
   "lockfile_version": "1",
   "packages": {
+    "cachix@latest": {
+      "last_modified": "2024-01-14T03:55:27Z",
+      "resolved": "github:NixOS/nixpkgs/dd5621df6dcb90122b50da5ec31c411a0de3e538#cachix",
+      "source": "devbox-search",
+      "version": "1.7",
+      "systems": {
+        "aarch64-darwin": {
+          "store_path": "/nix/store/kghaa2xgg38rpxis58xwh1p23yvn68sc-cachix-1.7-bin"
+        },
+        "aarch64-linux": {
+          "store_path": "/nix/store/4l12j2nd8cwsphlm9davnzcb7228b370-cachix-1.7-bin"
+        },
+        "x86_64-darwin": {
+          "store_path": "/nix/store/83sspscarb1igk5qqghy2kiwqv5g6xyz-cachix-1.7-bin"
+        },
+        "x86_64-linux": {
+          "store_path": "/nix/store/ibmj8lsgcs8b3frbr48vdm0mcxz56zly-cachix-1.7-bin"
+        }
+      }
+    },
     "koreader@latest": {
       "last_modified": "2023-12-13T22:54:10Z",
       "resolved": "github:NixOS/nixpkgs/fd04bea4cbf76f86f244b9e2549fca066db8ddff#koreader",

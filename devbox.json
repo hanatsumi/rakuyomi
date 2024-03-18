@@ -4,12 +4,14 @@
     "lua-language-server@latest",
     "rustup@latest",
     "sqlx-cli@latest",
+    "cachix@latest",
   ],
   "env": {
     "PROJECT_DIR": "$PWD",
   },
   "shell": {
     "init_hook": [
+      "cachix use rakuyomi",
       ". conf/set-env.sh",
       "cd backend && cargo fetch",
     ],
