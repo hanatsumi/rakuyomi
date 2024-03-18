@@ -141,15 +141,19 @@ function Backend.downloadAllChapters(source_id, manga_id)
   return requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/download-all",
     method = "POST",
-    -- FIXME this is really stupid, we should find a way to report progress to the user
-    -- and not just wait forever for it to complete
-    timeout = 3600,
   })
 end
 
 function Backend.getDownloadAllChaptersProgress(source_id, manga_id)
   return requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/download-all-progress",
+  })
+end
+
+function Backend.cancelDownloadAllChapters(source_id, manga_id)
+  return requestJson({
+    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/cancel-download-all",
+    method = "POST",
   })
 end
 

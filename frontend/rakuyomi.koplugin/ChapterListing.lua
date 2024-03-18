@@ -48,7 +48,7 @@ function ChapterListing:init()
   }
   -- idk might make some gc shenanigans actually work
   self.on_return_callback = nil
-  -- we need to do this after updating 
+  -- we need to do this after updating
   self:updateItems()
 end
 
@@ -132,8 +132,8 @@ function ChapterListing:openChapterOnReader(chapter)
     nextChapter = self.chapters[index - 1]
   end
 
-  local downloadingMessage = InfoMessage:new{
-      text = "Downloading chapter…",
+  local downloadingMessage = InfoMessage:new {
+    text = "Downloading chapter…",
   }
 
   UIManager:show(downloadingMessage)
@@ -207,9 +207,11 @@ function ChapterListing:openMenu()
   UIManager:show(dialog)
 end
 
+-- FIXME this is growing a bit too large
+-- maybe a component like `DownloadingAllChaptersDialog` or something would be good here?
 function ChapterListing:onDownloadAllChapters()
-  local downloadingMessage = InfoMessage:new{
-      text = "Downloading all chapters, this will take a while…",
+  local downloadingMessage = InfoMessage:new {
+    text = "Downloading all chapters, this will take a while…",
   }
 
   UIManager:show(downloadingMessage)
@@ -242,35 +244,81 @@ function ChapterListing:onDownloadAllChapters()
     end
 
     local updateProgress = nil
-    updateProgress = function()
-      local downloadProgress, err = Backend.getDownloadAllChaptersProgress(self.manga.source_id, self.manga.id)
+    local cancellationRequested = false
+    local onCancellationRequested = function()
+      local _, err = Backend.cancelDownloadAllChapters(self.manga.source_id, self.manga.id)
+      -- FIXME is it ok to assume there are no errors here?
+      assert(err == nil)
 
+      cancellationRequested = true
+    end
+
+    local onCancelled = function()
+      local cancelledMessage = InfoMessage:new {
+        text = "Cancelled.",
+      }
+
+      UIManager:show(cancelledMessage)
+    end
+
+    updateProgress = function()
+      UIManager:close(downloadingMessage)
+
+      local downloadProgress, err = Backend.getDownloadAllChaptersProgress(self.manga.source_id, self.manga.id)
       if err ~= nil then
         ErrorDialog:show(err)
 
         return
       end
 
-      UIManager:close(downloadingMessage)
-
       local messageText = nil
+      local isCancellable = false
       if downloadProgress.type == "INITIALIZING" then
         messageText = "Downloading all chapters, this will take a while…"
+      elseif cancellationRequested then
+        messageText = "Waiting for download to be cancelled…"
       elseif downloadProgress.type == "PROGRESSING" then
-        messageText = "Downloading all chapters, this will take a while… (" .. downloadProgress.downloaded .. "/" .. downloadProgress.total .. ")"
+        messageText = "Downloading all chapters, this will take a while… (" ..
+            downloadProgress.downloaded .. "/" .. downloadProgress.total .. ")." ..
+            "\n\n" ..
+            "Tap outside this message to cancel."
+
+        isCancellable = true
       elseif downloadProgress.type == "FINISHED" then
         onDownloadFinished()
 
         return
-      elseif downloadProgress.type == "ERRORED" then
-        ErrorDialog:show(downloadProgress.message)
+      elseif downloadProgress.type == "CANCELLED" then
+        onCancelled()
 
         return
+      else
+        logger.err("unexpected download progress message", downloadProgress)
+
+        error("unexpected download progress message")
       end
 
-      downloadingMessage = InfoMessage:new{
+      downloadingMessage = InfoMessage:new {
         text = messageText,
+        dismissable = isCancellable,
       }
+
+      -- Override the default `onTapClose`/`onAnyKeyPressed` actions
+      if isCancellable then
+        local originalOnTapClose = downloadingMessage.onTapClose
+        downloadingMessage.onTapClose = function(messageSelf)
+          onCancellationRequested()
+
+          originalOnTapClose(messageSelf)
+        end
+
+        local originalOnAnyKeyPressed = downloadingMessage.onAnyKeyPressed
+        downloadingMessage.onAnyKeyPressed = function(messageSelf)
+          onCancellationRequested()
+
+          originalOnAnyKeyPressed(messageSelf)
+        end
+      end
       UIManager:show(downloadingMessage)
 
       UIManager:scheduleIn(1, updateProgress)

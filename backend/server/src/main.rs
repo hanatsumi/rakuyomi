@@ -96,6 +96,10 @@ async fn main() -> anyhow::Result<()> {
             post(download_all_manga_chapters),
         )
         .route(
+            "/mangas/:source_id/:manga_id/chapters/cancel-download-all",
+            post(cancel_download_all_manga_chapters),
+        )
+        .route(
             "/mangas/:source_id/:manga_id/chapters/download-all-progress",
             get(get_download_all_manga_chapters_progress),
         )
@@ -226,7 +230,9 @@ async fn download_all_manga_chapters(
         while !terminated {
             let progress_report = progress_report_stream.next().await.unwrap();
             terminated = match &progress_report {
-                ProgressReport::Finished | ProgressReport::Errored(_) => true,
+                ProgressReport::Finished
+                | ProgressReport::Errored(_)
+                | ProgressReport::Cancelled => true,
                 _ => false,
             };
 
@@ -248,29 +254,47 @@ async fn download_all_manga_chapters(
     Ok(Json(()))
 }
 
+async fn cancel_download_all_manga_chapters(
+    StateExtractor(State {
+        download_all_chapters_state,
+        ..
+    }): StateExtractor<State>,
+) -> Result<Json<()>, StatusCode> {
+    match &*download_all_chapters_state.lock().await {
+        DownloadAllChaptersState::Progressing {
+            cancellation_token, ..
+        } => {
+            cancellation_token.cancel();
+
+            Ok(Json(()))
+        }
+        _ => Err(StatusCode::NOT_FOUND),
+    }
+}
+
 async fn get_download_all_manga_chapters_progress(
     StateExtractor(State {
         download_all_chapters_state,
         ..
     }): StateExtractor<State>,
 ) -> Result<Json<DownloadAllChaptersProgress>, AppError> {
-    let mut state = download_all_chapters_state.lock().await;
-    let state = mem::take(&mut *state);
+    let mut state_lock = download_all_chapters_state.lock().await;
+    let state = mem::take(&mut *state_lock);
 
     // iff we're not on a terminal state, place a copy of the state into the app state
     match &state {
         DownloadAllChaptersState::Idle => {
-            *download_all_chapters_state.lock().await = DownloadAllChaptersState::Idle;
+            *state_lock = DownloadAllChaptersState::Idle;
         }
         DownloadAllChaptersState::Initializing => {
-            *download_all_chapters_state.lock().await = DownloadAllChaptersState::Initializing;
+            *state_lock = DownloadAllChaptersState::Initializing;
         }
         DownloadAllChaptersState::Progressing {
             cancellation_token,
             downloaded,
             total,
         } => {
-            *download_all_chapters_state.lock().await = DownloadAllChaptersState::Progressing {
+            *state_lock = DownloadAllChaptersState::Progressing {
                 cancellation_token: cancellation_token.clone(),
                 downloaded: downloaded.to_owned(),
                 total: total.to_owned(),
