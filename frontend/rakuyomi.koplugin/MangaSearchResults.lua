@@ -11,6 +11,11 @@ local MangaSearchResults = Menu:extend {
   is_enable_shortcut = false,
   is_popout = false,
   title = "Search results...",
+
+  -- list of mangas
+  results = nil,
+  -- callback to be called when pressing the back button
+  on_return_callback = nil,
 }
 
 function MangaSearchResults:init()
@@ -19,6 +24,14 @@ function MangaSearchResults:init()
   self.width = Screen:getWidth()
   self.height = Screen:getHeight()
   Menu.init(self)
+
+  -- see `ChapterListing` for an explanation on this
+  -- FIXME we could refactor this into a single class
+  self.paths = {
+    { callback = self.on_return_callback },
+  }
+  self.on_return_callback = nil
+  self:updateItems()
 end
 
 function MangaSearchResults:generateItemTableFromResults(results)
@@ -33,9 +46,17 @@ function MangaSearchResults:generateItemTableFromResults(results)
   return item_table
 end
 
-function MangaSearchResults:show(results)
+function MangaSearchResults:onReturn()
+  local path = table.remove(self.paths)
+
+  self:onClose()
+  path.callback()
+end
+
+function MangaSearchResults:show(results, onReturnCallback)
   UIManager:show(MangaSearchResults:new {
     results = results,
+    on_return_callback = onReturnCallback,
     covers_fullscreen = true, -- hint for UIManager:_repaint()
   })
 end

@@ -59,10 +59,10 @@ function LibraryView:onMenuSelect(item)
 
   Backend.listChapters(manga.source_id, manga.id, function(chapter_results)
     local onReturnCallback = function()
-      UIManager:show(self)
+      self:show()
     end
 
-    UIManager:close(self)
+    self:onClose(self)
 
     ChapterListing:show(chapter_results, onReturnCallback)
   end)
@@ -102,10 +102,13 @@ end
 
 function LibraryView:searchMangas(search_text)
   Backend.searchMangas(search_text, function(results)
-    UIManager:show(MangaSearchResults:new {
-      results = results,
-      covers_fullscreen = true, -- hint for UIManager:_repaint()
-    })
+    local onReturnCallback = function()
+      self:show()
+    end
+
+    self:onClose()
+
+    MangaSearchResults:show(results, onReturnCallback)
   end)
 end
 
