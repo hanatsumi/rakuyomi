@@ -27,3 +27,13 @@ serde = { version = "1.0.193", features = ["derive"] }
 scopeguard = "1.2.0"
 wasmi = "0.31.1"
 futures = "0.3.30"
+
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["async_tokio"] }
+pprof = { version = "0.13", features = ["criterion", "flamegraph"] }
+tokio = { version = "1.35.1", features = ["full"] }
+
+[[bench]]
+name = "chapter_downloader_benchmark"
+harness = false
+
