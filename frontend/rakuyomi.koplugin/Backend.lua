@@ -147,6 +147,12 @@ function Backend.downloadAllChapters(source_id, manga_id)
   })
 end
 
+function Backend.getDownloadAllChaptersProgress(source_id, manga_id)
+  return requestJson({
+    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/download-all-progress",
+  })
+end
+
 function Backend.downloadChapter(source_id, manga_id, chapter_id)
   return requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/" .. chapter_id .. "/download",

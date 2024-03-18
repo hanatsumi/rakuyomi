@@ -219,7 +219,6 @@ function ChapterListing:onDownloadAllChapters()
     local time = require("ui/time")
     local startTime = time.now()
     local _, err = Backend.downloadAllChapters(self.manga.source_id, self.manga.id)
-    UIManager:close(downloadingMessage)
 
     if err ~= nil then
       ErrorDialog:show(err)
@@ -227,18 +226,57 @@ function ChapterListing:onDownloadAllChapters()
       return
     end
 
-    -- FIXME I don't think mutating the chapter list here is the way to go, but it's quicker
-    -- than making another call to list the chapters from the backend...
-    -- some possible alternatives:
-    -- - return the chapter list from the backend on the `downloadAllChapters` call
-    -- - biting the bullet and making the API call
-    for _, chapter in ipairs(self.chapters) do
-      chapter.downloaded = true
+    local onDownloadFinished = function()
+      -- FIXME I don't think mutating the chapter list here is the way to go, but it's quicker
+      -- than making another call to list the chapters from the backend...
+      -- some possible alternatives:
+      -- - return the chapter list from the backend on the `downloadAllChapters` call
+      -- - biting the bullet and making the API call
+      for _, chapter in ipairs(self.chapters) do
+        chapter.downloaded = true
+      end
+
+      logger.info("Downloaded all chapters in ", time.to_ms(time.since(startTime)), "ms")
+
+      self:updateItems()
     end
 
-    logger.info("Downloaded all chapters in ", time.to_ms(time.since(startTime)), "ms")
+    local updateProgress = nil
+    updateProgress = function()
+      local downloadProgress, err = Backend.getDownloadAllChaptersProgress(self.manga.source_id, self.manga.id)
 
-    self:updateItems()
+      if err ~= nil then
+        ErrorDialog:show(err)
+
+        return
+      end
+
+      UIManager:close(downloadingMessage)
+
+      local messageText = nil
+      if downloadProgress.type == "INITIALIZING" then
+        messageText = "Downloading all chapters, this will take a while…"
+      elseif downloadProgress.type == "PROGRESSING" then
+        messageText = "Downloading all chapters, this will take a while… (" .. downloadProgress.downloaded .. "/" .. downloadProgress.total .. ")"
+      elseif downloadProgress.type == "FINISHED" then
+        onDownloadFinished()
+
+        return
+      elseif downloadProgress.type == "ERRORED" then
+        ErrorDialog:show(downloadProgress.message)
+
+        return
+      end
+
+      downloadingMessage = InfoMessage:new{
+        text = messageText,
+      }
+      UIManager:show(downloadingMessage)
+
+      UIManager:scheduleIn(1, updateProgress)
+    end
+
+    UIManager:scheduleIn(1, updateProgress)
   end)
 end
 
@@ -252,7 +290,6 @@ function ChapterListing:findChapterIndex(needle)
 
   for i, chapter in ipairs(self.chapters) do
     if isSameChapter(chapter, needle) then
-      logger.info("same chapters", chapter, needle, i)
       return i
     end
   end

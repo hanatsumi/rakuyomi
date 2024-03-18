@@ -1,4 +1,7 @@
-use cli::model::{Chapter as DomainChapter, MangaInformation};
+use cli::{
+    model::{Chapter as DomainChapter, MangaInformation},
+    usecases::fetch_all_manga_chapters::ProgressReport,
+};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -57,6 +60,31 @@ impl From<DomainChapter> for Chapter {
                 .map(|decimal| decimal.try_into().unwrap()),
             read: state.read,
             downloaded,
+        }
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "type")]
+pub enum DownloadAllChaptersProgress {
+    Initializing,
+    Progressing { downloaded: usize, total: usize },
+    Finished,
+    Errored { message: String },
+}
+
+impl From<&ProgressReport> for DownloadAllChaptersProgress {
+    fn from(value: &ProgressReport) -> Self {
+        match value {
+            ProgressReport::Initializing => Self::Initializing,
+            ProgressReport::Progressing { downloaded, total } => Self::Progressing {
+                downloaded: downloaded.to_owned(),
+                total: total.to_owned(),
+            },
+            ProgressReport::Finished => Self::Finished,
+            ProgressReport::Errored(e) => Self::Errored {
+                message: e.to_string(),
+            },
         }
     }
 }

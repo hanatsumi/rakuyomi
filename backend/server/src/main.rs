@@ -1,5 +1,6 @@
 mod model;
 
+use std::mem;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -13,6 +14,7 @@ use cli::chapter_storage::ChapterStorage;
 use cli::database::Database;
 use cli::model::{ChapterId, MangaId};
 use cli::source::Source;
+use cli::usecases::fetch_all_manga_chapters::ProgressReport;
 use cli::usecases::{
     add_manga_to_library::add_manga_to_library as add_manga_to_library_usecase,
     fetch_all_manga_chapters::fetch_all_manga_chapters,
@@ -25,10 +27,11 @@ use cli::usecases::{
     mark_chapter_as_read::mark_chapter_as_read as mark_chapter_as_read_usecase,
     search_mangas::search_mangas, search_mangas::Error as SearchMangasError,
 };
+use futures::{pin_mut, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
-use model::{Chapter, Manga};
+use model::{Chapter, DownloadAllChaptersProgress, Manga};
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -40,6 +43,7 @@ struct State {
     source: Arc<Mutex<Source>>,
     database: Arc<Database>,
     chapter_storage: ChapterStorage,
+    fetch_all_chapters_progress_report: Arc<Mutex<Option<ProgressReport>>>,
 }
 
 #[tokio::main]
@@ -57,6 +61,7 @@ async fn main() -> anyhow::Result<()> {
         source: Arc::new(Mutex::new(source)),
         database: Arc::new(database),
         chapter_storage,
+        fetch_all_chapters_progress_report: Default::default(),
     };
 
     let app = Router::new()
@@ -73,6 +78,10 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/mangas/:source_id/:manga_id/chapters/download-all",
             post(download_all_manga_chapters),
+        )
+        .route(
+            "/mangas/:source_id/:manga_id/chapters/download-all-progress",
+            get(get_download_all_manga_chapters_progress),
         )
         // FIXME i dont think the route should be named download because it doesnt
         // always download the file...
@@ -179,17 +188,74 @@ async fn download_all_manga_chapters(
         source,
         database,
         chapter_storage,
+        fetch_all_chapters_progress_report,
         ..
     }): StateExtractor<State>,
     Path(params): Path<MangaChaptersPathParams>,
 ) -> Result<Json<()>, AppError> {
     let manga_id = MangaId::from(params);
 
-    fetch_all_manga_chapters(&*source.lock().await, &database, &chapter_storage, manga_id)
-        .await
-        .map_err(AppError::from_fetch_all_manga_chapters_error)?;
+    *fetch_all_chapters_progress_report.lock().await = Some(ProgressReport::Initializing);
+
+    tokio::spawn(async move {
+        let source = &*source.lock().await;
+        let progress_report_stream =
+            fetch_all_manga_chapters(&source, &database, &chapter_storage, manga_id);
+
+        pin_mut!(progress_report_stream);
+
+        let mut terminated = false;
+        while !terminated {
+            let progress_report = progress_report_stream.next().await.unwrap();
+            terminated = match &progress_report {
+                ProgressReport::Finished | ProgressReport::Errored(_) => true,
+                _ => false,
+            };
+
+            *fetch_all_chapters_progress_report.lock().await = Some(progress_report);
+        }
+    });
 
     Ok(Json(()))
+}
+
+async fn get_download_all_manga_chapters_progress(
+    StateExtractor(State {
+        fetch_all_chapters_progress_report,
+        ..
+    }): StateExtractor<State>,
+) -> Result<Json<DownloadAllChaptersProgress>, AppError> {
+    let mut maybe_progress_report = fetch_all_chapters_progress_report.lock().await;
+    let progress_report = mem::take(&mut *maybe_progress_report)
+        .ok_or(AppError::DownloadAllChaptersProgressNotFound)?;
+
+    // iff we're not on a terminal state, place a copy of the progress report back into the state
+    match &progress_report {
+        ProgressReport::Initializing => {
+            *maybe_progress_report = Some(ProgressReport::Initializing);
+        }
+        ProgressReport::Progressing { downloaded, total } => {
+            *maybe_progress_report = Some(ProgressReport::Progressing {
+                downloaded: *downloaded,
+                total: *total,
+            })
+        }
+        _ => {}
+    };
+
+    let download_progress = match progress_report {
+        ProgressReport::Initializing => DownloadAllChaptersProgress::Initializing,
+        ProgressReport::Progressing { downloaded, total } => {
+            DownloadAllChaptersProgress::Progressing {
+                downloaded: downloaded.to_owned(),
+                total: total.to_owned(),
+            }
+        }
+        ProgressReport::Finished => DownloadAllChaptersProgress::Finished,
+        ProgressReport::Errored(e) => return Err(AppError::from_fetch_all_manga_chapters_error(e)),
+    };
+
+    Ok(Json(download_progress))
 }
 
 #[derive(Deserialize)]
@@ -234,6 +300,7 @@ async fn mark_chapter_as_read(
 
 // Make our own error that wraps `anyhow::Error`.
 enum AppError {
+    DownloadAllChaptersProgressNotFound,
     NetworkFailure(anyhow::Error),
     Other(anyhow::Error),
 }
@@ -268,18 +335,20 @@ impl AppError {
 // Tell axum how to convert `AppError` into a response.
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
+        let status_code = match &self {
+            Self::DownloadAllChaptersProgressNotFound => StatusCode::NOT_FOUND,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+
         let message = match self {
+            Self::DownloadAllChaptersProgressNotFound => "No download is in progress.".to_string(),
             Self::NetworkFailure(_) => {
                 "There was a network error. Check your connection and try again.".to_string()
             }
             Self::Other(e) => format!("Something went wrong: {}", e),
         };
 
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse { message }),
-        )
-            .into_response()
+        (status_code, Json(ErrorResponse { message })).into_response()
     }
 }
 
