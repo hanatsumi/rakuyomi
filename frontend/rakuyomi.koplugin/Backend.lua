@@ -24,7 +24,20 @@ local function replaceRapidJsonNullWithNilRecursively(maybeTable)
   return t
 end
 
--- FIXME document
+--- @class RequestParameters
+--- @field url string The URL of the request
+--- @field method string? The request method to be used
+--- @field body unknown? The request body to be sent. Must be encodable as JSON.
+--- @field query_params table<string, string|number>? The query parameters to be sent on request.
+--- @field timeout number? The timeout used for this request. If unset, the default `luasocket` timeout will be used.
+
+--- Performs a HTTP request, using JSON to encode the request body and to decode the response body.
+--- @param request RequestParameters The parameters used for this request.
+--- @generic T
+--- @nodiscard
+--- FIXME Change return type to a tagged union.
+--- @return T # The parsed JSON response or nil, if there was an error.
+--- @return string|nil # If there was an error, the error message; or nil if there was no error.
 local function requestJson(request)
   local url = require("socket.url")
   local ltn12 = require("ltn12")
@@ -102,7 +115,7 @@ function Backend.initialize()
     local serverPath = DataStorage:getDataDir() .. "/plugins/rakuyomi.koplugin/server"
     local args = table.pack(serverPath, homePath)
 
-    os.exit(C.execl(serverPath, unpack(args, 1, args.n+1))) -- Last arg must be a NULL pointer
+    os.exit(C.execl(serverPath, unpack(args, 1, args.n + 1))) -- Last arg must be a NULL pointer
   end
 
   logger.info("Spawned HTTP server with PID " .. pid)
@@ -166,7 +179,8 @@ end
 
 function Backend.markChapterAsRead(source_id, manga_id, chapter_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/" .. chapter_id .. "/mark-as-read",
+    url = "http://localhost:30727/mangas/" ..
+        source_id .. "/" .. manga_id .. "/chapters/" .. chapter_id .. "/mark-as-read",
     method = "POST",
   })
 end
