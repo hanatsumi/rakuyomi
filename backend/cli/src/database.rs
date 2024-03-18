@@ -39,15 +39,18 @@ impl Database {
         rows.into_iter().map(|row| row.manga_id()).collect()
     }
 
-    pub async fn add_manga_to_library(&self, id: MangaId) {
+    pub async fn add_manga_to_library(&self, manga_id: MangaId) {
+        let source_id = manga_id.source_id().value();
+        let manga_id = manga_id.value();
+
         sqlx::query!(
             r#"
                 INSERT INTO manga_library (source_id, manga_id)
                 VALUES (?1, ?2)
                 ON CONFLICT DO NOTHING
             "#,
-            id.source_id.0,
-            id.manga_id
+            source_id,
+            manga_id
         )
         .execute(&self.pool)
         .await
@@ -58,14 +61,17 @@ impl Database {
         &self,
         manga_id: &MangaId,
     ) -> Option<MangaInformation> {
+        let source_id = manga_id.source_id().value();
+        let manga_id = manga_id.value();
+
         let maybe_row = sqlx::query_as!(
             MangaInformationsRow,
             r#"
                 SELECT * FROM manga_informations
                     WHERE source_id = ?1 AND manga_id = ?2;
             "#,
-            manga_id.source_id.0,
-            manga_id.manga_id
+            source_id,
+            manga_id
         )
         .fetch_optional(&self.pool)
         .await
@@ -78,6 +84,9 @@ impl Database {
         &self,
         manga_id: &MangaId,
     ) -> Vec<ChapterInformation> {
+        let source_id = manga_id.source_id().value();
+        let manga_id = manga_id.value();
+
         let rows = sqlx::query_as!(
             ChapterInformationsRow,
             r#"
@@ -85,8 +94,8 @@ impl Database {
                 WHERE source_id = ?1 AND manga_id = ?2
                 ORDER BY manga_order ASC;
             "#,
-            manga_id.source_id.0,
-            manga_id.manga_id
+            source_id,
+            manga_id
         )
         .fetch_all(&self.pool)
         .await
@@ -95,8 +104,10 @@ impl Database {
         rows.into_iter().map(|row| row.into()).collect()
     }
 
-    pub async fn upsert_cached_manga_information(&self, information: MangaInformation) {
-        let cover_url = information.cover_url.map(|url| url.to_string());
+    pub async fn upsert_cached_manga_information(&self, manga_information: MangaInformation) {
+        let source_id = manga_information.id.source_id().value();
+        let manga_id = manga_information.id.value();
+        let cover_url = manga_information.cover_url.map(|url| url.to_string());
 
         sqlx::query!(
             r#"
@@ -108,22 +119,29 @@ impl Database {
                     artist = excluded.artist,
                     cover_url = excluded.cover_url
             "#,
-            information.id.source_id.0,
-            information.id.manga_id,
-            information.title,
-            information.author,
-            information.artist,
+            source_id,
+            manga_id,
+            manga_information.title,
+            manga_information.author,
+            manga_information.artist,
             cover_url
         ).execute(&self.pool).await.unwrap();
     }
 
-    pub async fn upsert_cached_chapter_informations(&self, informations: Vec<ChapterInformation>) {
-        stream::iter(informations.into_iter().enumerate()).then(|(index, information)| async move {
+    pub async fn upsert_cached_chapter_informations(
+        &self,
+        chapter_informations: Vec<ChapterInformation>,
+    ) {
+        stream::iter(chapter_informations.into_iter().enumerate()).then(|(index, chapter_information)| async move {
             let index = index as i64;
-            let chapter_number = information
+            let source_id = chapter_information.id.source_id().value();
+            let manga_id = chapter_information.id.manga_id().value();
+            let chapter_id = chapter_information.id.value();
+
+            let chapter_number = chapter_information
                 .chapter_number
                 .map(|dec| f64::try_from(dec).unwrap());
-            let volume_number = information
+            let volume_number = chapter_information
                 .volume_number
                 .map(|dec| f64::try_from(dec).unwrap());
 
@@ -138,12 +156,12 @@ impl Database {
                         chapter_number = excluded.chapter_number,
                         volume_number = excluded.volume_number
                 "#,
-                information.id.manga_id.source_id.0,
-                information.id.manga_id.manga_id,
-                information.id.chapter_id,
+                source_id,
+                manga_id,
+                chapter_id,
                 index,
-                information.title,
-                information.scanlator,
+                chapter_information.title,
+                chapter_information.scanlator,
                 chapter_number,
                 volume_number,
             ).execute(&self.pool).await?;
@@ -156,7 +174,11 @@ impl Database {
         todo!()
     }
 
-    pub async fn find_chapter_state(&self, id: &ChapterId) -> Option<ChapterState> {
+    pub async fn find_chapter_state(&self, chapter_id: &ChapterId) -> Option<ChapterState> {
+        let source_id = chapter_id.source_id().value();
+        let manga_id = chapter_id.manga_id().value();
+        let chapter_id = chapter_id.value();
+
         // FIXME we should be able to just specify a override for the `read` field here,
         // but there's a bug in sqlx preventing us: https://github.com/launchbadge/sqlx/issues/2295
         let maybe_row = sqlx::query_as!(
@@ -165,9 +187,9 @@ impl Database {
                 SELECT source_id, manga_id, chapter_id, read AS "read: bool" FROM chapter_state
                 WHERE source_id = ?1 AND manga_id = ?2 AND chapter_id = ?3;
             "#,
-            id.manga_id.source_id.0,
-            id.manga_id.manga_id,
-            id.chapter_id
+            source_id,
+            manga_id,
+            chapter_id,
         )
         .fetch_optional(&self.pool)
         .await
@@ -176,7 +198,11 @@ impl Database {
         maybe_row.map(|row| row.into())
     }
 
-    pub async fn upsert_chapter_state(&self, id: &ChapterId, state: ChapterState) {
+    pub async fn upsert_chapter_state(&self, chapter_id: &ChapterId, state: ChapterState) {
+        let source_id = chapter_id.source_id().value();
+        let manga_id = chapter_id.manga_id().value();
+        let chapter_id = chapter_id.value();
+
         sqlx::query!(
             r#"
                 INSERT INTO chapter_state (source_id, manga_id, chapter_id, read)
@@ -184,9 +210,9 @@ impl Database {
                 ON CONFLICT DO UPDATE SET
                     read = excluded.read
             "#,
-            id.manga_id.source_id.0,
-            id.manga_id.manga_id,
-            id.chapter_id,
+            source_id,
+            manga_id,
+            chapter_id,
             state.read,
         )
         .execute(&self.pool)
@@ -208,10 +234,7 @@ struct MangaInformationsRow {
 impl From<MangaInformationsRow> for MangaInformation {
     fn from(value: MangaInformationsRow) -> Self {
         Self {
-            id: MangaId {
-                source_id: SourceId(value.source_id),
-                manga_id: value.manga_id,
-            },
+            id: MangaId::from_strings(value.source_id, value.manga_id),
             title: value.title,
             author: value.author,
             artist: value.artist,
@@ -237,13 +260,7 @@ struct ChapterInformationsRow {
 impl From<ChapterInformationsRow> for ChapterInformation {
     fn from(value: ChapterInformationsRow) -> Self {
         Self {
-            id: ChapterId {
-                manga_id: MangaId {
-                    source_id: SourceId(value.source_id),
-                    manga_id: value.manga_id,
-                },
-                chapter_id: value.chapter_id,
-            },
+            id: ChapterId::from_strings(value.source_id, value.manga_id, value.chapter_id),
             title: value.title,
             scanlator: value.scanlator,
             chapter_number: value
@@ -264,10 +281,7 @@ struct MangaLibraryRow {
 
 impl MangaLibraryRow {
     pub fn manga_id(self) -> MangaId {
-        MangaId {
-            source_id: SourceId(self.source_id),
-            manga_id: self.manga_id,
-        }
+        MangaId::from_strings(self.source_id, self.manga_id)
     }
 }
 

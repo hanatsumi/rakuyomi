@@ -135,17 +135,17 @@ struct MangaChaptersPathParams {
     manga_id: String,
 }
 
+impl From<MangaChaptersPathParams> for MangaId {
+    fn from(value: MangaChaptersPathParams) -> Self {
+        MangaId::from_strings(value.source_id, value.manga_id)
+    }
+}
+
 async fn add_manga_to_library(
     StateExtractor(State { database, .. }): StateExtractor<State>,
-    Path(MangaChaptersPathParams {
-        source_id,
-        manga_id,
-    }): Path<MangaChaptersPathParams>,
+    Path(params): Path<MangaChaptersPathParams>,
 ) -> Result<Json<()>, AppError> {
-    let manga_id = MangaId {
-        source_id: SourceId(source_id),
-        manga_id,
-    };
+    let manga_id = MangaId::from(params);
 
     add_manga_to_library_usecase(&database, manga_id).await?;
 
@@ -159,15 +159,9 @@ async fn get_manga_chapters(
         chapter_storage,
         ..
     }): StateExtractor<State>,
-    Path(MangaChaptersPathParams {
-        source_id,
-        manga_id,
-    }): Path<MangaChaptersPathParams>,
+    Path(params): Path<MangaChaptersPathParams>,
 ) -> Result<Json<Vec<Chapter>>, AppError> {
-    let manga_id = MangaId {
-        source_id: SourceId(source_id),
-        manga_id,
-    };
+    let manga_id = MangaId::from(params);
     let GetMangaChaptersUsecaseResponse(_, chapters) =
         get_manga_chapters_usecase(&database, &*source.lock().await, &chapter_storage, manga_id)
             .await?;
@@ -187,15 +181,9 @@ async fn download_all_manga_chapters(
         chapter_storage,
         ..
     }): StateExtractor<State>,
-    Path(MangaChaptersPathParams {
-        source_id,
-        manga_id,
-    }): Path<MangaChaptersPathParams>,
+    Path(params): Path<MangaChaptersPathParams>,
 ) -> Result<Json<()>, AppError> {
-    let manga_id = MangaId {
-        source_id: SourceId(source_id),
-        manga_id,
-    };
+    let manga_id = MangaId::from(params);
 
     fetch_all_manga_chapters(&*source.lock().await, &database, &chapter_storage, manga_id)
         .await
@@ -211,25 +199,21 @@ struct DownloadMangaChapterParams {
     chapter_id: String,
 }
 
+impl From<DownloadMangaChapterParams> for ChapterId {
+    fn from(value: DownloadMangaChapterParams) -> Self {
+        ChapterId::from_strings(value.source_id, value.manga_id, value.chapter_id)
+    }
+}
+
 async fn download_manga_chapter(
     StateExtractor(State {
         source,
         chapter_storage,
         ..
     }): StateExtractor<State>,
-    Path(DownloadMangaChapterParams {
-        source_id,
-        manga_id,
-        chapter_id,
-    }): Path<DownloadMangaChapterParams>,
+    Path(params): Path<DownloadMangaChapterParams>,
 ) -> Result<Json<String>, AppError> {
-    let chapter_id = ChapterId {
-        manga_id: MangaId {
-            manga_id,
-            source_id: SourceId(source_id),
-        },
-        chapter_id,
-    };
+    let chapter_id = ChapterId::from(params);
     let output_path = fetch_manga_chapter(&*source.lock().await, &chapter_storage, &chapter_id)
         .await
         .map_err(AppError::from_fetch_manga_chapters_error)?;
@@ -239,19 +223,9 @@ async fn download_manga_chapter(
 
 async fn mark_chapter_as_read(
     StateExtractor(State { database, .. }): StateExtractor<State>,
-    Path(DownloadMangaChapterParams {
-        source_id,
-        manga_id,
-        chapter_id,
-    }): Path<DownloadMangaChapterParams>,
+    Path(params): Path<DownloadMangaChapterParams>,
 ) -> Json<()> {
-    let chapter_id = ChapterId {
-        manga_id: MangaId {
-            manga_id,
-            source_id: SourceId(source_id),
-        },
-        chapter_id,
-    };
+    let chapter_id = ChapterId::from(params);
 
     mark_chapter_as_read_usecase(&database, chapter_id).await;
 

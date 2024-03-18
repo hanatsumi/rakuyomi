@@ -16,7 +16,7 @@ pub async fn fetch_all_manga_chapters(
     id: MangaId,
 ) -> Result<(), Error> {
     let chapter_informations: Vec<ChapterInformation> = source
-        .get_chapter_list(id.manga_id.clone())
+        .get_chapter_list(id.value().clone())
         .await
         .map_err(Error::DownloadError)?
         .into_iter()

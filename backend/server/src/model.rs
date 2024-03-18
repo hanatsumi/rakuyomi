@@ -11,12 +11,12 @@ pub struct Manga {
 }
 
 impl From<MangaInformation> for Manga {
-    fn from(value: MangaInformation) -> Self {
+    fn from(manga_information: MangaInformation) -> Self {
         Self {
-            id: value.id.manga_id,
-            source_id: value.id.source_id.0,
+            id: manga_information.id.value().clone(),
+            source_id: manga_information.id.source_id().value().clone(),
             // FIXME what the fuck
-            title: value.title.unwrap_or("Unknown title".into()),
+            title: manga_information.title.unwrap_or("Unknown title".into()),
         }
     }
 }
@@ -37,23 +37,23 @@ pub struct Chapter {
 impl From<DomainChapter> for Chapter {
     fn from(
         DomainChapter {
-            information,
+            information: chapter_information,
             state,
             downloaded,
         }: DomainChapter,
     ) -> Self {
         Self {
             // FIXME what the fuck why
-            source_id: information.id.manga_id.source_id.0,
-            manga_id: information.id.manga_id.manga_id,
-            id: information.id.chapter_id,
-            title: information.title.unwrap_or("Unknown title".into()),
-            scanlator: information.scanlator,
-            chapter_num: information
+            source_id: chapter_information.id.source_id().value().clone(),
+            manga_id: chapter_information.id.manga_id().value().clone(),
+            id: chapter_information.id.value().clone(),
+            title: chapter_information.title.unwrap_or("Unknown title".into()),
+            scanlator: chapter_information.scanlator,
+            chapter_num: chapter_information
                 .chapter_number
                 .map(|decimal| decimal.try_into().unwrap()),
-            volume_num: information
-                .chapter_number
+            volume_num: chapter_information
+                .volume_number
                 .map(|decimal| decimal.try_into().unwrap()),
             read: state.read,
             downloaded,

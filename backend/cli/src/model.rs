@@ -4,18 +4,86 @@ use url::Url;
 use crate::source::model::{Chapter as SourceChapter, Manga as SourceManga};
 
 #[derive(Clone)]
-pub struct SourceId(pub String);
+pub struct SourceId {
+    source_id: String,
+}
 
 #[derive(Clone)]
 pub struct MangaId {
-    pub source_id: SourceId,
-    pub manga_id: String,
+    source_id: SourceId,
+    manga_id: String,
 }
 
 #[derive(Clone)]
 pub struct ChapterId {
-    pub manga_id: MangaId,
-    pub chapter_id: String,
+    manga_id: MangaId,
+    chapter_id: String,
+}
+
+impl SourceId {
+    pub fn new(value: String) -> Self {
+        Self { source_id: value }
+    }
+
+    pub fn value(&self) -> &String {
+        &self.source_id
+    }
+}
+
+impl MangaId {
+    pub fn new(source_id: SourceId, value: String) -> Self {
+        Self {
+            source_id,
+            manga_id: value,
+        }
+    }
+
+    pub fn from_strings(source_id: String, manga_id: String) -> Self {
+        let source_id = SourceId::new(source_id);
+
+        Self {
+            source_id,
+            manga_id,
+        }
+    }
+
+    pub fn source_id(&self) -> &SourceId {
+        &self.source_id
+    }
+
+    pub fn value(&self) -> &String {
+        &self.manga_id
+    }
+}
+
+impl ChapterId {
+    pub fn new(manga_id: MangaId, value: String) -> Self {
+        Self {
+            manga_id,
+            chapter_id: value,
+        }
+    }
+
+    pub fn from_strings(source_id: String, manga_id: String, chapter_id: String) -> Self {
+        let manga_id = MangaId::from_strings(source_id, manga_id);
+
+        Self {
+            manga_id,
+            chapter_id,
+        }
+    }
+
+    pub fn source_id(&self) -> &SourceId {
+        self.manga_id.source_id()
+    }
+
+    pub fn manga_id(&self) -> &MangaId {
+        &self.manga_id
+    }
+
+    pub fn value(&self) -> &String {
+        &self.chapter_id
+    }
 }
 
 #[derive(Clone)]
@@ -52,10 +120,7 @@ pub struct Chapter {
 impl From<SourceManga> for MangaInformation {
     fn from(value: SourceManga) -> Self {
         Self {
-            id: MangaId {
-                source_id: SourceId(value.source_id),
-                manga_id: value.id,
-            },
+            id: MangaId::from_strings(value.source_id, value.id),
             title: value.title,
             author: value.author,
             artist: value.artist,
@@ -67,13 +132,7 @@ impl From<SourceManga> for MangaInformation {
 impl From<SourceChapter> for ChapterInformation {
     fn from(value: SourceChapter) -> Self {
         Self {
-            id: ChapterId {
-                manga_id: MangaId {
-                    source_id: SourceId(value.source_id),
-                    manga_id: value.manga_id,
-                },
-                chapter_id: value.id,
-            },
+            id: ChapterId::from_strings(value.source_id, value.manga_id, value.id),
             title: value.title,
             scanlator: value.scanlator,
             // FIXME is this ever fallible?

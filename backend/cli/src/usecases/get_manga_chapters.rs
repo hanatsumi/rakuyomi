@@ -16,7 +16,7 @@ pub async fn get_manga_chapters(
     chapter_storage: &ChapterStorage,
     id: MangaId,
 ) -> Result<Response> {
-    let (cached, chapter_informations) = match source.get_chapter_list(id.manga_id.clone()).await {
+    let (cached, chapter_informations) = match source.get_chapter_list(id.value().clone()).await {
         Ok(chapters) => (false, chapters.into_iter().map(|c| c.into()).collect()),
         Err(_) => (true, db.find_cached_chapter_informations(&id).await),
     };

@@ -32,8 +32,12 @@ impl ChapterStorage {
         Ok((path, file))
     }
 
-    fn path_for_chapter(&self, id: &ChapterId) -> PathBuf {
-        let output_filename = format!("{}-{}.cbz", &id.manga_id.source_id.0, &id.chapter_id);
+    fn path_for_chapter(&self, chapter_id: &ChapterId) -> PathBuf {
+        let output_filename = format!(
+            "{}-{}.cbz",
+            chapter_id.source_id().value(),
+            chapter_id.source_id().value()
+        );
 
         self.downloads_folder_path.join(output_filename)
     }

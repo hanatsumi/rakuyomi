@@ -1,11 +1,8 @@
-use crate::model::MangaId;
 use anyhow::{anyhow, bail, Context, Result};
-use scopeguard::defer;
 use serde::Deserialize;
 use std::{
     collections::HashMap,
     fs,
-    io::Read,
     path::Path,
     sync::{Arc, Mutex},
 };
@@ -148,7 +145,7 @@ impl BlockingSource {
     fn search_mangas_by_filters(&mut self, filters: Vec<Filter>) -> Result<Vec<Manga>> {
         let wasm_function = self
             .instance
-            .get_typed_func::<(i32, i32), (i32)>(&mut self.store, "get_manga_list")?;
+            .get_typed_func::<(i32, i32), i32>(&mut self.store, "get_manga_list")?;
         let filters_descriptor = self.store.data_mut().store_std_value(
             Value::Array(
                 filters
@@ -210,7 +207,7 @@ impl BlockingSource {
         // FIXME what the fuck is chapter counter, aidoku sets it here
         let wasm_function = self
             .instance
-            .get_typed_func::<(i32), (i32)>(&mut self.store, "get_chapter_list")?;
+            .get_typed_func::<i32, i32>(&mut self.store, "get_chapter_list")?;
         let chapter_list_descriptor =
             wasm_function.call(&mut self.store, manga_descriptor as i32)?;
 
@@ -268,7 +265,7 @@ impl BlockingSource {
         // FIXME what the fuck is chapter counter, aidoku sets it here
         let wasm_function = self
             .instance
-            .get_typed_func::<(i32), (i32)>(&mut self.store, "get_page_list")?;
+            .get_typed_func::<i32, i32>(&mut self.store, "get_page_list")?;
         let page_list_descriptor =
             wasm_function.call(&mut self.store, chapter_descriptor as i32)?;
 
