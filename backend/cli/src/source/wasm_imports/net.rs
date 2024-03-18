@@ -1,6 +1,8 @@
 use std::{default, rc::Rc, sync::Arc};
 
+use crate::util::has_internet_connection;
 use anyhow::Result;
+use futures::executor;
 use num_enum::FromPrimitive;
 use reqwest::Method;
 use scraper::Html;
@@ -173,6 +175,16 @@ fn set_rate_limit_period(mut caller: Caller<'_, WasmStore>, rate_limit_period: i
 #[aidoku_wasm_function]
 fn send(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) {
     || -> Option<()> {
+        // HACK Before everything, we want to fail fast if no internet connection is available.
+        // In theory, it would be easier to just let things fail naturally and move on
+        // with our lives; but DNS resolution takes forever (~5s or so) when we have no connection
+        // available - due to musl's `getaddrinfo()` call not realizing we have no connection and
+        // timing out (EAI_AGAIN). The overhead of checking for a connection here seems worth it.
+        let has_internet_connection = executor::block_on(has_internet_connection());
+        if !has_internet_connection {
+            return None;
+        }
+
         let request_descriptor: usize = request_descriptor_i32.try_into().ok()?;
         let wasm_store = caller.data_mut();
 
