@@ -1,6 +1,6 @@
 use anyhow::Result;
 use wasm_macros::{aidoku_wasm_function, register_wasm_function};
-use wasmtime::{Caller, Linker};
+use wasmi::{Caller, Linker};
 
 use crate::source::wasm_store::{Value, WasmStore};
 

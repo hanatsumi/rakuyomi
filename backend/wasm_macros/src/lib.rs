@@ -4,8 +4,8 @@ use proc_macro::TokenStream as OGTokenStream;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{
-    parse::Parse, parse_macro_input, FnArg, GenericArgument, ItemFn,
-    LitStr, PathArguments, ReturnType, Signature, Token, Type, TypeTuple, token::Paren, punctuated::Punctuated,
+    parse::Parse, parse_macro_input, punctuated::Punctuated, token::Paren, FnArg, GenericArgument,
+    ItemFn, LitStr, PathArguments, ReturnType, Signature, Token, Type, TypeTuple,
 };
 
 #[proc_macro_attribute]
@@ -65,7 +65,7 @@ pub fn aidoku_wasm_function(args: OGTokenStream, input: OGTokenStream) -> OGToke
         .collect();
 
     let wasm_parameter_types_array_definition = quote! {
-        let mut wasm_parameter_types = ::std::vec::Vec::<::wasmtime::ValType>::new();
+        let mut wasm_parameter_types = ::std::vec::Vec::<::wasmi::core::ValueType>::new();
     };
 
     let wasm_parameter_types_appenders: Vec<TokenStream> = input_types.iter()
@@ -76,21 +76,19 @@ pub fn aidoku_wasm_function(args: OGTokenStream, input: OGTokenStream) -> OGToke
 
     let actual_return_type = match output {
         ReturnType::Type(_, ty) => *ty.clone(),
-        ReturnType::Default => {
-            Type::Tuple(TypeTuple {
-                paren_token: Paren::default(),
-                elems: Punctuated::default(),
-            })
-        }
+        ReturnType::Default => Type::Tuple(TypeTuple {
+            paren_token: Paren::default(),
+            elems: Punctuated::default(),
+        }),
     };
 
     let is_unit_return = match &actual_return_type {
         Type::Tuple(actual_return_type) => actual_return_type.elems.is_empty(),
-        _ => false
+        _ => false,
     };
 
     let return_value_writer = if is_unit_return {
-        quote! { }
+        quote! {}
     } else {
         quote! { results[0] = result.to_wasm_value(); }
     };
@@ -104,7 +102,7 @@ pub fn aidoku_wasm_function(args: OGTokenStream, input: OGTokenStream) -> OGToke
     let func = quote! {
         #input
 
-        pub fn #internal_ident(mut caller: ::wasmtime::Caller<'_, #caller_store_type>, params: &[::wasmtime::Val], results: &mut [::wasmtime::Val]) -> ::anyhow::Result<()> {
+        pub fn #internal_ident(mut caller: ::wasmi::Caller<'_, #caller_store_type>, params: &[::wasmi::Value], results: &mut [::wasmi::Value]) -> ::core::result::Result<(), ::wasmi::core::Trap> {
             use ::wasm_shared::ToWasmValue;
             #argument_accessor_start
             #(#argument_setters)*
@@ -119,16 +117,16 @@ pub fn aidoku_wasm_function(args: OGTokenStream, input: OGTokenStream) -> OGToke
         }
 
         pub fn #register_wasm_function_ident<'a>(
-            linker: &'a mut ::wasmtime::Linker<#caller_store_type>,
+            linker: &'a mut ::wasmi::Linker<#caller_store_type>,
             module: &str,
             name: &str
-        ) -> ::anyhow::Result<&'a mut ::wasmtime::Linker<#caller_store_type>> {
+        ) -> ::core::result::Result<&'a mut ::wasmi::Linker<#caller_store_type>, ::wasmi::errors::LinkerError> {
             use ::wasm_shared::ToWasmValue;
 
             #wasm_parameter_types_array_definition
             #(#wasm_parameter_types_appenders)*
 
-            let function_type = ::wasmtime::FuncType::new(
+            let function_type = ::wasmi::FuncType::new(
                 wasm_parameter_types,
                 #wasm_return_types
             );

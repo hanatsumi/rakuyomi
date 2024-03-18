@@ -2,7 +2,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use scopeguard::defer;
 use serde::Deserialize;
 use std::{collections::HashMap, fs, io::Read, path::Path};
-use wasmtime::*;
+use wasmi::*;
 use zip::ZipArchive;
 
 use self::{
@@ -47,15 +47,14 @@ impl Source {
         let manifest: SourceManifest = serde_json::from_reader(manifest_file)?;
 
         let mut wasm_file_contents: Vec<u8> = Vec::new();
-        archive
+        let wasm_file = archive
             .by_name("Payload/main.wasm")
-            .with_context(|| "while loading main.wasm")?
-            .read_to_end(&mut wasm_file_contents)?;
+            .with_context(|| "while loading main.wasm")?;
 
         let engine = Engine::default();
         let wasm_store = WasmStore::new(manifest.info.id);
         let mut store = Store::new(&engine, wasm_store);
-        let module = Module::from_binary(&engine, wasm_file_contents.as_slice())
+        let module = Module::new(&engine, wasm_file)
             .with_context(|| format!("failed loading module from {}", path.display()))?;
 
         let mut linker = Linker::new(&engine);
@@ -67,12 +66,15 @@ impl Source {
         register_net_imports(&mut linker)?;
         register_std_imports(&mut linker)?;
 
-        let instance = linker.instantiate(&mut store, &module).with_context(|| {
-            format!(
-                "failed creating instance when loading from {}",
-                path.display()
-            )
-        })?;
+        let instance = linker
+            .instantiate(&mut store, &module)
+            .with_context(|| {
+                format!(
+                    "failed creating instance when loading from {}",
+                    path.display()
+                )
+            })?
+            .start(&mut store)?;
 
         Ok(Self { store, instance })
     }

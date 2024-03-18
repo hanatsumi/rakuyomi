@@ -10,7 +10,7 @@ use wasm_shared::{
     get_memory,
     memory_reader::{read_string as read_memory_string, write_bytes},
 };
-use wasmtime::{Caller, Extern, Linker, Memory, Val};
+use wasmi::{core::F64, Caller, Extern, Linker, Memory};
 
 use crate::source::{
     model::{Filter, FilterType, Manga, MangaPageResult},
@@ -103,8 +103,8 @@ fn create_int(mut caller: Caller<'_, WasmStore>, value: i64) -> i32 {
     create_value(caller, Value::Int(value))
 }
 
-fn create_float(mut caller: Caller<'_, WasmStore>, value: f64) -> i32 {
-    create_value(caller, Value::Float(value))
+fn create_float(mut caller: Caller<'_, WasmStore>, value: F64) -> i32 {
+    create_value(caller, Value::Float(value.to_float()))
 }
 
 fn create_string(mut caller: Caller<'_, WasmStore>, offset: i32, length: i32) -> i32 {
@@ -125,7 +125,8 @@ fn create_array(mut caller: Caller<'_, WasmStore>) -> i32 {
     create_value(caller, Value::Array(Vec::default()))
 }
 
-fn create_date(mut caller: Caller<'_, WasmStore>, seconds_since_1970: f64) -> i32 {
+fn create_date(mut caller: Caller<'_, WasmStore>, seconds_since_1970: F64) -> i32 {
+    let seconds_since_1970 = seconds_since_1970.to_float();
     let full_seconds = seconds_since_1970.floor() as i64;
     let nanos_remainder = ((seconds_since_1970 - full_seconds as f64) * (10f64.powi(9))) as u32;
     let naive_date_time = NaiveDateTime::from_timestamp_opt(full_seconds, nanos_remainder).unwrap();
@@ -229,7 +230,7 @@ fn read_int(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i64 {
     .unwrap_or(-1)
 }
 
-fn read_float(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> f64 {
+fn read_float(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> F64 {
     || -> Option<f64> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
@@ -244,6 +245,7 @@ fn read_float(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> f64 {
         }
     }()
     .unwrap_or(-1f64)
+    .into()
 }
 
 fn read_bool(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
@@ -262,7 +264,7 @@ fn read_bool(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     .unwrap_or(0)
 }
 
-fn read_date(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> f64 {
+fn read_date(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> F64 {
     || -> Option<f64> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
@@ -277,6 +279,7 @@ fn read_date(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> f64 {
         }
     }()
     .unwrap_or(0f64)
+    .into()
 }
 
 fn read_date_string(
@@ -288,7 +291,7 @@ fn read_date_string(
     locale_len_i32: i32,
     timezone_i32: i32,
     timezone_len_i32: i32,
-) -> f64 {
+) -> F64 {
     || -> Option<f64> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
         let format: usize = format_i32.try_into().ok()?;
@@ -347,6 +350,7 @@ fn read_date_string(
         Some(timestamp_f64(date_time.naive_local()))
     }()
     .unwrap_or(-1f64)
+    .into()
 }
 
 // FIXME this entire object part stinks, and is probably going to be buggy as hell because we copy stuff around

@@ -14,4 +14,4 @@ proc-macro2 = "1.0.65"
 quote = "1.0.30"
 syn = { version = "2.0.26", features = ["full"] }
 url = "2.4.0"
-wasmtime = "10.0.1"
+wasmi = "0.31.1"

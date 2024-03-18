@@ -7,7 +7,7 @@ use wasm_shared::{
     get_memory,
     memory_reader::{read_string, read_values},
 };
-use wasmtime::{Caller, Linker, Val};
+use wasmi::{Caller, Linker};
 
 use crate::source::{
     model::{

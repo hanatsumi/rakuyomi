@@ -1,5 +1,5 @@
 #![feature(generic_const_exprs)]
-use wasmtime::{Memory, Store, AsContext, AsContextMut};
+use wasmi::{Memory, Store, AsContext, AsContextMut};
 
 // TODO use Results instead of Options
 pub fn read_bytes(memory: &Memory, store: &impl AsContext, offset: usize, length: usize) -> Option<Vec<u8>> {

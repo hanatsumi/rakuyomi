@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use scraper::{html, Element, Html, Node, Selector};
 use wasm_macros::{aidoku_wasm_function, register_wasm_function};
-use wasmtime::{Caller, Linker, Val};
+use wasmi::{Caller, Linker};
 
 use crate::source::wasm_store::{HTMLElement, Value, WasmStore};
 
