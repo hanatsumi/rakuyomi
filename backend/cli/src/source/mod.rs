@@ -214,8 +214,6 @@ impl Source {
         let page_list_descriptor =
             wasm_function.call(&mut self.store, chapter_descriptor as i32)?;
 
-        dbg!(page_list_descriptor);
-
         let pages: Vec<Page> = match self
             .store
             .data_mut()

@@ -107,8 +107,6 @@ pub fn aidoku_wasm_function(args: OGTokenStream, input: OGTokenStream) -> OGToke
             #argument_accessor_start
             #(#argument_setters)*
 
-            dbg!(stringify!(#ident), "called with: ", #(&#function_call_parameters, )*);
-
             let result = #ident(caller, #(#function_call_parameters, )*);
 
             #return_value_writer

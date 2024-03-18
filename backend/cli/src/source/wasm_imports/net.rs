@@ -182,8 +182,6 @@ fn send(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) {
             _ => None,
         }?;
 
-        dbg!(&request_builder);
-
         let client = reqwest::blocking::Client::new();
         let mut builder = client.request(
             request_builder.method.clone()?,

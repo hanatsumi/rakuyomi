@@ -717,14 +717,13 @@ impl FieldAsValue for MangaPageResult {
 
 impl FieldAsValue for Filter {
     fn field_as_value(&self, field: &str) -> Option<Value> {
-        dbg!("reading field {} of filter {}", &field, self);
         match field {
-            "type" => dbg!(Some(Value::Int(FilterType::from(self) as i64))),
-            "name" => dbg!(Some(Value::String(self.name()))),
+            "type" => Some(Value::Int(FilterType::from(self) as i64)),
+            "name" => Some(Value::String(self.name())),
             // FIXME i dont think this should be here but
-            "value" => dbg!(match &self {
+            "value" => match &self {
                 Filter::Title(title) => Some(Value::String(title.clone())),
-            }),
+            },
             _ => None,
         }
     }
