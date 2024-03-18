@@ -32,10 +32,26 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
 use model::{Chapter, DownloadAllChaptersProgress, Manga};
+use tokio_util::sync::CancellationToken;
 
 #[derive(Parser, Debug)]
 struct Args {
     home_path: PathBuf,
+}
+
+#[derive(Default)]
+enum DownloadAllChaptersState {
+    #[default]
+    Idle,
+    Initializing,
+    Progressing {
+        cancellation_token: CancellationToken,
+        downloaded: usize,
+        total: usize,
+    },
+    Finished,
+    Cancelled,
+    Errored(FetchAllMangaChaptersError),
 }
 
 #[derive(Clone)]
@@ -43,7 +59,7 @@ struct State {
     source: Arc<Mutex<Source>>,
     database: Arc<Database>,
     chapter_storage: ChapterStorage,
-    fetch_all_chapters_progress_report: Arc<Mutex<Option<ProgressReport>>>,
+    download_all_chapters_state: Arc<Mutex<DownloadAllChaptersState>>,
 }
 
 #[tokio::main]
@@ -61,7 +77,7 @@ async fn main() -> anyhow::Result<()> {
         source: Arc::new(Mutex::new(source)),
         database: Arc::new(database),
         chapter_storage,
-        fetch_all_chapters_progress_report: Default::default(),
+        download_all_chapters_state: Default::default(),
     };
 
     let app = Router::new()
@@ -188,19 +204,21 @@ async fn download_all_manga_chapters(
         source,
         database,
         chapter_storage,
-        fetch_all_chapters_progress_report,
+        download_all_chapters_state,
         ..
     }): StateExtractor<State>,
     Path(params): Path<MangaChaptersPathParams>,
 ) -> Result<Json<()>, AppError> {
     let manga_id = MangaId::from(params);
 
-    *fetch_all_chapters_progress_report.lock().await = Some(ProgressReport::Initializing);
+    *download_all_chapters_state.lock().await = DownloadAllChaptersState::Initializing;
 
     tokio::spawn(async move {
         let source = &*source.lock().await;
-        let progress_report_stream =
+        let (cancellation_token, progress_report_stream) =
             fetch_all_manga_chapters(&source, &database, &chapter_storage, manga_id);
+
+        *download_all_chapters_state.lock().await = DownloadAllChaptersState::Initializing;
 
         pin_mut!(progress_report_stream);
 
@@ -212,7 +230,18 @@ async fn download_all_manga_chapters(
                 _ => false,
             };
 
-            *fetch_all_chapters_progress_report.lock().await = Some(progress_report);
+            *download_all_chapters_state.lock().await = match progress_report {
+                ProgressReport::Progressing { downloaded, total } => {
+                    DownloadAllChaptersState::Progressing {
+                        cancellation_token: cancellation_token.clone(),
+                        downloaded,
+                        total,
+                    }
+                }
+                ProgressReport::Finished => DownloadAllChaptersState::Finished,
+                ProgressReport::Errored(e) => DownloadAllChaptersState::Errored(e),
+                ProgressReport::Cancelled => DownloadAllChaptersState::Cancelled,
+            };
         }
     });
 
@@ -221,38 +250,48 @@ async fn download_all_manga_chapters(
 
 async fn get_download_all_manga_chapters_progress(
     StateExtractor(State {
-        fetch_all_chapters_progress_report,
+        download_all_chapters_state,
         ..
     }): StateExtractor<State>,
 ) -> Result<Json<DownloadAllChaptersProgress>, AppError> {
-    let mut maybe_progress_report = fetch_all_chapters_progress_report.lock().await;
-    let progress_report = mem::take(&mut *maybe_progress_report)
-        .ok_or(AppError::DownloadAllChaptersProgressNotFound)?;
+    let mut state = download_all_chapters_state.lock().await;
+    let state = mem::take(&mut *state);
 
-    // iff we're not on a terminal state, place a copy of the progress report back into the state
-    match &progress_report {
-        ProgressReport::Initializing => {
-            *maybe_progress_report = Some(ProgressReport::Initializing);
+    // iff we're not on a terminal state, place a copy of the state into the app state
+    match &state {
+        DownloadAllChaptersState::Idle => {
+            *download_all_chapters_state.lock().await = DownloadAllChaptersState::Idle;
         }
-        ProgressReport::Progressing { downloaded, total } => {
-            *maybe_progress_report = Some(ProgressReport::Progressing {
-                downloaded: *downloaded,
-                total: *total,
-            })
+        DownloadAllChaptersState::Initializing => {
+            *download_all_chapters_state.lock().await = DownloadAllChaptersState::Initializing;
+        }
+        DownloadAllChaptersState::Progressing {
+            cancellation_token,
+            downloaded,
+            total,
+        } => {
+            *download_all_chapters_state.lock().await = DownloadAllChaptersState::Progressing {
+                cancellation_token: cancellation_token.clone(),
+                downloaded: downloaded.to_owned(),
+                total: total.to_owned(),
+            };
         }
         _ => {}
     };
 
-    let download_progress = match progress_report {
-        ProgressReport::Initializing => DownloadAllChaptersProgress::Initializing,
-        ProgressReport::Progressing { downloaded, total } => {
-            DownloadAllChaptersProgress::Progressing {
-                downloaded: downloaded.to_owned(),
-                total: total.to_owned(),
-            }
+    let download_progress = match state {
+        DownloadAllChaptersState::Idle => {
+            return Err(AppError::DownloadAllChaptersProgressNotFound)
         }
-        ProgressReport::Finished => DownloadAllChaptersProgress::Finished,
-        ProgressReport::Errored(e) => return Err(AppError::from_fetch_all_manga_chapters_error(e)),
+        DownloadAllChaptersState::Initializing => DownloadAllChaptersProgress::Initializing,
+        DownloadAllChaptersState::Progressing {
+            downloaded, total, ..
+        } => DownloadAllChaptersProgress::Progressing { downloaded, total },
+        DownloadAllChaptersState::Finished => DownloadAllChaptersProgress::Finished,
+        DownloadAllChaptersState::Errored(e) => {
+            return Err(AppError::from_fetch_all_manga_chapters_error(e))
+        }
+        DownloadAllChaptersState::Cancelled => DownloadAllChaptersProgress::Cancelled,
     };
 
     Ok(Json(download_progress))

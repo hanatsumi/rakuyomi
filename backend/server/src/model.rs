@@ -67,4 +67,5 @@ pub enum DownloadAllChaptersProgress {
     Initializing,
     Progressing { downloaded: usize, total: usize },
     Finished,
+    Cancelled,
 }

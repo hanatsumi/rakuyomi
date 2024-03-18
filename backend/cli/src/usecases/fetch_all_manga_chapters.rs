@@ -1,5 +1,7 @@
 use async_stream::stream;
-use futures::{Stream, StreamExt, TryStreamExt};
+use futures::Stream;
+use tokio::select;
+use tokio_util::sync::CancellationToken;
 
 use crate::{
     chapter_downloader::ensure_chapter_is_in_storage,
@@ -15,8 +17,10 @@ pub fn fetch_all_manga_chapters<'a>(
     db: &'a Database,
     chapter_storage: &'a ChapterStorage,
     id: MangaId,
-) -> impl Stream<Item = ProgressReport> + 'a {
-    stream! {
+) -> (CancellationToken, impl Stream<Item = ProgressReport> + 'a) {
+    let cancellation_token = CancellationToken::new();
+    let cloned_cancellation_token = cancellation_token.clone();
+    let stream = stream! {
         let chapter_informations: Vec<ChapterInformation> = match source
             .get_chapter_list(id.value().clone())
             .await {
@@ -34,11 +38,21 @@ pub fn fetch_all_manga_chapters<'a>(
             .await;
 
         let total = chapter_informations.len();
+        yield ProgressReport::Progressing { downloaded: 0, total };
 
         // We download the chapters in reverse order, in order to prioritize earlier chapters.
         // Normal source order has recent chapters first.
         for (index, information) in chapter_informations.into_iter().rev().enumerate() {
-            match ensure_chapter_is_in_storage(chapter_storage, source, &information.id).await {
+            let ensure_in_storage_result = select! {
+                _ = cloned_cancellation_token.cancelled() => {
+                    yield ProgressReport::Cancelled;
+
+                    return;
+                },
+                result = ensure_chapter_is_in_storage(chapter_storage, source, &information.id) => result
+            };
+
+            match ensure_in_storage_result {
                 Ok(_) => yield ProgressReport::Progressing { downloaded: index + 1, total },
                 Err(e) => {
                     let error = match e {
@@ -53,14 +67,15 @@ pub fn fetch_all_manga_chapters<'a>(
         };
 
         yield ProgressReport::Finished;
-    }
+    };
+
+    (cancellation_token, stream)
 }
 
 pub enum ProgressReport {
-    // FIXME this is only used on the server's main.rs; we probably should indicate this state in some other way
-    Initializing,
     Progressing { downloaded: usize, total: usize },
     Finished,
+    Cancelled,
     Errored(Error),
 }
 
