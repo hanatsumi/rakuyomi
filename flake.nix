@@ -70,9 +70,20 @@
                   cp ${server}/bin/server $out/server
                 '';
               };
+          
+          mkKoreaderWithRakuyomi = target:
+            let
+              plugin = mkPluginFolder target;
+            in
+              with pkgs; koreader.overrideAttrs (finalAttrs: previousAttrs: {
+                installPhase = previousAttrs.installPhase + ''
+                  ln -sf ${plugin} $out/lib/koreader/plugins/rakuyomi.koplugin
+                '';
+              });
       in
       {
         packages.rakuyomi.desktop = mkPluginFolder desktopTarget;
+        packages.rakuyomi.koreader-with-plugin = mkKoreaderWithRakuyomi desktopTarget;
         packages.rakuyomi.kindle = mkPluginFolder kindleTarget;
       }
     );
