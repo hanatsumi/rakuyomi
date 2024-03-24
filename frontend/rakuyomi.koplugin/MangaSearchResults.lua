@@ -2,9 +2,11 @@ local ConfirmBox = require("ui/widget/confirmbox")
 local Menu = require("ui/widget/menu")
 local UIManager = require("ui/uimanager")
 local Screen = require("device").screen
+local Trapper = require("ui/trapper")
 
 local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
+local LoadingDialog = require("LoadingDialog")
 local ChapterListing = require("ChapterListing")
 
 -- FIXME maybe rename to screen i think ill do it
@@ -71,24 +73,40 @@ function MangaSearchResults:show(results, onReturnCallback)
 end
 
 function MangaSearchResults:onMenuSelect(item)
-  local manga = item.manga
-  local response = Backend.listChapters(manga.source_id, manga.id)
+  Trapper:wrap(function()
+    local manga = item.manga
 
-  if response.type == 'ERROR' then
-    ErrorDialog:show(response.message)
+    local refresh_chapters_response = LoadingDialog:showAndRun(
+      "Refreshing chapters...",
+      function()
+        return Backend.refreshChapters(manga.source_id, manga.id)
+      end
+    )
 
-    return
-  end
+    if refresh_chapters_response.type == 'ERROR' then
+      ErrorDialog:show(refresh_chapters_response.message)
 
-  local chapter_results = response.body
+      return
+    end
 
-  local onReturnCallback = function()
-    UIManager:show(self)
-  end
+    local response = Backend.listCachedChapters(manga.source_id, manga.id)
 
-  UIManager:close(self)
+    if response.type == 'ERROR' then
+      ErrorDialog:show(response.message)
 
-  ChapterListing:show(manga, chapter_results, onReturnCallback)
+      return
+    end
+
+    local chapter_results = response.body
+
+    local onReturnCallback = function()
+      UIManager:show(self)
+    end
+
+    UIManager:close(self)
+
+    ChapterListing:show(manga, chapter_results, onReturnCallback)
+  end)
 end
 
 function MangaSearchResults:onMenuHold(item)

@@ -91,7 +91,8 @@ local function requestJson(request)
   -- is not 2xx
   local parsed_body, err = rapidjson.decode(response_body)
   if err then
-    error("Expected to be able to decode the response body as JSON: " .. response_body)
+    error("Expected to be able to decode the response body as JSON: " ..
+      response_body .. "(status code: " .. status_code .. ")")
   end
 
   if not (status_code and status_code >= 200 and status_code <= 299) then
@@ -105,6 +106,13 @@ local function requestJson(request)
   return { type = 'SUCCESS', body = replaceRapidJsonNullWithNilRecursively(parsed_body) }
 end
 
+local function getSourceDir()
+  local callerSource = debug.getinfo(2, "S").source
+  if callerSource:find("^@") then
+    return callerSource:gsub("^@(.*)/[^/]*", "%1")
+  end
+end
+
 function Backend.initialize()
   assert(Backend.server_pid == nil, "backend was already initialized!")
 
@@ -112,8 +120,9 @@ function Backend.initialize()
   local pid = C.fork()
   if pid == 0 then
     local homePath = DataStorage:getDataDir() .. "/rakuyomi"
+    local sourceDir = assert(getSourceDir())
 
-    local serverPath = DataStorage:getDataDir() .. "/plugins/rakuyomi.koplugin/server"
+    local serverPath = sourceDir .. "/server"
     local args = table.pack(serverPath, homePath)
 
     os.exit(C.execl(serverPath, unpack(args, 1, args.n + 1))) -- Last arg must be a NULL pointer
@@ -166,11 +175,20 @@ function Backend.searchMangas(search_text)
   })
 end
 
---- Lists chapters from a given manga.
+--- Lists chapters from a given manga that are already cached into the database.
 --- @return SuccessfulResponse<Chapter[]>|ErrorResponse
-function Backend.listChapters(source_id, manga_id)
+function Backend.listCachedChapters(source_id, manga_id)
   return requestJson({
     url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters",
+  })
+end
+
+--- Refreshes the chapters of a given manga on the database.
+--- @return SuccessfulResponse<{}>|ErrorResponse
+function Backend.refreshChapters(source_id, manga_id)
+  return requestJson({
+    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/refresh-chapters",
+    method = "POST",
   })
 end
 

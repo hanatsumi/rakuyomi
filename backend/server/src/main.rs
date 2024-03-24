@@ -21,10 +21,10 @@ use cli::usecases::{
     fetch_all_manga_chapters::Error as FetchAllMangaChaptersError,
     fetch_manga_chapter::fetch_manga_chapter,
     fetch_manga_chapter::Error as FetchMangaChaptersError,
-    get_manga_chapters::get_manga_chapters as get_manga_chapters_usecase,
-    get_manga_chapters::Response as GetMangaChaptersUsecaseResponse,
+    get_cached_manga_chapters::get_cached_manga_chapters as get_cached_manga_chapters_usecase,
     get_manga_library::get_manga_library as get_manga_library_usecase,
     mark_chapter_as_read::mark_chapter_as_read as mark_chapter_as_read_usecase,
+    refresh_manga_chapters::refresh_manga_chapters as refresh_manga_chapters_usecase,
     search_mangas::search_mangas, search_mangas::Error as SearchMangasError,
 };
 use futures::{pin_mut, StreamExt};
@@ -89,7 +89,11 @@ async fn main() -> anyhow::Result<()> {
         )
         .route(
             "/mangas/:source_id/:manga_id/chapters",
-            get(get_manga_chapters),
+            get(get_cached_manga_chapters),
+        )
+        .route(
+            "/mangas/:source_id/:manga_id/refresh-chapters",
+            post(refresh_manga_chapters),
         )
         .route(
             "/mangas/:source_id/:manga_id/chapters/download-all",
@@ -181,9 +185,8 @@ async fn add_manga_to_library(
     Ok(Json(()))
 }
 
-async fn get_manga_chapters(
+async fn get_cached_manga_chapters(
     StateExtractor(State {
-        source,
         database,
         chapter_storage,
         ..
@@ -191,13 +194,23 @@ async fn get_manga_chapters(
     Path(params): Path<MangaChaptersPathParams>,
 ) -> Result<Json<Vec<Chapter>>, AppError> {
     let manga_id = MangaId::from(params);
-    let GetMangaChaptersUsecaseResponse(_, chapters) =
-        get_manga_chapters_usecase(&database, &*source.lock().await, &chapter_storage, manga_id)
-            .await?;
+    let chapters = get_cached_manga_chapters_usecase(&database, &chapter_storage, manga_id).await?;
 
     let chapters = chapters.into_iter().map(Chapter::from).collect();
 
     Ok(Json(chapters))
+}
+
+async fn refresh_manga_chapters(
+    StateExtractor(State {
+        database, source, ..
+    }): StateExtractor<State>,
+    Path(params): Path<MangaChaptersPathParams>,
+) -> Result<Json<()>, AppError> {
+    let manga_id = MangaId::from(params);
+    refresh_manga_chapters_usecase(&database, &*source.lock().await, manga_id).await?;
+
+    Ok(Json(()))
 }
 
 async fn download_all_manga_chapters(
