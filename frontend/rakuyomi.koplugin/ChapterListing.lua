@@ -1,9 +1,12 @@
+local BD = require("ui/bidi")
 local ButtonDialog = require("ui/widget/buttondialog")
 local Menu = require("ui/widget/menu")
 local InfoMessage = require("ui/widget/infomessage")
 local UIManager = require("ui/uimanager")
+local Trapper = require("ui/trapper")
 local Screen = require("device").screen
 local logger = require("logger")
+local LoadingDialog = require("LoadingDialog")
 
 local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
@@ -54,9 +57,25 @@ end
 
 -- Updates the menu item contents with the chapter information
 function ChapterListing:updateItems()
-  self.item_table = self:generateItemTableFromChapters(self.chapters)
+  if #self.chapters > 0 then
+    self.item_table = self:generateItemTableFromChapters(self.chapters)
+    self.multilines_show_more_text = false
+  else
+    self.item_table = self:generateEmptyViewItemTable()
+    self.multilines_show_more_text = true
+  end
 
   Menu.updateItems(self)
+end
+
+function ChapterListing:generateEmptyViewItemTable()
+  return {
+    {
+      text = "No chapters found.\nTry swiping down to refresh the chapter list.",
+      dim = true,
+      select_enabled = false,
+    }
+  }
 end
 
 function ChapterListing:generateItemTableFromChapters(chapters)
@@ -116,10 +135,51 @@ function ChapterListing:show(manga, chapters, onReturnCallback)
   })
 end
 
-function ChapterListing:onMenuSelect(item)
+function ChapterListing:onMenuChoice(item)
   local chapter = item.chapter
 
   self:openChapterOnReader(chapter)
+end
+
+function ChapterListing:onSwipe(arg, ges_ev)
+  local direction = BD.flipDirectionIfMirroredUILayout(ges_ev.direction)
+  if direction == "south" then
+    self:refreshChapters()
+
+    return
+  end
+
+  Menu.onSwipe(self, arg, ges_ev)
+end
+
+function ChapterListing:refreshChapters()
+  Trapper:wrap(function()
+    local refresh_chapters_response = LoadingDialog:showAndRun(
+      "Refreshing chapters...",
+      function()
+        return Backend.refreshChapters(self.manga.source_id, self.manga.id)
+      end
+    )
+
+    if refresh_chapters_response.type == 'ERROR' then
+      ErrorDialog:show(refresh_chapters_response.message)
+
+      return
+    end
+
+    local response = Backend.listCachedChapters(self.manga.source_id, self.manga.id)
+
+    if response.type == 'ERROR' then
+      ErrorDialog:show(response.message)
+
+      return
+    end
+
+    local chapter_results = response.body
+    self.chapters = chapter_results
+
+    self:updateItems()
+  end)
 end
 
 function ChapterListing:openChapterOnReader(chapter)
@@ -246,7 +306,7 @@ function ChapterListing:onDownloadAllChapters()
       self:updateItems()
     end
 
-    local updateProgress = function () end
+    local updateProgress = function() end
 
     local cancellationRequested = false
     local onCancellationRequested = function()

@@ -4,8 +4,10 @@ local InfoMessage = require("ui/widget/infomessage")
 local InputDialog = require("ui/widget/inputdialog")
 local UIManager = require("ui/uimanager")
 local Screen = require("device").screen
+local Trapper = require("ui/trapper")
 local logger = require("logger")
 local _ = require("gettext")
+local LoadingDialog = require("LoadingDialog")
 
 local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
@@ -63,24 +65,43 @@ function LibraryView:show()
 end
 
 function LibraryView:onMenuSelect(item)
-  local manga = item.manga
+  Trapper:wrap(function()
+    local manga = item.manga
 
-  local response = Backend.listChapters(manga.source_id, manga.id)
-  if response.type == 'ERROR' then
-    ErrorDialog:show(response.message)
+    local refresh_chapters_response = LoadingDialog:showAndRun(
+      "Refreshing chapters...",
+      function()
+        return Backend.refreshChapters(manga.source_id, manga.id)
+      end
+    )
 
-    return
-  end
+    if refresh_chapters_response.type == 'ERROR' then
+      -- Specifically from the LibraryView, we should be able to handle
+      -- failures from the refresh chapters response. As we can read chapters
+      -- that were cached into the database/downloaded into the storage,
+      -- just log here and move on (we could also somehow inform the user,
+      -- but I don't think this is needed).
 
-  local chapter_results = response.body
+      logger.info("Failed to refresh chapters for manga", manga)
+    end
 
-  local onReturnCallback = function()
-    self:show()
-  end
+    local response = Backend.listCachedChapters(manga.source_id, manga.id)
+    if response.type == 'ERROR' then
+      ErrorDialog:show(response.message)
 
-  self:onClose(self)
+      return
+    end
 
-  ChapterListing:show(manga, chapter_results, onReturnCallback)
+    local chapter_results = response.body
+
+    local onReturnCallback = function()
+      self:show()
+    end
+
+    self:onClose(self)
+
+    ChapterListing:show(manga, chapter_results, onReturnCallback)
+  end)
 end
 
 function LibraryView:openSearchMangasDialog()
@@ -116,22 +137,28 @@ function LibraryView:openSearchMangasDialog()
 end
 
 function LibraryView:searchMangas(search_text)
-  local response = Backend.searchMangas(search_text)
-  if response.type == 'ERROR' then
-    ErrorDialog:show(response.message)
+  Trapper:wrap(function()
+    local response = LoadingDialog:showAndRun(
+      "Searching for \"" .. search_text .. "\"",
+      function() return Backend.searchMangas(search_text) end
+    )
 
-    return
-  end
+    if response.type == 'ERROR' then
+      ErrorDialog:show(response.message)
 
-  local results = response.body
+      return
+    end
 
-  local onReturnCallback = function()
-    self:show()
-  end
+    local results = response.body
 
-  self:onClose()
+    local onReturnCallback = function()
+      self:show()
+    end
 
-  MangaSearchResults:show(results, onReturnCallback)
+    self:onClose()
+
+    MangaSearchResults:show(results, onReturnCallback)
+  end)
 end
 
 return LibraryView
