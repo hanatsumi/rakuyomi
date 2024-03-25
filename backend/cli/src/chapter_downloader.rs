@@ -89,7 +89,13 @@ where
 
                 // TODO we could stream the data from the client into the file
                 // would save a bit of memory but i dont think its a big deal
-                let response_bytes = client.get(image_url).send().await?.bytes().await?;
+                let response_bytes = client
+                    .get(image_url)
+                    .send()
+                    .await?
+                    .error_for_status()?
+                    .bytes()
+                    .await?;
 
                 anyhow::Ok((filename, response_bytes))
             }
