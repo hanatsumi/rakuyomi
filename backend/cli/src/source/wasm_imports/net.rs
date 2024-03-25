@@ -2,7 +2,7 @@ use crate::util::has_internet_connection;
 use anyhow::Result;
 use futures::executor;
 use num_enum::FromPrimitive;
-use reqwest::Method;
+use reqwest::{blocking::Request, Method};
 use scraper::Html;
 use serde_json::Value as JSONValue;
 use url::Url;
@@ -37,7 +37,7 @@ pub fn register_net_imports(linker: &mut Linker<WasmStore>) -> Result<()> {
     Ok(())
 }
 
-const DEFAULT_USER_AGENT: &str =
+pub const DEFAULT_USER_AGENT: &str =
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:107.0) Gecko/20100101 Firefox/107.0";
 
 #[derive(Debug, Default, FromPrimitive)]
@@ -186,27 +186,16 @@ fn send(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) {
         let request_descriptor: usize = request_descriptor_i32.try_into().ok()?;
         let wasm_store = caller.data_mut();
 
-        let request = wasm_store.get_mut_request(request_descriptor)?;
-        let request_builder = match request {
+        let request_state = wasm_store.get_mut_request(request_descriptor)?;
+        let request_builder = match request_state {
             RequestState::Building(ref builder) => Some(builder),
             _ => None,
         }?;
 
         let client = reqwest::blocking::Client::new();
-        let mut builder = client.request(
-            request_builder.method.clone()?,
-            request_builder.url.clone()?,
-        );
+        let request = Request::try_from(request_builder).ok()?;
 
-        for (k, v) in request_builder.headers.iter() {
-            builder = builder.header(k, v);
-        }
-
-        if let Some(body) = &request_builder.body {
-            builder = builder.body(body.clone());
-        }
-
-        let response = builder.send().ok()?;
+        let response = client.execute(request).ok()?;
         let response_data = ResponseData {
             headers: response.headers().clone(),
             status_code: response.status(),
@@ -214,7 +203,7 @@ fn send(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) {
             bytes_read: 0,
         };
 
-        *request = RequestState::Sent(response_data);
+        *request_state = RequestState::Sent(response_data);
 
         Some(())
     }();

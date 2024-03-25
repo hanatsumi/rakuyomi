@@ -41,7 +41,7 @@ pub async fn ensure_chapter_is_in_storage(
     // we do not have a borked .cbz file in the chapter storage.
     let temporary_file =
         NamedTempFile::new_in(output_path.parent().unwrap()).map_err(|e| Error::Other(e.into()))?;
-    download_chapter_pages_as_cbz(&temporary_file, pages)
+    download_chapter_pages_as_cbz(&temporary_file, source, pages)
         .await
         .map_err(Error::DownloadError)?;
 
@@ -62,7 +62,11 @@ pub enum Error {
     Other(#[from] anyhow::Error),
 }
 
-pub async fn download_chapter_pages_as_cbz<W>(output: W, pages: Vec<Page>) -> anyhow::Result<()>
+pub async fn download_chapter_pages_as_cbz<W>(
+    output: W,
+    source: &Source,
+    pages: Vec<Page>,
+) -> anyhow::Result<()>
 where
     W: Write + Seek,
 {
@@ -89,9 +93,9 @@ where
 
                 // TODO we could stream the data from the client into the file
                 // would save a bit of memory but i dont think its a big deal
+                let request = source.get_image_request(image_url).await?;
                 let response_bytes = client
-                    .get(image_url)
-                    .send()
+                    .execute(request)
                     .await?
                     .error_for_status()?
                     .bytes()

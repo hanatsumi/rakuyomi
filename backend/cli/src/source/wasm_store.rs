@@ -1,11 +1,20 @@
 use std::collections::HashMap;
 
+use anyhow::{anyhow, bail};
 use chrono::DateTime;
 use ego_tree::NodeId;
-use reqwest::{header::HeaderMap, Method, StatusCode, Url};
+use reqwest::{
+    blocking::Request as BlockingRequest,
+    header::{HeaderMap, HeaderName, HeaderValue},
+    Method, Request, StatusCode, Url,
+};
 use scraper::{ElementRef, Html};
+use sqlx::any;
 
-use super::model::{Chapter, DeepLink, Filter, Manga, MangaPageResult, Page};
+use super::{
+    model::{Chapter, DeepLink, Filter, Manga, MangaPageResult, Page},
+    BlockingSource,
+};
 
 #[derive(Debug, Clone)]
 // FIXME Apply the suggestion from the following `clippy` lint
@@ -179,5 +188,67 @@ impl WasmStore {
         self.std_descriptor_pointer = Some(increased_value);
 
         increased_value
+    }
+}
+
+impl TryFrom<&RequestBuildingState> for BlockingRequest {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &RequestBuildingState) -> Result<Self, Self::Error> {
+        let mut request = BlockingRequest::new(
+            value
+                .method
+                .clone()
+                .ok_or(anyhow!("expected to have a request method"))?,
+            value
+                .url
+                .clone()
+                .ok_or(anyhow!("expected to have an URL"))?,
+        );
+
+        for (k, v) in value.headers.iter() {
+            request.headers_mut().append(
+                HeaderName::from_bytes(k.clone().as_bytes())?,
+                HeaderValue::from_str(v.clone().as_str())?,
+            );
+        }
+
+        if let Some(body) = &value.body {
+            *request.body_mut() = Some(body.clone().into());
+        }
+
+        Ok(request)
+    }
+}
+
+// Duplicating here sucks, but there's no real way to avoid it (aside from macros)
+// Maybe we should give up on using the blocking reqwest APIs
+impl TryFrom<&RequestBuildingState> for Request {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &RequestBuildingState) -> Result<Self, Self::Error> {
+        let mut request = Request::new(
+            value
+                .method
+                .clone()
+                .ok_or(anyhow!("expected to have a request method"))?,
+            value
+                .url
+                .clone()
+                .ok_or(anyhow!("expected to have an URL"))?,
+        );
+
+        for (k, v) in value.headers.iter() {
+            request.headers_mut().append(
+                HeaderName::from_bytes(k.clone().as_bytes())?,
+                HeaderValue::from_str(v.as_str())?,
+            );
+        }
+
+        if let Some(body) = &value.body {
+            *request.body_mut() = Some(body.clone().into());
+        }
+
+        Ok(request)
     }
 }

@@ -16,8 +16,9 @@ pub fn chapter_downloader_benchmark(c: &mut Criterion) {
     let runtime = tokio::runtime::Runtime::new().unwrap();
 
     c.bench_function("download_chapter_pages_as_cbz", |b| {
-        b.to_async(&runtime)
-            .iter(|| download_chapter_pages_as_cbz(io::Cursor::new(Vec::new()), pages.clone()))
+        b.to_async(&runtime).iter(|| {
+            download_chapter_pages_as_cbz(io::Cursor::new(Vec::new()), &source, pages.clone())
+        })
     });
 }
 

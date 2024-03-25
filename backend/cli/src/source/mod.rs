@@ -1,4 +1,5 @@
 use anyhow::{anyhow, bail, Context, Result};
+use reqwest::{Method, Request};
 use serde::Deserialize;
 use std::{
     collections::HashMap,
@@ -7,17 +8,24 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tokio::task::spawn_blocking;
+use url::Url;
 use wasmi::*;
 use zip::ZipArchive;
 
 use self::{
     model::{Chapter, Filter, Manga, MangaPageResult, Page},
     wasm_imports::{
-        aidoku::register_aidoku_imports, defaults::register_defaults_imports,
-        env::register_env_imports, html::register_html_imports, json::register_json_imports,
-        net::register_net_imports, std::register_std_imports,
+        aidoku::register_aidoku_imports,
+        defaults::register_defaults_imports,
+        env::register_env_imports,
+        html::register_html_imports,
+        json::register_json_imports,
+        net::{register_net_imports, DEFAULT_USER_AGENT},
+        std::register_std_imports,
     },
-    wasm_store::{Context as StoreContext, ObjectValue, Value, WasmStore},
+    wasm_store::{
+        Context as StoreContext, ObjectValue, RequestBuildingState, RequestState, Value, WasmStore,
+    },
 };
 
 pub mod model;
@@ -72,6 +80,12 @@ impl Source {
                 .get_page_list(manga_id, chapter_id)
         })
         .await?
+    }
+
+    pub async fn get_image_request(&self, url: Url) -> Result<Request> {
+        let blocking_source = self.0.clone();
+
+        spawn_blocking(move || blocking_source.lock().unwrap().get_image_request(url)).await?
     }
 }
 
@@ -291,5 +305,59 @@ impl BlockingSource {
         };
 
         Ok(pages)
+    }
+
+    pub fn get_image_request(&mut self, url: Url) -> Result<Request> {
+        let request_descriptor = self.store.data_mut().create_request();
+
+        // FIXME scoping here is so fucking scuffed
+        {
+            let request_state = self
+                .store
+                .data_mut()
+                .get_mut_request(request_descriptor)
+                .unwrap();
+
+            let request_building_state = match request_state {
+                RequestState::Building(building_state) => Some(building_state),
+                _ => None,
+            }
+            .unwrap();
+
+            request_building_state.method = Some(Method::GET);
+            request_building_state.url = Some(url);
+
+            request_building_state
+                .headers
+                .insert("User-Agent".to_string(), DEFAULT_USER_AGENT.to_string());
+        };
+
+        // TODO add support for cookies
+        // it seems that it's fine for an extension to not have this function defined, so we only
+        // call it if it exists
+        {
+            let mut wasm_store = &mut self.store;
+
+            if let Ok(wasm_function) = self
+                .instance
+                .get_typed_func::<i32, ()>(&mut wasm_store, "modify_image_request")
+            {
+                wasm_function.call(&mut wasm_store, request_descriptor as i32)?;
+            }
+        }
+
+        let request_state = self
+            .store
+            .data_mut()
+            .get_mut_request(request_descriptor)
+            .unwrap();
+
+        let request_building_state = match request_state {
+            RequestState::Building(building_state) => Some(building_state),
+            _ => None,
+        }
+        .unwrap();
+
+        Ok((request_building_state as &RequestBuildingState).try_into()?)
     }
 }
