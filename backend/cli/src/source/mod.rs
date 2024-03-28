@@ -32,6 +32,7 @@ pub mod model;
 mod wasm_imports;
 mod wasm_store;
 
+#[derive(Clone)]
 pub struct Source(
     /// In order to avoid issues when calling functions that block inside the `Source` from an
     /// async context, we wrap all data and functions that need to block inside `BlockingSource`
@@ -50,6 +51,11 @@ impl Source {
         let blocking_source = BlockingSource::from_aix_file(path)?;
 
         Ok(Self(Arc::new(Mutex::new(blocking_source))))
+    }
+
+    pub fn manifest(&self) -> SourceManifest {
+        // FIXME we dont actually need to clone here but yeah it's easier
+        self.0.lock().unwrap().manifest.clone()
     }
 
     pub async fn get_manga_list(&self) -> Result<Vec<Manga>> {
@@ -91,20 +97,21 @@ impl Source {
 
 #[derive(Debug, Clone, Deserialize)]
 #[allow(dead_code)]
-struct SourceInfo {
+pub struct SourceInfo {
     pub id: String,
     pub lang: String,
     pub name: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
-struct SourceManifest {
+pub struct SourceManifest {
     pub info: SourceInfo,
 }
 
 struct BlockingSource {
     store: Store<WasmStore>,
     instance: Instance,
+    manifest: SourceManifest,
 }
 
 impl BlockingSource {
@@ -122,7 +129,7 @@ impl BlockingSource {
             .with_context(|| "while loading main.wasm")?;
 
         let engine = Engine::default();
-        let wasm_store = WasmStore::new(manifest.info.id);
+        let wasm_store = WasmStore::new(manifest.info.id.clone());
         let mut store = Store::new(&engine, wasm_store);
         let module = Module::new(&engine, wasm_file)
             .with_context(|| format!("failed loading module from {}", path.display()))?;
@@ -146,7 +153,11 @@ impl BlockingSource {
             })?
             .start(&mut store)?;
 
-        Ok(Self { store, instance })
+        Ok(Self {
+            store,
+            instance,
+            manifest,
+        })
     }
 
     pub fn get_manga_list(&mut self) -> Result<Vec<Manga>> {
@@ -358,6 +369,6 @@ impl BlockingSource {
         }
         .unwrap();
 
-        Ok((request_building_state as &RequestBuildingState).try_into()?)
+        (request_building_state as &RequestBuildingState).try_into()
     }
 }
