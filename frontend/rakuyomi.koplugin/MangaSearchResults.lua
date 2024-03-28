@@ -10,6 +10,9 @@ local LoadingDialog = require("LoadingDialog")
 local ChapterListing = require("ChapterListing")
 
 -- FIXME maybe rename to screen i think ill do it
+--- @class MangaSearchResults: { [any]: any }
+--- @field results SourceMangaSearchResults[]
+--- @field on_return_callback fun(): nil
 local MangaSearchResults = Menu:extend {
   name = "manga_search_results",
   is_enable_shortcut = false,
@@ -40,18 +43,25 @@ end
 
 -- Updates the menu item contents with the manga information
 function MangaSearchResults:updateItems()
-  self.item_table = self:generateItemTableFromMangas(self.results)
+  self.item_table = self:generateItemTableFromSearchResults(self.results)
 
   Menu.updateItems(self)
 end
 
-function MangaSearchResults:generateItemTableFromMangas(mangas)
+--- Generates the item table for displaying the search results.
+--- @param results SourceMangaSearchResults[]
+--- @return table
+function MangaSearchResults:generateItemTableFromSearchResults(results)
   local item_table = {}
-  for _, manga in ipairs(mangas) do
-    table.insert(item_table, {
-      manga = manga,
-      text = manga.title,
-    })
+  for _, result in ipairs(results) do
+    local source_information = result.source_information
+
+    for _, manga in ipairs(result.mangas) do
+      table.insert(item_table, {
+        manga = manga,
+        text = manga.title .. " (" .. source_information.name .. ")",
+      })
+    end
   end
 
   return item_table
@@ -64,6 +74,9 @@ function MangaSearchResults:onReturn()
   path.callback()
 end
 
+--- Shows the results of a manga search.
+--- @param results SourceMangaSearchResults[] The results to be shown.
+--- @param onReturnCallback any
 function MangaSearchResults:show(results, onReturnCallback)
   UIManager:show(MangaSearchResults:new {
     results = results,

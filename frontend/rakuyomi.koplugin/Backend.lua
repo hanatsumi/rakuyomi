@@ -147,6 +147,14 @@ end
 --- @field read boolean If this chapter was read to its end.
 --- @field downloaded boolean If this chapter was already downloaded to the storage.
 
+--- @class SourceInformation
+--- @field id string The ID of the source.
+--- @field name string The name of the source.
+
+--- @class SourceMangaSearchResults
+--- @field source_information SourceInformation Information about the source that generated those results.
+--- @field mangas Manga[] Found mangas.
+
 --- Lists mangas added to the user's library.
 --- @return SuccessfulResponse<Manga[]>|ErrorResponse
 function Backend.getMangasInLibrary()
@@ -164,8 +172,8 @@ function Backend.addMangaToLibrary(source_id, manga_id)
   })
 end
 
---- Searches manga from the manga source.
---- @return SuccessfulResponse<Manga[]>|ErrorResponse
+--- Searches manga from the manga sources.
+--- @return SuccessfulResponse<SourceMangaSearchResults[]>|ErrorResponse
 function Backend.searchMangas(search_text)
   return requestJson({
     url = "http://localhost:30727/mangas",

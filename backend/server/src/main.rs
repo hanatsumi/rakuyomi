@@ -1,4 +1,5 @@
 mod model;
+mod source_extractor;
 
 use std::mem;
 use std::path::PathBuf;
@@ -13,7 +14,7 @@ use clap::Parser;
 use cli::chapter_storage::ChapterStorage;
 use cli::database::Database;
 use cli::model::{ChapterId, MangaId};
-use cli::source::Source;
+use cli::source_collection::SourceCollection;
 use cli::usecases::fetch_all_manga_chapters::ProgressReport;
 use cli::usecases::{
     add_manga_to_library::add_manga_to_library as add_manga_to_library_usecase,
@@ -29,9 +30,10 @@ use cli::usecases::{
 };
 use futures::{pin_mut, StreamExt};
 use serde::{Deserialize, Serialize};
+use source_extractor::SourceExtractor;
 use tokio::sync::Mutex;
 
-use model::{Chapter, DownloadAllChaptersProgress, Manga};
+use model::{Chapter, DownloadAllChaptersProgress, Manga, SourceMangaSearchResults};
 use tokio_util::sync::CancellationToken;
 
 #[derive(Parser, Debug)]
@@ -56,7 +58,7 @@ enum DownloadAllChaptersState {
 
 #[derive(Clone)]
 struct State {
-    source: Arc<Mutex<Source>>,
+    source_collection: Arc<SourceCollection>,
     database: Arc<Database>,
     chapter_storage: ChapterStorage,
     download_all_chapters_state: Arc<Mutex<DownloadAllChaptersState>>,
@@ -65,16 +67,16 @@ struct State {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    let source_path = args.home_path.join("sources/source.aix");
+    let sources_path = args.home_path.join("sources");
     let database_path = args.home_path.join("database.db");
     let downloads_folder_path = args.home_path.join("downloads");
 
-    let source = Source::from_aix_file(&source_path)?;
+    let source_collection = SourceCollection::from_folder(sources_path)?;
     let database = Database::new(&database_path).await?;
     let chapter_storage = ChapterStorage::new(downloads_folder_path);
 
     let state = State {
-        source: Arc::new(Mutex::new(source)),
+        source_collection: Arc::new(source_collection),
         database: Arc::new(database),
         chapter_storage,
         download_all_chapters_state: Default::default(),
@@ -148,18 +150,20 @@ struct GetMangasQuery {
 
 async fn get_mangas(
     StateExtractor(State {
-        source, database, ..
+        database,
+        source_collection,
+        ..
     }): StateExtractor<State>,
     Query(GetMangasQuery { q }): Query<GetMangasQuery>,
-) -> Result<Json<Vec<Manga>>, AppError> {
-    let mangas = search_mangas(&*source.lock().await, &database, q)
+) -> Result<Json<Vec<SourceMangaSearchResults>>, AppError> {
+    let results = search_mangas(&source_collection, &database, q)
         .await
         .map_err(AppError::from_search_mangas_error)?
         .into_iter()
-        .map(Manga::from)
+        .map(SourceMangaSearchResults::from)
         .collect();
 
-    Ok(Json(mangas))
+    Ok(Json(results))
 }
 
 #[derive(Deserialize)]
@@ -176,6 +180,7 @@ impl From<MangaChaptersPathParams> for MangaId {
 
 async fn add_manga_to_library(
     StateExtractor(State { database, .. }): StateExtractor<State>,
+    SourceExtractor(_source): SourceExtractor,
     Path(params): Path<MangaChaptersPathParams>,
 ) -> Result<Json<()>, AppError> {
     let manga_id = MangaId::from(params);
@@ -191,6 +196,7 @@ async fn get_cached_manga_chapters(
         chapter_storage,
         ..
     }): StateExtractor<State>,
+    SourceExtractor(_source): SourceExtractor,
     Path(params): Path<MangaChaptersPathParams>,
 ) -> Result<Json<Vec<Chapter>>, AppError> {
     let manga_id = MangaId::from(params);
@@ -202,25 +208,24 @@ async fn get_cached_manga_chapters(
 }
 
 async fn refresh_manga_chapters(
-    StateExtractor(State {
-        database, source, ..
-    }): StateExtractor<State>,
+    StateExtractor(State { database, .. }): StateExtractor<State>,
+    SourceExtractor(source): SourceExtractor,
     Path(params): Path<MangaChaptersPathParams>,
 ) -> Result<Json<()>, AppError> {
     let manga_id = MangaId::from(params);
-    refresh_manga_chapters_usecase(&database, &*source.lock().await, manga_id).await?;
+    refresh_manga_chapters_usecase(&database, &source, manga_id).await?;
 
     Ok(Json(()))
 }
 
 async fn download_all_manga_chapters(
     StateExtractor(State {
-        source,
         database,
         chapter_storage,
         download_all_chapters_state,
         ..
     }): StateExtractor<State>,
+    SourceExtractor(source): SourceExtractor,
     Path(params): Path<MangaChaptersPathParams>,
 ) -> Result<Json<()>, AppError> {
     let manga_id = MangaId::from(params);
@@ -228,7 +233,7 @@ async fn download_all_manga_chapters(
     *download_all_chapters_state.lock().await = DownloadAllChaptersState::Initializing;
 
     tokio::spawn(async move {
-        let source = &*source.lock().await;
+        let source = &source;
         let (cancellation_token, progress_report_stream) =
             fetch_all_manga_chapters(source, &database, &chapter_storage, manga_id);
 
@@ -344,14 +349,13 @@ impl From<DownloadMangaChapterParams> for ChapterId {
 
 async fn download_manga_chapter(
     StateExtractor(State {
-        source,
-        chapter_storage,
-        ..
+        chapter_storage, ..
     }): StateExtractor<State>,
+    SourceExtractor(source): SourceExtractor,
     Path(params): Path<DownloadMangaChapterParams>,
 ) -> Result<Json<String>, AppError> {
     let chapter_id = ChapterId::from(params);
-    let output_path = fetch_manga_chapter(&*source.lock().await, &chapter_storage, &chapter_id)
+    let output_path = fetch_manga_chapter(&source, &chapter_storage, &chapter_id)
         .await
         .map_err(AppError::from_fetch_manga_chapters_error)?;
 
@@ -360,6 +364,7 @@ async fn download_manga_chapter(
 
 async fn mark_chapter_as_read(
     StateExtractor(State { database, .. }): StateExtractor<State>,
+    SourceExtractor(_source): SourceExtractor,
     Path(params): Path<DownloadMangaChapterParams>,
 ) -> Json<()> {
     let chapter_id = ChapterId::from(params);
@@ -371,6 +376,7 @@ async fn mark_chapter_as_read(
 
 // Make our own error that wraps `anyhow::Error`.
 enum AppError {
+    SourceNotFound,
     DownloadAllChaptersProgressNotFound,
     NetworkFailure(anyhow::Error),
     Other(anyhow::Error),
@@ -407,11 +413,14 @@ impl AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status_code = match &self {
-            Self::DownloadAllChaptersProgressNotFound => StatusCode::NOT_FOUND,
+            Self::SourceNotFound | Self::DownloadAllChaptersProgressNotFound => {
+                StatusCode::NOT_FOUND
+            }
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
         let message = match self {
+            Self::SourceNotFound => "Source was not found".to_string(),
             Self::DownloadAllChaptersProgressNotFound => "No download is in progress.".to_string(),
             Self::NetworkFailure(_) => {
                 "There was a network error. Check your connection and try again.".to_string()

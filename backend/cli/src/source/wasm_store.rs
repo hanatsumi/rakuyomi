@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, bail};
+use anyhow::anyhow;
 use chrono::DateTime;
 use ego_tree::NodeId;
 use reqwest::{
@@ -9,12 +9,8 @@ use reqwest::{
     Method, Request, StatusCode, Url,
 };
 use scraper::{ElementRef, Html};
-use sqlx::any;
 
-use super::{
-    model::{Chapter, DeepLink, Filter, Manga, MangaPageResult, Page},
-    BlockingSource,
-};
+use super::model::{Chapter, DeepLink, Filter, Manga, MangaPageResult, Page};
 
 #[derive(Debug, Clone)]
 // FIXME Apply the suggestion from the following `clippy` lint

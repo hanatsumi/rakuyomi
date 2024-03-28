@@ -1,9 +1,12 @@
 use rust_decimal::Decimal;
 use url::Url;
 
-use crate::source::model::{Chapter as SourceChapter, Manga as SourceManga};
+use crate::source::{
+    model::{Chapter as SourceChapter, Manga as SourceManga},
+    SourceManifest,
+};
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct SourceId {
     source_id: String,
 }
@@ -87,6 +90,12 @@ impl ChapterId {
 }
 
 #[derive(Clone)]
+pub struct SourceInformation {
+    pub id: SourceId,
+    pub name: String,
+}
+
+#[derive(Clone)]
 pub struct MangaInformation {
     pub id: MangaId,
     pub title: Option<String>,
@@ -115,6 +124,15 @@ pub struct Chapter {
     pub information: ChapterInformation,
     pub state: ChapterState,
     pub downloaded: bool,
+}
+
+impl From<SourceManifest> for SourceInformation {
+    fn from(value: SourceManifest) -> Self {
+        Self {
+            id: SourceId::new(value.info.id),
+            name: value.info.name,
+        }
+    }
 }
 
 impl From<SourceManga> for MangaInformation {
