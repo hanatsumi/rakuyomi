@@ -2,3 +2,4 @@
 .rustup
 build
 **/.envrc
+**/.luarc.json

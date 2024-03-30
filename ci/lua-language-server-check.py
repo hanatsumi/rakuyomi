@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from tempfile import TemporaryDirectory
 from typing import Any, Dict, List, Tuple
 import json
+import os
+import shutil
 import sys 
 import subprocess
 
@@ -45,8 +47,7 @@ def main(project_path: Path) -> None:
         print('✔️ No problems found!')
 
     for file, diagnostics in file_diagnostics.items():
-        relative_path = file.relative_to(project_path.absolute())
-        print(f'📄 {str(relative_path)}:')
+        print(f'📄 {str(file)}:')
 
         for diagnostic in diagnostics:
             print(
@@ -64,13 +65,20 @@ def main(project_path: Path) -> None:
 
 def collect_diagnostics(project_path: Path) -> Dict[Path, List[Diagnostic]]:
     with TemporaryDirectory() as temporary_dir:
-        log_path_folder = Path(temporary_dir)
-        log_path = log_path_folder / 'check.json'
+        temporary_dir_path = Path(temporary_dir)
+        log_path = temporary_dir_path / 'check.json'
+        luarc_ci_path = project_path / '.luarc.ci.json'
+
+        project_copy_target = temporary_dir_path / project_path.name
+        luarc_copy_target = temporary_dir_path / project_path.name / '.luarc.json'
+
+        shutil.copytree(project_path, project_copy_target)
+        shutil.copy(luarc_ci_path, luarc_copy_target)
 
         subprocess.check_call([
             'lua-language-server',
-            '--check', project_path,
-            '--logpath', str(log_path_folder)
+            '--check', project_copy_target,
+            '--logpath', str(temporary_dir_path)
         ], stdout=subprocess.DEVNULL)
 
         # No diagnostics found, everything is OK.
@@ -81,7 +89,7 @@ def collect_diagnostics(project_path: Path) -> Dict[Path, List[Diagnostic]]:
             json_file_diagnostics: Dict[str, Dict[Any, Any]] = json.load(log)
 
             return {
-                Path(source_path.removeprefix('file://')): [Diagnostic.from_json(json_diagnostic) for json_diagnostic in json_diagnostics]
+                Path(source_path.removeprefix('file://')).relative_to(temporary_dir_path): [Diagnostic.from_json(json_diagnostic) for json_diagnostic in json_diagnostics]
                 for source_path, json_diagnostics in json_file_diagnostics.items()
             }
 

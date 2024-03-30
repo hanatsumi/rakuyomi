@@ -14,6 +14,7 @@
     "init_hook": [
       "cachix use rakuyomi",
       ". conf/set-env.sh",
+      ". conf/write-luarc.sh",
       "sh -c 'cd $PROJECT_DIR/backend && cargo fetch'",
     ],
     "scripts": {
