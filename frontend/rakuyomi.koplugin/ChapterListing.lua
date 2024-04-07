@@ -9,6 +9,7 @@ local logger = require("logger")
 local LoadingDialog = require("LoadingDialog")
 
 local Backend = require("Backend")
+local Icons = require("Icons")
 local ErrorDialog = require("ErrorDialog")
 local MangaReader = require("MangaReader")
 
@@ -27,9 +28,6 @@ local ChapterListing = Menu:extend {
   -- callback to be called when pressing the back button
   on_return_callback = nil,
 }
-
-local FA_BOOK_ICON = "\u{F02D}"
-local FA_DOWNLOAD_ICON = "\u{F019}"
 
 function ChapterListing:init()
   self.chapters = self.chapters or {}
@@ -102,11 +100,11 @@ function ChapterListing:generateItemTableFromChapters(chapters)
     -- The text that shows to the right of the menu item
     local mandatory = ""
     if chapter.read then
-      mandatory = mandatory .. FA_BOOK_ICON
+      mandatory = mandatory .. Icons.FA_BOOK
     end
 
     if chapter.downloaded then
-      mandatory = mandatory .. FA_DOWNLOAD_ICON
+      mandatory = mandatory .. Icons.FA_DOWNLOAD
     end
 
     table.insert(item_table, {
@@ -252,7 +250,7 @@ function ChapterListing:openMenu()
   local buttons = {
     {
       {
-        text = FA_DOWNLOAD_ICON .. " Download all chapters",
+        text = Icons.FA_DOWNLOAD .. " Download all chapters",
         callback = function()
           UIManager:close(dialog)
 

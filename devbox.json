@@ -22,7 +22,7 @@
         "sh -c 'cd $PROJECT_DIR/backend && cargo fmt --check'",
       ],
       "check-lint": [
-        "sh -c 'cd $PROJECT_DIR/backend && cargo clippy'",
+        "sh -c 'cd $PROJECT_DIR/backend && cargo clippy -- -D warnings'",
         "python3 ci/lua-language-server-check.py frontend/"
       ]
     },

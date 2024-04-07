@@ -87,10 +87,13 @@ def collect_diagnostics(project_path: Path) -> Dict[Path, List[Diagnostic]]:
 
         with open(log_path) as log:
             json_file_diagnostics: Dict[str, Dict[Any, Any]] = json.load(log)
-
+            
             return {
                 Path(source_path.removeprefix('file://')).relative_to(temporary_dir_path): [Diagnostic.from_json(json_diagnostic) for json_diagnostic in json_diagnostics]
                 for source_path, json_diagnostics in json_file_diagnostics.items()
+                # Sometimes LuaLS generate diagnostics for some internal files,
+                # so we filter out diagnostics that don't belong to our project.
+                if Path(source_path).is_relative_to(temporary_dir)
             }
 
 def create_argument_parser() -> ArgumentParser:

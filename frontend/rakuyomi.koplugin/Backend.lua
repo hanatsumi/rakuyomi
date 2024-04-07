@@ -150,6 +150,7 @@ end
 --- @class SourceInformation
 --- @field id string The ID of the source.
 --- @field name string The name of the source.
+--- @field version number The version of the source.
 
 --- @class SourceMangaSearchResults
 --- @field source_information SourceInformation Information about the source that generated those results.
@@ -244,6 +245,31 @@ function Backend.markChapterAsRead(source_id, manga_id, chapter_id)
   return requestJson({
     url = "http://localhost:30727/mangas/" ..
         source_id .. "/" .. manga_id .. "/chapters/" .. chapter_id .. "/mark-as-read",
+    method = "POST",
+  })
+end
+
+--- Lists information about the installed sources.
+--- @return SuccessfulResponse<SourceInformation[]>|ErrorResponse
+function Backend.listInstalledSources()
+  return requestJson({
+    url = "http://localhost:30727/installed-sources",
+  })
+end
+
+--- Lists information about sources available via our source lists.
+--- @return SuccessfulResponse<SourceInformation[]>|ErrorResponse
+function Backend.listAvailableSources()
+  return requestJson({
+    url = "http://localhost:30727/available-sources",
+  })
+end
+
+--- Installs a source.
+--- @return SuccessfulResponse<SourceInformation[]>|ErrorResponse
+function Backend.installSource(source_id)
+  return requestJson({
+    url = "http://localhost:30727/available-sources/" .. source_id .. "/install",
     method = "POST",
   })
 end

@@ -6,7 +6,7 @@ use crate::{
 use futures::{stream, StreamExt, TryStreamExt};
 
 pub async fn search_mangas(
-    source_collection: &SourceCollection,
+    source_collection: &impl SourceCollection,
     db: &Database,
     query: String,
 ) -> Result<Vec<SourceMangaSearchResults>, Error> {

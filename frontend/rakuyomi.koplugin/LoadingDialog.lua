@@ -12,19 +12,19 @@ local LoadingDialog = {}
 --- @param runnable fun(): T The function to be ran while showing the dialog.
 --- @return T
 function LoadingDialog:showAndRun(message, runnable)
-    local message_dialog = InfoMessage:new {
-        text = message,
-    }
+  local message_dialog = InfoMessage:new {
+    text = message,
+  }
 
-    UIManager:show(message_dialog)
-    UIManager:forceRePaint()
+  UIManager:show(message_dialog)
+  UIManager:forceRePaint()
 
-    local completed, return_values = Trapper:dismissableRunInSubprocess(runnable, message_dialog)
-    assert(completed, "Expected runnable to run to completion")
+  local completed, return_values = Trapper:dismissableRunInSubprocess(runnable, message_dialog)
+  assert(completed, "Expected runnable to run to completion")
 
-    UIManager:close(message_dialog)
+  UIManager:close(message_dialog)
 
-    return return_values
+  return return_values
 end
 
 return LoadingDialog

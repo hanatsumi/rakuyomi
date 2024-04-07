@@ -13,8 +13,9 @@ use axum::{extract::State as StateExtractor, Json, Router};
 use clap::Parser;
 use cli::chapter_storage::ChapterStorage;
 use cli::database::Database;
-use cli::model::{ChapterId, MangaId};
-use cli::source_collection::SourceCollection;
+use cli::model::{ChapterId, MangaId, SourceId};
+use cli::settings::Settings;
+use cli::source_manager::SourceManager;
 use cli::usecases::fetch_all_manga_chapters::ProgressReport;
 use cli::usecases::{
     add_manga_to_library::add_manga_to_library as add_manga_to_library_usecase,
@@ -24,6 +25,9 @@ use cli::usecases::{
     fetch_manga_chapter::Error as FetchMangaChaptersError,
     get_cached_manga_chapters::get_cached_manga_chapters as get_cached_manga_chapters_usecase,
     get_manga_library::get_manga_library as get_manga_library_usecase,
+    install_source::install_source as install_source_usecase,
+    list_available_sources::list_available_sources as list_available_sources_usecase,
+    list_installed_sources::list_installed_sources as list_installed_sources_usecase,
     mark_chapter_as_read::mark_chapter_as_read as mark_chapter_as_read_usecase,
     refresh_manga_chapters::refresh_manga_chapters as refresh_manga_chapters_usecase,
     search_mangas::search_mangas, search_mangas::Error as SearchMangasError,
@@ -33,7 +37,9 @@ use serde::{Deserialize, Serialize};
 use source_extractor::SourceExtractor;
 use tokio::sync::Mutex;
 
-use model::{Chapter, DownloadAllChaptersProgress, Manga, SourceMangaSearchResults};
+use model::{
+    Chapter, DownloadAllChaptersProgress, Manga, SourceInformation, SourceMangaSearchResults,
+};
 use tokio_util::sync::CancellationToken;
 
 #[derive(Parser, Debug)]
@@ -58,10 +64,11 @@ enum DownloadAllChaptersState {
 
 #[derive(Clone)]
 struct State {
-    source_collection: Arc<SourceCollection>,
+    source_manager: Arc<Mutex<SourceManager>>,
     database: Arc<Database>,
     chapter_storage: ChapterStorage,
     download_all_chapters_state: Arc<Mutex<DownloadAllChaptersState>>,
+    settings: Settings,
 }
 
 #[tokio::main]
@@ -70,15 +77,18 @@ async fn main() -> anyhow::Result<()> {
     let sources_path = args.home_path.join("sources");
     let database_path = args.home_path.join("database.db");
     let downloads_folder_path = args.home_path.join("downloads");
+    let settings_path = args.home_path.join("settings.json");
 
-    let source_collection = SourceCollection::from_folder(sources_path)?;
+    let source_manager = SourceManager::from_folder(sources_path)?;
     let database = Database::new(&database_path).await?;
     let chapter_storage = ChapterStorage::new(downloads_folder_path);
+    let settings = Settings::from_file_or_default(&settings_path)?;
 
     let state = State {
-        source_collection: Arc::new(source_collection),
+        source_manager: Arc::new(Mutex::new(source_manager)),
         database: Arc::new(database),
         chapter_storage,
+        settings,
         download_all_chapters_state: Default::default(),
     };
 
@@ -119,6 +129,12 @@ async fn main() -> anyhow::Result<()> {
             "/mangas/:source_id/:manga_id/chapters/:chapter_id/mark-as-read",
             post(mark_chapter_as_read),
         )
+        .route("/available-sources", get(list_available_sources))
+        .route(
+            "/available-sources/:source_id/install",
+            post(install_source),
+        )
+        .route("/installed-sources", get(list_installed_sources))
         .with_state(state);
 
     // run our app with hyper, listening globally on port 30727
@@ -151,12 +167,12 @@ struct GetMangasQuery {
 async fn get_mangas(
     StateExtractor(State {
         database,
-        source_collection,
+        source_manager,
         ..
     }): StateExtractor<State>,
     Query(GetMangasQuery { q }): Query<GetMangasQuery>,
 ) -> Result<Json<Vec<SourceMangaSearchResults>>, AppError> {
-    let results = search_mangas(&source_collection, &database, q)
+    let results = search_mangas(&*source_manager.lock().await, &database, q)
         .await
         .map_err(AppError::from_search_mangas_error)?
         .into_iter()
@@ -372,6 +388,52 @@ async fn mark_chapter_as_read(
     mark_chapter_as_read_usecase(&database, chapter_id).await;
 
     Json(())
+}
+
+async fn list_available_sources(
+    StateExtractor(State { settings, .. }): StateExtractor<State>,
+) -> Result<Json<Vec<SourceInformation>>, AppError> {
+    let available_sources = list_available_sources_usecase(settings.source_lists)
+        .await?
+        .into_iter()
+        .map(SourceInformation::from)
+        .collect();
+
+    Ok(Json(available_sources))
+}
+
+#[derive(Deserialize)]
+struct InstallSourceParams {
+    source_id: String,
+}
+
+async fn install_source(
+    StateExtractor(State {
+        source_manager,
+        settings,
+        ..
+    }): StateExtractor<State>,
+    Path(InstallSourceParams { source_id }): Path<InstallSourceParams>,
+) -> Result<Json<()>, AppError> {
+    install_source_usecase(
+        &mut *source_manager.lock().await,
+        &settings.source_lists,
+        SourceId::new(source_id),
+    )
+    .await?;
+
+    Ok(Json(()))
+}
+
+async fn list_installed_sources(
+    StateExtractor(State { source_manager, .. }): StateExtractor<State>,
+) -> Json<Vec<SourceInformation>> {
+    let installed_sources = list_installed_sources_usecase(&*source_manager.lock().await)
+        .into_iter()
+        .map(SourceInformation::from)
+        .collect();
+
+    Json(installed_sources)
 }
 
 // Make our own error that wraps `anyhow::Error`.
