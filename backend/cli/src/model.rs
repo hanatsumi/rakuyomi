@@ -1,4 +1,5 @@
 use rust_decimal::Decimal;
+use serde::Deserialize;
 use url::Url;
 
 use crate::source::{
@@ -6,7 +7,8 @@ use crate::source::{
     SourceManifest,
 };
 
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash, Deserialize, Debug)]
+#[serde(transparent)]
 pub struct SourceId {
     source_id: String,
 }
@@ -89,10 +91,11 @@ impl ChapterId {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize)]
 pub struct SourceInformation {
     pub id: SourceId,
     pub name: String,
+    pub version: usize,
 }
 
 #[derive(Clone)]
@@ -131,6 +134,7 @@ impl From<SourceManifest> for SourceInformation {
         Self {
             id: SourceId::new(value.info.id),
             name: value.info.name,
+            version: value.info.version,
         }
     }
 }

@@ -45,7 +45,7 @@ function MangaReader:closeReaderUi(done_callback)
       FileManager:showFiles()
     end
 
-    (done_callback or function () end)()
+    (done_callback or function() end)()
   end)
 end
 

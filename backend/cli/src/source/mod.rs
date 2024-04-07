@@ -101,6 +101,7 @@ pub struct SourceInfo {
     pub id: String,
     pub lang: String,
     pub name: String,
+    pub version: usize,
 }
 
 #[derive(Debug, Clone, Deserialize)]

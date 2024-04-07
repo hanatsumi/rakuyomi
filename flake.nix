@@ -2,7 +2,8 @@
   description = "Rust example flake for Zero to Nix";
 
   inputs = {
-    nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.2305.491812.tar.gz";
+    nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1.0.tar.gz";
+    nixpkgs-patched-koreader.url = "github:ekisu/nixpkgs/koreader-add-openssl-dependency";
     naersk = {
       url = "github:nmattia/naersk";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -14,7 +15,7 @@
     flake-utils.url  = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, naersk, fenix, flake-utils }:
+  outputs = { self, nixpkgs, nixpkgs-patched-koreader, naersk, fenix, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         # FIXME probably `armv7-unknown-linux-gnueabihf` is more accurate
@@ -23,6 +24,13 @@
 
         pkgs = import nixpkgs {
           inherit system;
+        };
+
+        pkgs-patched-koreader = import nixpkgs-patched-koreader {
+          inherit system;
+          config = {
+            permittedInsecurePackages = [ "openssl-1.1.1w" ];
+          };
         };
 
         mkServerPackage = target:
@@ -75,7 +83,7 @@
             let
               plugin = mkPluginFolder target;
             in
-              with pkgs; koreader.overrideAttrs (finalAttrs: previousAttrs: {
+              with pkgs-patched-koreader; koreader.overrideAttrs (finalAttrs: previousAttrs: {
                 installPhase = previousAttrs.installPhase + ''
                   ln -sf ${plugin} $out/lib/koreader/plugins/rakuyomi.koplugin
                 '';

@@ -8,6 +8,9 @@ local Trapper = require("ui/trapper")
 local logger = require("logger")
 local _ = require("gettext")
 local LoadingDialog = require("LoadingDialog")
+local Icons = require("Icons")
+local ButtonDialog = require("ui/widget/buttondialog")
+local InstalledSourcesListing = require("InstalledSourcesListing")
 
 local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
@@ -26,9 +29,9 @@ local LibraryView = Menu:extend {
 
 function LibraryView:init()
   self.mangas = self.mangas or {}
-  self.title_bar_left_icon = "appbar.search"
+  self.title_bar_left_icon = "appbar.menu"
   self.onLeftButtonTap = function()
-    self:openSearchMangasDialog()
+    self:openMenu()
   end
   self.item_table = self:generateItemTableFromMangas(self.mangas)
   self.width = Screen:getWidth()
@@ -104,6 +107,39 @@ function LibraryView:onMenuSelect(item)
   end)
 end
 
+function LibraryView:openMenu()
+  local dialog
+
+  local buttons = {
+    {
+      {
+        text = Icons.FA_MAGNIFYING_GLASS .. " Search for mangas",
+        callback = function()
+          UIManager:close(dialog)
+
+          self:openSearchMangasDialog()
+        end
+      },
+    },
+    {
+      {
+        text = Icons.FA_PLUG .. " Manage sources",
+        callback = function()
+          UIManager:close(dialog)
+
+          self:openInstalledSourcesListing()
+        end
+      },
+    }
+  }
+
+  dialog = ButtonDialog:new {
+    buttons = buttons,
+  }
+
+  UIManager:show(dialog)
+end
+
 function LibraryView:openSearchMangasDialog()
   local dialog
   dialog = InputDialog:new {
@@ -159,6 +195,25 @@ function LibraryView:searchMangas(search_text)
 
     MangaSearchResults:show(results, onReturnCallback)
   end)
+end
+
+function LibraryView:openInstalledSourcesListing()
+  local response = Backend.listInstalledSources()
+  if response.type == 'ERROR' then
+    ErrorDialog:show(response.message)
+
+    return
+  end
+
+  local installed_sources = response.body
+
+  local onReturnCallback = function()
+    self:show()
+  end
+
+  self:onClose()
+
+  InstalledSourcesListing:show(installed_sources, onReturnCallback)
 end
 
 return LibraryView

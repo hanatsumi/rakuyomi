@@ -2,6 +2,7 @@
     "recommendations": [
         "rust-lang.rust-analyzer",
         "sumneko.lua",
-        "ms-python.python"
+        "ms-python.python",
+        "editorconfig.editorconfig"
     ]
 }

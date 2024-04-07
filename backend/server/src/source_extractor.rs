@@ -3,7 +3,7 @@ use axum::{
     extract::{FromRequestParts, Path},
     http::request::Parts,
 };
-use cli::{model::SourceId, source::Source};
+use cli::{model::SourceId, source::Source, source_collection::SourceCollection};
 use serde::Deserialize;
 
 use crate::{AppError, State};
@@ -21,12 +21,11 @@ impl FromRequestParts<State> for SourceExtractor {
 
     async fn from_request_parts(
         parts: &mut Parts,
-        state @ State {
-            source_collection, ..
-        }: &State,
+        state @ State { source_manager, .. }: &State,
     ) -> Result<Self, Self::Rejection> {
         let Path(SourceParams { source_id }) = Path::from_request_parts(parts, state).await?;
-        let source = source_collection
+        let source_manager = source_manager.lock().await;
+        let source = source_manager
             .get_by_id(&SourceId::new(source_id))
             .ok_or(AppError::SourceNotFound)?;
 

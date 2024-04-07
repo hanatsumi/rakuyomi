@@ -9,7 +9,10 @@ cat > "${PROJECT_DIR}/.luarc.json" <<EOF
   "workspace.library": [
     "$koreaderHome/lib/koreader/frontend"
   ],
-  "runtime.version": "LuaJIT"
+  "runtime.version": "LuaJIT",
+  "diagnostics.neededFileStatus": {
+    "codestyle-check": "Any"
+  }
 }
 EOF
 
