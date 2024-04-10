@@ -74,6 +74,8 @@ where
     let client = reqwest::Client::new();
     let file_options = FileOptions::default().compression_method(CompressionMethod::Stored);
 
+    dbg!(&pages);
+
     stream::iter(pages)
         .map(|page| {
             let client = &client;

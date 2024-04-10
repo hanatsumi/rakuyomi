@@ -1,6 +1,38 @@
 use chrono::DateTime;
 use num_enum::FromPrimitive;
+use serde::Deserialize;
 use url::Url;
+
+#[derive(Deserialize, Debug)]
+#[serde(tag = "type")]
+pub enum SettingDefinition {
+    #[serde(rename = "group")]
+    Group {
+        title: Option<String>,
+        items: Vec<SettingDefinition>,
+    },
+    #[serde(rename = "select")]
+    Select {
+        title: String,
+        key: String,
+        values: Vec<String>,
+        titles: Vec<String>,
+        default: String,
+    },
+    #[serde(rename = "switch")]
+    Switch {
+        title: String,
+        key: String,
+        default: bool,
+    },
+    #[serde(rename = "text")]
+    Text {
+        placeholder: String,
+        key: String,
+        // FIXME is text the only setting type that's allowed to not have a default?
+        default: Option<String>,
+    },
+}
 
 #[derive(Debug, Clone, Default, FromPrimitive)]
 #[repr(u8)]

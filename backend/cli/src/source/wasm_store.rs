@@ -10,7 +10,7 @@ use reqwest::{
 };
 use scraper::{ElementRef, Html};
 
-use super::model::{Chapter, DeepLink, Filter, Manga, MangaPageResult, Page};
+use super::model::{Chapter, DeepLink, Filter, Manga, MangaPageResult, Page, SettingDefinition};
 
 #[derive(Debug, Clone)]
 // FIXME Apply the suggestion from the following `clippy` lint
@@ -98,9 +98,9 @@ pub enum Context {
 
 #[derive(Default, Debug)]
 pub struct WasmStore {
-    // FIXME actually add an id for each source?
     pub id: String,
     pub context: Context,
+    pub setting_definitions: Vec<SettingDefinition>,
     std_descriptor_pointer: Option<usize>,
     std_descriptors: HashMap<usize, Value>,
     std_references: HashMap<usize, Vec<usize>>,
@@ -108,9 +108,10 @@ pub struct WasmStore {
 }
 
 impl WasmStore {
-    pub fn new(id: String) -> Self {
+    pub fn new(id: String, setting_definitions: Vec<SettingDefinition>) -> Self {
         Self {
             id,
+            setting_definitions,
             ..Default::default()
         }
     }

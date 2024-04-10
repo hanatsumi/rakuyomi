@@ -4,6 +4,7 @@ use serde::Deserialize;
 use std::{
     collections::HashMap,
     fs,
+    io::Read,
     path::Path,
     sync::{Arc, Mutex},
 };
@@ -13,7 +14,7 @@ use wasmi::*;
 use zip::ZipArchive;
 
 use self::{
-    model::{Chapter, Filter, Manga, MangaPageResult, Page},
+    model::{Chapter, Filter, Manga, MangaPageResult, Page, SettingDefinition},
     wasm_imports::{
         aidoku::register_aidoku_imports,
         defaults::register_defaults_imports,
@@ -125,12 +126,19 @@ impl BlockingSource {
             .with_context(|| "while loading source.json")?;
         let manifest: SourceManifest = serde_json::from_reader(manifest_file)?;
 
+        let setting_definitions: Vec<SettingDefinition> =
+            if let Ok(file) = archive.by_name("Payload/settings.json") {
+                serde_json::from_reader(file)?
+            } else {
+                Vec::new()
+            };
+
         let wasm_file = archive
             .by_name("Payload/main.wasm")
             .with_context(|| "while loading main.wasm")?;
 
         let engine = Engine::default();
-        let wasm_store = WasmStore::new(manifest.info.id.clone());
+        let wasm_store = WasmStore::new(manifest.info.id.clone(), setting_definitions);
         let mut store = Store::new(&engine, wasm_store);
         let module = Module::new(&engine, wasm_file)
             .with_context(|| format!("failed loading module from {}", path.display()))?;
