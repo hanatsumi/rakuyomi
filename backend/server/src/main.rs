@@ -1,6 +1,7 @@
 mod model;
 mod source_extractor;
 
+use log::{error, info};
 use std::mem;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -73,6 +74,8 @@ struct State {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    env_logger::init();
+
     let args = Args::parse();
     let sources_path = args.home_path.join("sources");
     let database_path = args.home_path.join("database.db");
@@ -487,8 +490,18 @@ impl IntoResponse for AppError {
             Self::NetworkFailure(_) => {
                 "There was a network error. Check your connection and try again.".to_string()
             }
-            Self::Other(e) => format!("Something went wrong: {}", e),
+            Self::Other(ref e) => format!("Something went wrong: {}", e),
         };
+
+        let inner_exception = match self {
+            Self::NetworkFailure(ref e) => Some(e),
+            Self::Other(ref e) => Some(e),
+            _ => None,
+        };
+
+        if let Some(e) = inner_exception {
+            error!("Error caused by: {:?}", e);
+        }
 
         (status_code, Json(ErrorResponse { message })).into_response()
     }

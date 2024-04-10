@@ -9,7 +9,9 @@ axum = { version = "0.7.3", features = ["query"] }
 axum-macros = "0.4.0"
 clap = { version = "4.4.12", features = ["derive"] }
 cli = { path = "../cli" }
+env_logger = "0.11.3"
 futures = "0.3.30"
+log = "0.4.21"
 serde = { version = "1.0.193", features = ["derive"] }
 tokio = { version = "1.35.1", features = ["full"] }
 tokio-util = "0.7.10"
