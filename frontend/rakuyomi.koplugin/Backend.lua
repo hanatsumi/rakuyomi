@@ -3,6 +3,7 @@ local logger = require("logger")
 local C = require("ffi").C
 local ffiutil = require("ffi/util")
 local rapidjson = require("rapidjson")
+local util = require("util")
 
 local Backend = {}
 
@@ -188,7 +189,7 @@ end
 --- @return SuccessfulResponse<Chapter[]>|ErrorResponse
 function Backend.listCachedChapters(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters",
+    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters",
   })
 end
 
@@ -196,7 +197,7 @@ end
 --- @return SuccessfulResponse<{}>|ErrorResponse
 function Backend.refreshChapters(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/refresh-chapters",
+    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/refresh-chapters",
     method = "POST",
   })
 end
@@ -205,7 +206,7 @@ end
 --- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.downloadAllChapters(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/download-all",
+    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/download-all",
     method = "POST",
   })
 end
@@ -216,7 +217,8 @@ end
 --- @return SuccessfulResponse<DownloadAllChaptersProgress>|ErrorResponse
 function Backend.getDownloadAllChaptersProgress(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/download-all-progress",
+    url = "http://localhost:30727/mangas/" ..
+    source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/download-all-progress",
   })
 end
 
@@ -225,7 +227,8 @@ end
 --- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.cancelDownloadAllChapters(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/cancel-download-all",
+    url = "http://localhost:30727/mangas/" ..
+    source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/cancel-download-all",
     method = "POST",
   })
 end
@@ -234,7 +237,8 @@ end
 --- @return SuccessfulResponse<string>|ErrorResponse
 function Backend.downloadChapter(source_id, manga_id, chapter_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/chapters/" .. chapter_id .. "/download",
+    url = "http://localhost:30727/mangas/" ..
+        source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/" .. util.urlEncode(chapter_id) .. "/download",
     method = "POST",
   })
 end
@@ -244,7 +248,7 @@ end
 function Backend.markChapterAsRead(source_id, manga_id, chapter_id)
   return requestJson({
     url = "http://localhost:30727/mangas/" ..
-        source_id .. "/" .. manga_id .. "/chapters/" .. chapter_id .. "/mark-as-read",
+        source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/" .. util.urlEncode(chapter_id) .. "/mark-as-read",
     method = "POST",
   })
 end
