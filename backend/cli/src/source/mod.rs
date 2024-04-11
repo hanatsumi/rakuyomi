@@ -4,7 +4,6 @@ use serde::Deserialize;
 use std::{
     collections::HashMap,
     fs,
-    io::Read,
     path::Path,
     sync::{Arc, Mutex},
 };

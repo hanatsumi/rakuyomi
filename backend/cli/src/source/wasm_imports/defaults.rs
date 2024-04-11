@@ -44,7 +44,7 @@ fn get(mut caller: Caller<'_, WasmStore>, key: Option<String>) -> i32 {
 }
 
 fn find_setting_definition_by_key<'a>(
-    setting_definitions: &'a Vec<SettingDefinition>,
+    setting_definitions: &'a [SettingDefinition],
     needle_key: &str,
 ) -> Option<&'a SettingDefinition> {
     setting_definitions
