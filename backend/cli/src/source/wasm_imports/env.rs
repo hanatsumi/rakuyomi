@@ -36,18 +36,18 @@ fn abort(
     // specifically receives the offsets of the beginning of the stream, and the length comes
     // before the offset (?)
     let memory = get_memory(&mut caller).unwrap();
-    let msg_length = read_bytes(&memory, &mut caller, (msg_offset - 4) as usize, 1)
-        .and_then(|bytes| bytes.get(0).cloned())
+    let msg_length = read_bytes(&memory, &caller, (msg_offset - 4) as usize, 1)
+        .and_then(|bytes| bytes.first().cloned())
         .unwrap_or(0) as usize;
 
-    let file_name_length = read_bytes(&memory, &mut caller, (file_name_offset - 4) as usize, 1)
-        .and_then(|bytes| bytes.get(0).cloned())
+    let file_name_length = read_bytes(&memory, &caller, (file_name_offset - 4) as usize, 1)
+        .and_then(|bytes| bytes.first().cloned())
         .unwrap_or(0) as usize;
 
-    let message = read_string(&memory, &mut caller, msg_offset as usize, msg_length);
+    let message = read_string(&memory, &caller, msg_offset as usize, msg_length);
     let file = read_string(
         &memory,
-        &mut caller,
+        &caller,
         file_name_offset as usize,
         file_name_length,
     );

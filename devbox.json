@@ -24,6 +24,9 @@
       "check-lint": [
         "sh -c 'cd $PROJECT_DIR/backend && cargo clippy -- -D warnings'",
         "python3 ci/lua-language-server-check.py frontend/"
+      ],
+      "fix-rust-lint": [
+        "sh -c 'cd $PROJECT_DIR/backend && cargo clippy --fix --allow-dirty -- -D warnings'"
       ]
     },
   },

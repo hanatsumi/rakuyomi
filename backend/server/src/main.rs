@@ -1,7 +1,7 @@
 mod model;
 mod source_extractor;
 
-use log::{error, info};
+use log::error;
 use std::mem;
 use std::path::PathBuf;
 use std::sync::Arc;

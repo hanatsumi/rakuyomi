@@ -218,7 +218,7 @@ end
 function Backend.getDownloadAllChaptersProgress(source_id, manga_id)
   return requestJson({
     url = "http://localhost:30727/mangas/" ..
-    source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/download-all-progress",
+        source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/download-all-progress",
   })
 end
 
@@ -228,7 +228,7 @@ end
 function Backend.cancelDownloadAllChapters(source_id, manga_id)
   return requestJson({
     url = "http://localhost:30727/mangas/" ..
-    source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/cancel-download-all",
+        source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/cancel-download-all",
     method = "POST",
   })
 end
