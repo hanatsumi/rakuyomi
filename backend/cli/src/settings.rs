@@ -4,10 +4,12 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct Settings {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub source_lists: Vec<Url>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub languages: Vec<String>,
 }
 
 impl Settings {

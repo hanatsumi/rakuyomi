@@ -12,6 +12,8 @@ use url::Url;
 use wasmi::*;
 use zip::ZipArchive;
 
+use crate::settings::Settings;
+
 use self::{
     model::{Chapter, Filter, Manga, MangaPageResult, Page, SettingDefinition},
     wasm_imports::{
@@ -47,8 +49,8 @@ pub struct Source(
 );
 
 impl Source {
-    pub fn from_aix_file(path: &Path) -> Result<Self> {
-        let blocking_source = BlockingSource::from_aix_file(path)?;
+    pub fn from_aix_file(path: &Path, settings: Settings) -> Result<Self> {
+        let blocking_source = BlockingSource::from_aix_file(path, settings)?;
 
         Ok(Self(Arc::new(Mutex::new(blocking_source))))
     }
@@ -116,7 +118,7 @@ struct BlockingSource {
 }
 
 impl BlockingSource {
-    pub fn from_aix_file(path: &Path) -> Result<Self> {
+    pub fn from_aix_file(path: &Path, settings: Settings) -> Result<Self> {
         let file = fs::File::open(path)?;
         let mut archive = ZipArchive::new(file)?;
 
@@ -137,7 +139,7 @@ impl BlockingSource {
             .with_context(|| "while loading main.wasm")?;
 
         let engine = Engine::default();
-        let wasm_store = WasmStore::new(manifest.info.id.clone(), setting_definitions);
+        let wasm_store = WasmStore::new(manifest.info.id.clone(), setting_definitions, settings);
         let mut store = Store::new(&engine, wasm_store);
         let module = Module::new(&engine, wasm_file)
             .with_context(|| format!("failed loading module from {}", path.display()))?;
