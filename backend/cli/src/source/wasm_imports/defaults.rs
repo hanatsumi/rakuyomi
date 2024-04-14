@@ -24,8 +24,18 @@ fn get(mut caller: Caller<'_, WasmStore>, key: Option<String>) -> i32 {
         // FIXME actually implement a defaults system
         if key == "languages" {
             return Some(
-                wasm_store.store_std_value(Value::Array(vec![Value::String("en".into())]), None)
-                    as i32,
+                wasm_store.store_std_value(
+                    Value::Array(
+                        wasm_store
+                            .settings
+                            .languages
+                            .clone()
+                            .into_iter()
+                            .map(Value::String)
+                            .collect(),
+                    ),
+                    None,
+                ) as i32,
             );
         }
 

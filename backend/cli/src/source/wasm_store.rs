@@ -10,6 +10,8 @@ use reqwest::{
 };
 use scraper::{ElementRef, Html};
 
+use crate::settings::Settings;
+
 use super::model::{Chapter, DeepLink, Filter, Manga, MangaPageResult, Page, SettingDefinition};
 
 #[derive(Debug, Clone)]
@@ -101,6 +103,8 @@ pub struct WasmStore {
     pub id: String,
     pub context: Context,
     pub setting_definitions: Vec<SettingDefinition>,
+    // FIXME this probably should be source-specific, and not a copy of all settigns
+    pub settings: Settings,
     std_descriptor_pointer: Option<usize>,
     std_descriptors: HashMap<usize, Value>,
     std_references: HashMap<usize, Vec<usize>>,
@@ -108,10 +112,15 @@ pub struct WasmStore {
 }
 
 impl WasmStore {
-    pub fn new(id: String, setting_definitions: Vec<SettingDefinition>) -> Self {
+    pub fn new(
+        id: String,
+        setting_definitions: Vec<SettingDefinition>,
+        settings: Settings,
+    ) -> Self {
         Self {
             id,
             setting_definitions,
+            settings,
             ..Default::default()
         }
     }

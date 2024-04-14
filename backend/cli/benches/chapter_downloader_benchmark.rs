@@ -1,4 +1,4 @@
-use cli::{chapter_downloader::download_chapter_pages_as_cbz, source::Source};
+use cli::{chapter_downloader::download_chapter_pages_as_cbz, settings::Settings, source::Source};
 #[allow(unused_imports)]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use futures::executor;
@@ -9,8 +9,9 @@ pub fn chapter_downloader_benchmark(c: &mut Criterion) {
     let source_path: PathBuf = env::var("BENCHMARK_SOURCE_PATH").unwrap().into();
     let manga_id = env::var("BENCHMARK_MANGA_ID").unwrap();
     let chapter_id = env::var("BENCHMARK_CHAPTER_ID").unwrap();
+    let settings = Settings::default();
 
-    let source = Source::from_aix_file(source_path.as_ref()).unwrap();
+    let source = Source::from_aix_file(source_path.as_ref(), settings).unwrap();
     let pages = executor::block_on(source.get_page_list(manga_id, chapter_id)).unwrap();
 
     let runtime = tokio::runtime::Runtime::new().unwrap();
