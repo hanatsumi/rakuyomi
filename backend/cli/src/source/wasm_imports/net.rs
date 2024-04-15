@@ -224,7 +224,7 @@ fn get_url(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> i3
 
         let url: String = request_builder.url.clone()?.into();
 
-        Some(wasm_store.store_std_value(Value::String(url), None) as i32)
+        Some(wasm_store.store_std_value(url.into(), None) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -302,7 +302,7 @@ fn get_header(
 
         let value: String = response.headers.get(name?)?.to_str().ok()?.into();
 
-        Some(wasm_store.store_std_value(Value::String(value), None) as i32)
+        Some(wasm_store.store_std_value(value.into(), None) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -321,7 +321,7 @@ fn get_status_code(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i3
 
         let status_code = response.status_code.as_u16() as i64;
 
-        Some(wasm_store.store_std_value(Value::Int(status_code), None) as i32)
+        Some(wasm_store.store_std_value(status_code.into(), None) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -367,7 +367,7 @@ fn html(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> i32 {
         let node_id = document.root_element().id();
         let html_element = HTMLElement { document, node_id };
 
-        Some(wasm_store.store_std_value(Value::HTMLElements(vec![html_element]), None) as i32)
+        Some(wasm_store.store_std_value(vec![html_element].into(), None) as i32)
     }()
     .unwrap_or(-1)
 }

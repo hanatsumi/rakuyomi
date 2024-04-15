@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::anyhow;
 use chrono::DateTime;
+use derive_more::From;
 use ego_tree::NodeId;
 use reqwest::{
     blocking::Request as BlockingRequest,
@@ -14,7 +15,7 @@ use crate::settings::Settings;
 
 use super::model::{Chapter, DeepLink, Filter, Manga, MangaPageResult, Page, SettingDefinition};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, From)]
 // FIXME Apply the suggestion from the following `clippy` lint
 // This enum is needlessly large, maybe we could measure the impact of
 // actually changing this.
@@ -44,7 +45,7 @@ impl HTMLElement {
 // FIXME THIS IS BORKED AS FUCK
 unsafe impl Send for HTMLElement {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, From)]
 // FIXME See above.
 #[allow(clippy::large_enum_variant)]
 pub enum Value {
@@ -53,7 +54,9 @@ pub enum Value {
     Float(f64),
     String(String),
     Bool(bool),
+    #[from(ignore)]
     Array(Vec<Value>),
+    #[from(ignore)]
     Object(ObjectValue),
     Date(DateTime<chrono_tz::Tz>),
     HTMLElements(Vec<HTMLElement>),
@@ -256,5 +259,23 @@ impl TryFrom<&RequestBuildingState> for Request {
         }
 
         Ok(request)
+    }
+}
+
+impl<T> From<Vec<T>> for Value
+where
+    T: Into<Value>,
+{
+    fn from(value: Vec<T>) -> Self {
+        Value::Array(value.into_iter().map(|element| element.into()).collect())
+    }
+}
+
+impl<T> From<T> for Value
+where
+    T: Into<ObjectValue>,
+{
+    fn from(value: T) -> Self {
+        Value::Object(value.into())
     }
 }

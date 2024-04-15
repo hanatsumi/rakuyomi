@@ -98,17 +98,17 @@ fn create_null(caller: Caller<'_, WasmStore>) -> i32 {
 }
 
 fn create_int(caller: Caller<'_, WasmStore>, value: i64) -> i32 {
-    create_value(caller, Value::Int(value))
+    create_value(caller, value.into())
 }
 
 fn create_float(caller: Caller<'_, WasmStore>, value: F64) -> i32 {
-    create_value(caller, Value::Float(value.to_float()))
+    create_value(caller, value.to_float().into())
 }
 
 fn create_string(mut caller: Caller<'_, WasmStore>, offset: i32, length: i32) -> i32 {
     if let Some(memory) = get_memory(&mut caller) {
         read_memory_string(&memory, &caller, offset as usize, length as usize)
-            .map(|string| create_value(caller, Value::String(string)))
+            .map(|string| create_value(caller, string.into()))
             .unwrap_or(-1)
     } else {
         -1
@@ -132,7 +132,7 @@ fn create_date(caller: Caller<'_, WasmStore>, seconds_since_1970: F64) -> i32 {
         .from_local_datetime(&naive_date_time)
         .unwrap();
 
-    create_value(caller, Value::Date(date_time))
+    create_value(caller, date_time.into())
 }
 
 fn create_value(mut caller: Caller<'_, WasmStore>, value: Value) -> i32 {
@@ -142,10 +142,7 @@ fn create_value(mut caller: Caller<'_, WasmStore>, value: Value) -> i32 {
 }
 
 fn create_object(caller: Caller<'_, WasmStore>) -> i32 {
-    create_value(
-        caller,
-        Value::Object(ObjectValue::HashMap(HashMap::default())),
-    )
+    create_value(caller, HashMap::default().into())
 }
 
 fn type_of(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
@@ -402,7 +399,7 @@ fn object_get(
             _ => todo!("missing implementation"),
         };
 
-        Some(wasm_store.store_std_value(value, Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(value.clone(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }

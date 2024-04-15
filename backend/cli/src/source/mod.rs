@@ -183,12 +183,11 @@ impl BlockingSource {
             .instance
             .get_typed_func::<(i32, i32), i32>(&mut self.store, "get_manga_list")?;
         let filters_descriptor = self.store.data_mut().store_std_value(
-            Value::Array(
-                filters
-                    .iter()
-                    .map(|filter| Value::Object(ObjectValue::Filter(filter.clone())))
-                    .collect::<Vec<_>>(),
-            ),
+            filters
+                .iter()
+                .map(|filter| Value::Object(ObjectValue::Filter(filter.clone())))
+                .collect::<Vec<_>>()
+                .into(),
             None,
         );
 
@@ -233,7 +232,7 @@ impl BlockingSource {
         // the `id` field is needed, so we just store a `HashMap` with the `id` set.
         // surely this wont break in the future!
         let mut manga_hashmap = HashMap::new();
-        manga_hashmap.insert("id".to_string(), Value::String(manga_id));
+        manga_hashmap.insert("id".to_string(), manga_id.into());
 
         let manga_descriptor = self
             .store

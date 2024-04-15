@@ -58,7 +58,7 @@ fn parse(mut caller: Caller<'_, WasmStore>, data: Option<String>) -> i32 {
         let html_element = HTMLElement { document, node_id };
         let wasm_store = caller.data_mut();
 
-        Some(wasm_store.store_std_value(Value::HTMLElements(vec![html_element]), None) as i32)
+        Some(wasm_store.store_std_value(vec![html_element].into(), None) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -75,7 +75,7 @@ fn parse_fragment(mut caller: Caller<'_, WasmStore>, data: Option<String>) -> i3
 
         let wasm_store = caller.data_mut();
 
-        Some(wasm_store.store_std_value(Value::HTMLElements(vec![html_element]), None) as i32)
+        Some(wasm_store.store_std_value(vec![html_element].into(), None) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -125,10 +125,7 @@ fn select(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, selector: Opti
             })
             .collect();
 
-        Some(
-            wasm_store.store_std_value(Value::HTMLElements(selected_elements), Some(descriptor))
-                as i32,
-        )
+        Some(wasm_store.store_std_value(selected_elements.into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -149,9 +146,10 @@ fn attr(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, selector: Option
             .iter()
             .map(|element| element.element_ref().value().attr(&selector))
             .find(|element| element.is_some())?
-            .unwrap();
+            .unwrap()
+            .to_string();
 
-        Some(wasm_store.store_std_value(Value::String(attr.into()), Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(attr.into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -202,9 +200,7 @@ fn first(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
             _ => None,
         }?;
 
-        Some(
-            wasm_store.store_std_value(Value::HTMLElements(vec![element]), Some(descriptor)) as i32,
-        )
+        Some(wasm_store.store_std_value(vec![element].into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -221,9 +217,7 @@ fn last(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
             _ => None,
         }?;
 
-        Some(
-            wasm_store.store_std_value(Value::HTMLElements(vec![element]), Some(descriptor)) as i32,
-        )
+        Some(wasm_store.store_std_value(vec![element].into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -247,10 +241,7 @@ fn next(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
             node_id: next_sibling_node_id,
         };
 
-        Some(
-            wasm_store.store_std_value(Value::HTMLElements(vec![new_element]), Some(descriptor))
-                as i32,
-        )
+        Some(wasm_store.store_std_value(vec![new_element].into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -274,10 +265,7 @@ fn previous(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
             node_id: next_sibling_node_id,
         };
 
-        Some(
-            wasm_store.store_std_value(Value::HTMLElements(vec![new_element]), Some(descriptor))
-                as i32,
-        )
+        Some(wasm_store.store_std_value(vec![new_element].into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -310,7 +298,7 @@ fn text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
             .collect::<Vec<_>>()
             .join(" ");
 
-        Some(wasm_store.store_std_value(Value::String(text), Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(text.into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -332,7 +320,7 @@ fn untrimmed_text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32
             .collect::<Vec<_>>()
             .join(" ");
 
-        Some(wasm_store.store_std_value(Value::String(text), Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(text.into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -384,12 +372,12 @@ fn array(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
             _ => None,
         }?;
 
-        let array_value: Vec<_> = elements
+        let array_value: Vec<Value> = elements
             .iter()
-            .map(|element| Value::HTMLElements(vec![element.clone()]))
+            .map(|element| vec![element.clone()].into())
             .collect();
 
-        Some(wasm_store.store_std_value(Value::Array(array_value), Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(array_value.into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -411,7 +399,7 @@ fn html(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
             .collect::<Vec<_>>()
             .join("\n");
 
-        Some(wasm_store.store_std_value(Value::String(inner_htmls), Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(inner_htmls.into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -433,7 +421,7 @@ fn outer_html(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
             .collect::<Vec<_>>()
             .join("\n");
 
-        Some(wasm_store.store_std_value(Value::String(htmls), Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(htmls.into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -461,7 +449,7 @@ fn escape(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
 
         let escaped = html_escape::encode_safe(&text).to_string();
 
-        Some(wasm_store.store_std_value(Value::String(escaped), Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(escaped.into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -489,7 +477,7 @@ fn unescape(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
 
         let unescaped = html_escape::decode_html_entities(&text).to_string();
 
-        Some(wasm_store.store_std_value(Value::String(unescaped), Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(unescaped.into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -509,7 +497,7 @@ fn id(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
 
         let id = element.element_ref().value().id()?.to_string();
 
-        Some(wasm_store.store_std_value(Value::String(id), Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(id.into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -529,7 +517,7 @@ fn tag_name(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
 
         let tag_name = element.element_ref().value().name().to_string();
 
-        Some(wasm_store.store_std_value(Value::String(tag_name), Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(tag_name.into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -554,7 +542,7 @@ fn class_name(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
             .trim()
             .to_string();
 
-        Some(wasm_store.store_std_value(Value::String(class_name), Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(class_name.into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }

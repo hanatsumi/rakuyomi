@@ -2,10 +2,7 @@ use anyhow::Result;
 use wasm_macros::{aidoku_wasm_function, register_wasm_function};
 use wasmi::{Caller, Linker};
 
-use crate::source::{
-    model::SettingDefinition,
-    wasm_store::{Value, WasmStore},
-};
+use crate::source::{model::SettingDefinition, wasm_store::WasmStore};
 
 pub fn register_defaults_imports(linker: &mut Linker<WasmStore>) -> Result<()> {
     register_wasm_function!(linker, "defaults", "get", get)?;
@@ -24,26 +21,16 @@ fn get(mut caller: Caller<'_, WasmStore>, key: Option<String>) -> i32 {
         // FIXME actually implement a defaults system
         if key == "languages" {
             return Some(
-                wasm_store.store_std_value(
-                    Value::Array(
-                        wasm_store
-                            .settings
-                            .languages
-                            .clone()
-                            .into_iter()
-                            .map(Value::String)
-                            .collect(),
-                    ),
-                    None,
-                ) as i32,
+                wasm_store.store_std_value(wasm_store.settings.languages.clone().into(), None)
+                    as i32,
             );
         }
 
         let setting_definition = find_setting_definition_by_key(setting_definitions, &key)?;
         let default_value = match setting_definition {
-            SettingDefinition::Select { default, .. } => Value::String(default.clone()),
-            SettingDefinition::Switch { default, .. } => Value::Bool(*default),
-            SettingDefinition::Text { default, .. } => Value::String(default.clone()?),
+            SettingDefinition::Select { default, .. } => default.clone().into(),
+            SettingDefinition::Switch { default, .. } => (*default).into(),
+            SettingDefinition::Text { default, .. } => default.clone()?.into(),
             _ => return None,
         };
 
