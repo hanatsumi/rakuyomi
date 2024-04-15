@@ -9,3 +9,15 @@ pub mod list_installed_sources;
 pub mod mark_chapter_as_read;
 pub mod refresh_manga_chapters;
 pub mod search_mangas;
+
+pub use add_manga_to_library::add_manga_to_library;
+pub use fetch_all_manga_chapters::fetch_all_manga_chapters;
+pub use fetch_manga_chapter::fetch_manga_chapter;
+pub use get_cached_manga_chapters::get_cached_manga_chapters;
+pub use get_manga_library::get_manga_library;
+pub use install_source::install_source;
+pub use list_available_sources::list_available_sources;
+pub use list_installed_sources::list_installed_sources;
+pub use mark_chapter_as_read::mark_chapter_as_read;
+pub use refresh_manga_chapters::refresh_manga_chapters;
+pub use search_mangas::search_mangas;

@@ -1,6 +1,7 @@
 mod model;
 mod source_extractor;
 
+use cli::usecases;
 use log::error;
 use std::mem;
 use std::path::PathBuf;
@@ -19,19 +20,9 @@ use cli::settings::Settings;
 use cli::source_manager::SourceManager;
 use cli::usecases::fetch_all_manga_chapters::ProgressReport;
 use cli::usecases::{
-    add_manga_to_library::add_manga_to_library as add_manga_to_library_usecase,
-    fetch_all_manga_chapters::fetch_all_manga_chapters,
     fetch_all_manga_chapters::Error as FetchAllMangaChaptersError,
-    fetch_manga_chapter::fetch_manga_chapter,
     fetch_manga_chapter::Error as FetchMangaChaptersError,
-    get_cached_manga_chapters::get_cached_manga_chapters as get_cached_manga_chapters_usecase,
-    get_manga_library::get_manga_library as get_manga_library_usecase,
-    install_source::install_source as install_source_usecase,
-    list_available_sources::list_available_sources as list_available_sources_usecase,
-    list_installed_sources::list_installed_sources as list_installed_sources_usecase,
-    mark_chapter_as_read::mark_chapter_as_read as mark_chapter_as_read_usecase,
-    refresh_manga_chapters::refresh_manga_chapters as refresh_manga_chapters_usecase,
-    search_mangas::search_mangas, search_mangas::Error as SearchMangasError,
+    search_mangas::Error as SearchMangasError,
 };
 use futures::{pin_mut, StreamExt};
 use serde::{Deserialize, Serialize};
@@ -153,7 +144,7 @@ async fn main() -> anyhow::Result<()> {
 async fn get_manga_library(
     StateExtractor(State { database, .. }): StateExtractor<State>,
 ) -> Result<Json<Vec<Manga>>, AppError> {
-    let mangas = get_manga_library_usecase(&database)
+    let mangas = usecases::get_manga_library(&database)
         .await?
         .into_iter()
         .map(Manga::from)
@@ -175,7 +166,7 @@ async fn get_mangas(
     }): StateExtractor<State>,
     Query(GetMangasQuery { q }): Query<GetMangasQuery>,
 ) -> Result<Json<Vec<SourceMangaSearchResults>>, AppError> {
-    let results = search_mangas(&*source_manager.lock().await, &database, q)
+    let results = usecases::search_mangas(&*source_manager.lock().await, &database, q)
         .await
         .map_err(AppError::from_search_mangas_error)?
         .into_iter()
@@ -204,7 +195,7 @@ async fn add_manga_to_library(
 ) -> Result<Json<()>, AppError> {
     let manga_id = MangaId::from(params);
 
-    add_manga_to_library_usecase(&database, manga_id).await?;
+    usecases::add_manga_to_library(&database, manga_id).await?;
 
     Ok(Json(()))
 }
@@ -219,7 +210,8 @@ async fn get_cached_manga_chapters(
     Path(params): Path<MangaChaptersPathParams>,
 ) -> Result<Json<Vec<Chapter>>, AppError> {
     let manga_id = MangaId::from(params);
-    let chapters = get_cached_manga_chapters_usecase(&database, &chapter_storage, manga_id).await?;
+    let chapters =
+        usecases::get_cached_manga_chapters(&database, &chapter_storage, manga_id).await?;
 
     let chapters = chapters.into_iter().map(Chapter::from).collect();
 
@@ -232,7 +224,7 @@ async fn refresh_manga_chapters(
     Path(params): Path<MangaChaptersPathParams>,
 ) -> Result<Json<()>, AppError> {
     let manga_id = MangaId::from(params);
-    refresh_manga_chapters_usecase(&database, &source, manga_id).await?;
+    usecases::refresh_manga_chapters(&database, &source, manga_id).await?;
 
     Ok(Json(()))
 }
@@ -254,7 +246,7 @@ async fn download_all_manga_chapters(
     tokio::spawn(async move {
         let source = &source;
         let (cancellation_token, progress_report_stream) =
-            fetch_all_manga_chapters(source, &database, &chapter_storage, manga_id);
+            usecases::fetch_all_manga_chapters(source, &database, &chapter_storage, manga_id);
 
         *download_all_chapters_state.lock().await = DownloadAllChaptersState::Initializing;
 
@@ -374,7 +366,7 @@ async fn download_manga_chapter(
     Path(params): Path<DownloadMangaChapterParams>,
 ) -> Result<Json<String>, AppError> {
     let chapter_id = ChapterId::from(params);
-    let output_path = fetch_manga_chapter(&source, &chapter_storage, &chapter_id)
+    let output_path = usecases::fetch_manga_chapter(&source, &chapter_storage, &chapter_id)
         .await
         .map_err(AppError::from_fetch_manga_chapters_error)?;
 
@@ -388,7 +380,7 @@ async fn mark_chapter_as_read(
 ) -> Json<()> {
     let chapter_id = ChapterId::from(params);
 
-    mark_chapter_as_read_usecase(&database, chapter_id).await;
+    usecases::mark_chapter_as_read(&database, chapter_id).await;
 
     Json(())
 }
@@ -396,7 +388,7 @@ async fn mark_chapter_as_read(
 async fn list_available_sources(
     StateExtractor(State { settings, .. }): StateExtractor<State>,
 ) -> Result<Json<Vec<SourceInformation>>, AppError> {
-    let available_sources = list_available_sources_usecase(settings.source_lists)
+    let available_sources = usecases::list_available_sources(settings.source_lists)
         .await?
         .into_iter()
         .map(SourceInformation::from)
@@ -418,7 +410,7 @@ async fn install_source(
     }): StateExtractor<State>,
     Path(InstallSourceParams { source_id }): Path<InstallSourceParams>,
 ) -> Result<Json<()>, AppError> {
-    install_source_usecase(
+    usecases::install_source(
         &mut *source_manager.lock().await,
         &settings.source_lists,
         SourceId::new(source_id),
@@ -431,7 +423,7 @@ async fn install_source(
 async fn list_installed_sources(
     StateExtractor(State { source_manager, .. }): StateExtractor<State>,
 ) -> Json<Vec<SourceInformation>> {
-    let installed_sources = list_installed_sources_usecase(&*source_manager.lock().await)
+    let installed_sources = usecases::list_installed_sources(&*source_manager.lock().await)
         .into_iter()
         .map(SourceInformation::from)
         .collect();
