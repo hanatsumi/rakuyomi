@@ -30,8 +30,6 @@ function MangaReader:closeReaderUi(done_callback)
   -- Let all event handlers run before closing the ReaderUI, because
   -- some stuff might break if we just remove it ASAP
   UIManager:nextTick(function()
-    self.is_showing = false
-
     local FileManager = require("apps/filemanager/filemanager")
 
     -- we **have** to reopen the `FileManager`, because
@@ -54,6 +52,10 @@ function MangaReader:onEndOfBook()
 
   -- ReaderUI.instance:reloadDocument()
   self.on_end_of_book_callback()
+end
+
+function MangaReader:onReaderUiCloseWidget()
+  self.is_showing = false
 end
 
 function MangaReader:show(manga_path, onReturnCallback, onEndOfBookCallback)

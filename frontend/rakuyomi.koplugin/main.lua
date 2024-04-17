@@ -14,14 +14,14 @@ local Rakuyomi = WidgetContainer:extend({
 })
 
 -- We can get initialized from two contexts:
--- - when the `FileManager` is initialized, we're called 
+-- - when the `FileManager` is initialized, we're called
 -- - when the `ReaderUI` is initialized, we're also called
 -- so we should register to the menu accordingly
 function Rakuyomi:init()
   if self.ui.name == "ReaderUI" then
     self.ui.menu:registerToMainMenu(MangaReader)
     self.ui:registerPostInitCallback(function()
-      self:hookWithPriorityOntoReaderUiEndOfBook()
+      self:hookWithPriorityOntoReaderUiEvents()
     end)
   else
     self.ui.menu:registerToMainMenu(self)
@@ -46,20 +46,29 @@ function Rakuyomi:onEndOfBook()
   end
 end
 
+function Rakuyomi:onReaderUiCloseWidget()
+  if MangaReader:isShowing() then
+    MangaReader:onReaderUiCloseWidget()
+  end
+end
+
 -- FIXME maybe move all the `ReaderUI` related logic into `MangaReader`
 -- We need to reorder the `ReaderUI` children such that we are the first children,
 -- in order to receive events before all other widgets
-function Rakuyomi:hookWithPriorityOntoReaderUiEndOfBook()
+function Rakuyomi:hookWithPriorityOntoReaderUiEvents()
   assert(self.ui.name == "ReaderUI", "expected to be inside ReaderUI")
 
-  local endOfBookEventListener = WidgetContainer:new({})
-  endOfBookEventListener.onEndOfBook = function()
+  local eventListener = WidgetContainer:new({})
+  eventListener.onEndOfBook = function()
     -- FIXME this makes `Rakuyomi:onEndOfBook()` get called twice if it does not
     -- return true in the first invocation...
     return self:onEndOfBook()
   end
+  eventListener.onCloseWidget = function()
+    self:onReaderUiCloseWidget()
+  end
 
-  table.insert(self.ui, 2, endOfBookEventListener)
+  table.insert(self.ui, 2, eventListener)
 end
 
 function Rakuyomi:openLibraryView()
