@@ -37,6 +37,9 @@ tokio-util = "0.7.10"
 tempfile = "3.9.0"
 log = "0.4.21"
 derive_more = "0.99.17"
+size = "0.4.1"
+walkdir = "2.5.0"
+regex = "1.10.4"
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["async_tokio"] }

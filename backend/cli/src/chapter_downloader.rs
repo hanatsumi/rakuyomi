@@ -35,6 +35,9 @@ pub async fn ensure_chapter_is_in_storage(
         .await
         .map_err(Error::DownloadError)?;
 
+    // FIXME this logic should be contained entirely within the storage..? maybe we could return something that's writable
+    // and then commit it into the storage (or maybe a implicit commit on drop, but i dont think it works well as there
+    // could be errors while committing it)
     let output_path = chapter_storage.get_path_to_store_chapter(chapter_id);
 
     // Write chapter pages to a temporary file, so that if things go wrong
@@ -47,9 +50,9 @@ pub async fn ensure_chapter_is_in_storage(
 
     // If we succeeded downloading all the chapter pages, persist our temporary
     // file into the chapter storage definitively.
-    temporary_file
-        .persist(&output_path)
-        .map_err(|e| Error::Other(e.into()))?;
+    chapter_storage
+        .persist_chapter(chapter_id, temporary_file)
+        .map_err(Error::Other)?;
 
     Ok(output_path)
 }
