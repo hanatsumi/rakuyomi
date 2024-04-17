@@ -76,7 +76,7 @@ async fn main() -> anyhow::Result<()> {
     let settings = Settings::from_file_or_default(&settings_path)?;
     let source_manager = SourceManager::from_folder(sources_path, settings.clone())?;
     let database = Database::new(&database_path).await?;
-    let chapter_storage = ChapterStorage::new(downloads_folder_path);
+    let chapter_storage = ChapterStorage::new(downloads_folder_path, settings.storage_size_limit.0);
 
     let state = State {
         source_manager: Arc::new(Mutex::new(source_manager)),
