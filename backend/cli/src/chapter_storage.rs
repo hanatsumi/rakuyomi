@@ -57,7 +57,12 @@ impl ChapterStorage {
             );
 
             self.evict_least_recently_modified_chapter()
-                .with_context(|| format!("while attempting to bring the storage size under the {} limit (current size: {})", self.storage_size_limit, current_size))?;
+                .with_context(|| format!(
+                    "while attempting to bring the storage size under the {} limit (current size: {}, persisted chapter size: {})",
+                    self.storage_size_limit,
+                    current_size,
+                    persisted_chapter_size,
+                ))?;
 
             current_size = self.calculate_storage_size();
         }
