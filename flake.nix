@@ -54,7 +54,6 @@
             naersk'.buildPackage rec {
               src = ./backend;
               cargoBuildOptions = defaultOptions: defaultOptions ++ ["-p" "server"];
-              release = false;
 
               CARGO_BUILD_TARGET = target;
               TARGET_CC = with pkgsCross.stdenv; "${cc}/bin/${cc.targetPrefix}cc";
