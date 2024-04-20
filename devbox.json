@@ -27,7 +27,10 @@
       ],
       "fix-rust-lint": [
         "sh -c 'cd $PROJECT_DIR/backend && cargo clippy --fix --allow-dirty -- -D warnings'"
-      ]
+      ],
+      "dev": [
+        "nix run .#rakuyomi.koreader-with-plugin"
+      ],
     },
   },
   "nixpkgs": {
