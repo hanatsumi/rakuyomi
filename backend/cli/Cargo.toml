@@ -3,6 +3,14 @@ name = "cli"
 version = "0.1.0"
 edition = "2021"
 
+[build-dependencies]
+regex = "1.10.4"
+schemars = { version = "0.8.16", features = ["url"] }
+size = "0.4.1"
+serde = { version = "1.0.193", features = ["derive"] }
+serde_json = "1.0.103"
+url = { version = "2.4.0", features = ["serde"] }
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 anyhow = "1.0.71"
@@ -40,6 +48,7 @@ derive_more = "0.99.17"
 size = "0.4.1"
 walkdir = "2.5.0"
 regex = "1.10.4"
+schemars = { version = "0.8.16", features = ["url"] }
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["async_tokio"] }

@@ -1,7 +1,7 @@
-use std::{fs::File, path::Path};
+use std::borrow::Cow;
 
-use anyhow::Result;
 use regex::Regex;
+use schemars::JsonSchema;
 use serde::{
     de::{Unexpected, Visitor},
     Deserialize, Serialize,
@@ -12,7 +12,7 @@ use url::Url;
 #[derive(Clone, Debug, PartialEq)]
 pub struct StorageSizeLimit(pub Size);
 
-#[derive(Serialize, Deserialize, Default, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug, JsonSchema)]
 pub struct Settings {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub source_lists: Vec<Url>,
@@ -23,22 +23,6 @@ pub struct Settings {
         skip_serializing_if = "is_default_storage_size_limit"
     )]
     pub storage_size_limit: StorageSizeLimit,
-}
-
-impl Settings {
-    pub fn from_file_or_default(path: &Path) -> Result<Self> {
-        if let Ok(file) = File::open(path) {
-            Ok(serde_json::from_reader(file)?)
-        } else {
-            Ok(Default::default())
-        }
-    }
-
-    pub fn save_to_file(&self, path: &Path) -> Result<()> {
-        let file = File::create(path)?;
-
-        Ok(serde_json::to_writer(file, self)?)
-    }
 }
 
 fn default_storage_size_limit() -> StorageSizeLimit {
@@ -64,6 +48,8 @@ impl Serialize for StorageSizeLimit {
     }
 }
 
+const STORAGE_SIZE_LIMIT_REGEX: &str = r"(?<value>[\d.]+) *(?<dimension>GB|MB)";
+
 impl<'de> Deserialize<'de> for StorageSizeLimit {
     fn deserialize<D>(deserializer: D) -> std::prelude::v1::Result<Self, D::Error>
     where
@@ -85,7 +71,7 @@ impl<'de> Deserialize<'de> for StorageSizeLimit {
                 E: serde::de::Error,
             {
                 // FIXME this might be supported by `Size` eventually, but for now we just use a regex
-                let regex = Regex::new(r"(?<value>[\d.]+) *(?<dimension>GB|MB)").unwrap();
+                let regex = Regex::new(STORAGE_SIZE_LIMIT_REGEX).unwrap();
                 let capture = regex.captures(v).ok_or_else(|| {
                     SerdeDeserialziationError::invalid_value(
                         Unexpected::Str(v),
@@ -112,5 +98,23 @@ impl<'de> Deserialize<'de> for StorageSizeLimit {
         }
 
         deserializer.deserialize_str(StorageSizeLimitVisitor {})
+    }
+}
+
+impl JsonSchema for StorageSizeLimit {
+    fn schema_name() -> String {
+        "StorageSizeLimit".to_owned()
+    }
+
+    fn schema_id() -> Cow<'static, str> {
+        Cow::Borrowed(concat!(module_path!(), "::StorageSizeLimit"))
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        let mut schema_object = gen.subschema_for::<String>().into_object();
+
+        schema_object.string().pattern = Some(STORAGE_SIZE_LIMIT_REGEX.to_owned());
+
+        schema_object.into()
     }
 }
