@@ -33,7 +33,10 @@
           };
         };
 
-        mkServerPackage = target:
+        buildBackendRustPackage = {
+          packageName,
+          copyTarget ? false
+        }: target:
           let
             pkgsCross = import nixpkgs {
               inherit system;
@@ -52,8 +55,11 @@
             };
           in
             naersk'.buildPackage rec {
+              inherit copyTarget;
+
+              compressTarget = false;
               src = ./backend;
-              cargoBuildOptions = defaultOptions: defaultOptions ++ ["-p" "server"];
+              cargoBuildOptions = defaultOptions: defaultOptions ++ ["-p" packageName];
 
               CARGO_BUILD_TARGET = target;
               TARGET_CC = with pkgsCross.stdenv; "${cc}/bin/${cc.targetPrefix}cc";
@@ -63,6 +69,10 @@
                 "-C" "linker=${TARGET_CC}"
               ];
             };
+
+          mkServerPackage = buildBackendRustPackage { packageName = "server"; };
+
+          mkCliPackage = buildBackendRustPackage { packageName = "cli"; copyTarget = true; };
 
           mkPluginFolder = target:
             let
@@ -88,11 +98,27 @@
                   ln -sf ${plugin} $out/lib/koreader/plugins/rakuyomi.koplugin
                 '';
               });
+          
+          # FIXME this is really bad and relies on `mkCliPackage` copying the _entire_
+          # target folder to the nix store (which is really bad too)
+          mkSchemaFile = target:
+            let
+              cli = mkCliPackage target;
+            in
+              with pkgs; stdenv.mkDerivation {
+                name = "rakuyomi-settings-schema";
+                phases = [ "installPhase" ];
+                installPhase = ''
+                  cp ${cli}/target/${target}/release/settings.schema.json $out
+                '';
+              };
       in
       {
         packages.rakuyomi.desktop = mkPluginFolder desktopTarget;
         packages.rakuyomi.koreader-with-plugin = mkKoreaderWithRakuyomi desktopTarget;
         packages.rakuyomi.kindle = mkPluginFolder kindleTarget;
+        packages.rakuyomi.cli = mkCliPackage desktopTarget;
+        packages.rakuyomi.settings-schema = mkSchemaFile desktopTarget;
       }
     );
 }
