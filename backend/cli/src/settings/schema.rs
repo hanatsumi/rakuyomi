@@ -12,12 +12,20 @@ use url::Url;
 #[derive(Clone, Debug, PartialEq)]
 pub struct StorageSizeLimit(pub Size);
 
+/// Settings used to configure rakuyomi's behavior.
 #[derive(Serialize, Deserialize, Default, Clone, Debug, JsonSchema)]
 pub struct Settings {
+    /// A list of URLs containing Aidoku-compatible source lists, which will be available
+    /// for installation from inside the plugin.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub source_lists: Vec<Url>,
+
+    /// If set, only chapters translated to those languages will be shown.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub languages: Vec<String>,
+
+    /// The size of the storage used to store download chapters. Defaults to 2 GB.
+    /// Should be in the format: [positive real number] [GB|MB].
     #[serde(
         default = "default_storage_size_limit",
         skip_serializing_if = "is_default_storage_size_limit"

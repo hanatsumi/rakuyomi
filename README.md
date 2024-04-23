@@ -22,6 +22,7 @@ Create a `rakuyomi/settings.json` file inside KOReader's home directory, with th
 
 ```json
 {
+    "$schema": "https://github.com/hanatsumi/rakuyomi/releases/download/main/settings.schema.json",
     "source_lists": [
         "<source list URL>",
     ],
