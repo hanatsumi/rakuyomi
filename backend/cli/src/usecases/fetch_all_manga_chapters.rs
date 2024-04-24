@@ -34,7 +34,7 @@ pub fn fetch_all_manga_chapters<'a>(
 
         // FIXME introduce some kind of function for reading from the source and writing to the DB?
         // it would be cool if all reads from the source automatically updated the database
-        db.upsert_cached_chapter_informations(chapter_informations.clone())
+        db.upsert_cached_chapter_informations(&id, chapter_informations.clone())
             .await;
 
         let total = chapter_informations.len();

@@ -31,6 +31,9 @@
       "dev": [
         "nix run .#rakuyomi.koreader-with-plugin"
       ],
+      "prepare-sql-queries": [
+        ". tools/prepare-sqlx-queries.sh",
+      ],
     },
   },
   "nixpkgs": {

@@ -13,13 +13,13 @@ pub struct SourceId {
     source_id: String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct MangaId {
     source_id: SourceId,
     manga_id: String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct ChapterId {
     manga_id: MangaId,
     chapter_id: String,

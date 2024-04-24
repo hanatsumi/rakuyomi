@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{collections::HashSet, path::Path};
 
 use anyhow::Result;
 use futures::{stream, StreamExt, TryStreamExt};
@@ -130,8 +130,48 @@ impl Database {
 
     pub async fn upsert_cached_chapter_informations(
         &self,
+        manga_id: &MangaId,
         chapter_informations: Vec<ChapterInformation>,
     ) {
+        // We need to both update the existing information about the chapters, and delete the chapters that are no longer present
+        let cached_chapter_ids: HashSet<_> = self
+            .find_cached_chapter_informations(manga_id)
+            .await
+            .into_iter()
+            .map(|information| information.id)
+            .collect();
+
+        let chapter_ids: HashSet<_> = chapter_informations
+            .iter()
+            .map(|information| information.id.clone())
+            .collect();
+
+        let removed_chapter_ids = &cached_chapter_ids - &chapter_ids;
+
+        stream::iter(removed_chapter_ids)
+            .then(|chapter_id| async move {
+                let source_id = chapter_id.source_id().value();
+                let manga_id = chapter_id.manga_id().value();
+                let chapter_id = chapter_id.value();
+
+                sqlx::query!(
+                    r#"
+                        DELETE FROM chapter_informations
+                        WHERE source_id = ?1 AND manga_id = ?2 AND chapter_id = ?3
+                    "#,
+                    source_id,
+                    manga_id,
+                    chapter_id,
+                )
+                .execute(&self.pool)
+                .await?;
+
+                anyhow::Ok(())
+            })
+            .try_collect::<()>()
+            .await
+            .unwrap();
+
         stream::iter(chapter_informations.into_iter().enumerate()).then(|(index, chapter_information)| async move {
             let index = index as i64;
             let source_id = chapter_information.id.source_id().value();
