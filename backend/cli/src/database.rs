@@ -2,7 +2,7 @@ use std::{collections::HashSet, path::Path};
 
 use anyhow::Result;
 use futures::{stream, StreamExt, TryStreamExt};
-use sqlx::{sqlite::SqliteConnectOptions, Pool, Sqlite};
+use sqlx::{sqlite::SqliteConnectOptions, Pool, QueryBuilder, Sqlite};
 
 use crate::model::{
     ChapterId, ChapterInformation, ChapterState, MangaId, MangaInformation, MangaState,
@@ -11,6 +11,8 @@ use crate::model::{
 pub struct Database {
     pool: Pool<Sqlite>,
 }
+
+const BIND_LIMIT: usize = 32766;
 
 // FIXME add proper error handling
 impl Database {
@@ -146,25 +148,27 @@ impl Database {
             .map(|information| information.id.clone())
             .collect();
 
-        let removed_chapter_ids = &cached_chapter_ids - &chapter_ids;
+        let removed_chapter_ids: Vec<_> =
+            (&cached_chapter_ids - &chapter_ids).into_iter().collect();
 
-        stream::iter(removed_chapter_ids)
-            .then(|chapter_id| async move {
-                let source_id = chapter_id.source_id().value();
-                let manga_id = chapter_id.manga_id().value();
-                let chapter_id = chapter_id.value();
+        // We use 2 binds to place the `source_id` and `manga_id` on the query.
+        let remove_chapters_query_available_binds = BIND_LIMIT - 2;
 
-                sqlx::query!(
-                    r#"
-                        DELETE FROM chapter_informations
-                        WHERE source_id = ?1 AND manga_id = ?2 AND chapter_id = ?3
-                    "#,
-                    source_id,
-                    manga_id,
-                    chapter_id,
-                )
-                .execute(&self.pool)
-                .await?;
+        stream::iter(removed_chapter_ids.chunks(remove_chapters_query_available_binds))
+            .then(|chapter_ids| async move {
+                let mut builder = QueryBuilder::new("DELETE FROM chapter_informations WHERE ");
+
+                builder
+                    .push(" source_id = ")
+                    .push_bind(manga_id.source_id().value())
+                    .push(" AND manga_id = ")
+                    .push_bind(manga_id.value())
+                    .push(" AND chapter_id IN ")
+                    .push_tuples(chapter_ids, |mut b, chapter_id| {
+                        b.push_bind(chapter_id.value());
+                    });
+
+                builder.build().execute(&self.pool).await?;
 
                 anyhow::Ok(())
             })
@@ -172,42 +176,50 @@ impl Database {
             .await
             .unwrap();
 
-        stream::iter(chapter_informations.into_iter().enumerate()).then(|(index, chapter_information)| async move {
-            let index = index as i64;
-            let source_id = chapter_information.id.source_id().value();
-            let manga_id = chapter_information.id.manga_id().value();
-            let chapter_id = chapter_information.id.value();
+        let insert_field_count = 8;
+        stream::iter(chapter_informations.into_iter().enumerate().collect::<Vec<_>>().chunks(BIND_LIMIT / insert_field_count))
+            .then(|enumerated_chapter_informations| async move {
+                let mut builder = QueryBuilder::new(
+                    "INSERT INTO chapter_informations (source_id, manga_id, chapter_id, manga_order, title, scanlator, chapter_number, volume_number) "
+                );
 
-            let chapter_number = chapter_information
-                .chapter_number
-                .map(|dec| f64::try_from(dec).unwrap());
-            let volume_number = chapter_information
-                .volume_number
-                .map(|dec| f64::try_from(dec).unwrap());
+                builder
+                    .push_values(enumerated_chapter_informations, |mut b, (index, chapter_information)| {
+                        let index = *index as i64;
+                        let source_id = chapter_information.id.source_id().value();
+                        let manga_id = chapter_information.id.manga_id().value();
+                        let chapter_id = chapter_information.id.value();
 
-            sqlx::query!(
-                r#"
-                    INSERT INTO chapter_informations (source_id, manga_id, chapter_id, manga_order, title, scanlator, chapter_number, volume_number)
-                    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
-                    ON CONFLICT DO UPDATE SET
+                        let chapter_number = chapter_information
+                            .chapter_number
+                            .map(|dec| f64::try_from(dec).unwrap());
+                        let volume_number = chapter_information
+                            .volume_number
+                            .map(|dec| f64::try_from(dec).unwrap());
+
+                        b.push_bind(source_id)
+                            .push_bind(manga_id)
+                            .push_bind(chapter_id)
+                            .push_bind(index)
+                            .push_bind(chapter_information.title.clone())
+                            .push_bind(chapter_information.scanlator.clone())
+                            .push_bind(chapter_number)
+                            .push_bind(volume_number);
+                    })
+                    .push(r#"
+                        ON CONFLICT DO UPDATE SET
                         manga_order = excluded.manga_order,
                         title = excluded.title,
                         scanlator = excluded.scanlator,
                         chapter_number = excluded.chapter_number,
                         volume_number = excluded.volume_number
-                "#,
-                source_id,
-                manga_id,
-                chapter_id,
-                index,
-                chapter_information.title,
-                chapter_information.scanlator,
-                chapter_number,
-                volume_number,
-            ).execute(&self.pool).await?;
+                    "#);
 
-            Ok::<(), anyhow::Error>(())
-        }).try_collect::<()>().await.unwrap();
+                builder.build().execute(&self.pool).await?;
+
+                anyhow::Ok(())
+            })
+            .try_collect::<()>().await.unwrap();
     }
 
     pub async fn find_manga_state(&self, _id: &MangaId) -> Option<MangaState> {
