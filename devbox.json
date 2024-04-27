@@ -6,6 +6,7 @@
     "sqlx-cli@latest",
     "cachix@latest",
     "python@latest",
+    "gcc@latest",
   ],
   "env": {
     "PROJECT_DIR": "$PWD",
@@ -23,13 +24,13 @@
       ],
       "check-lint": [
         "sh -c 'cd $PROJECT_DIR/backend && cargo clippy -- -D warnings'",
-        "python3 ci/lua-language-server-check.py frontend/"
+        "python3 ci/lua-language-server-check.py frontend/",
       ],
       "fix-rust-lint": [
-        "sh -c 'cd $PROJECT_DIR/backend && cargo clippy --fix --allow-dirty -- -D warnings'"
+        "sh -c 'cd $PROJECT_DIR/backend && cargo clippy --fix --allow-dirty -- -D warnings'",
       ],
       "dev": [
-        "nix run .#rakuyomi.koreader-with-plugin"
+        "nix run .#rakuyomi.koreader-with-plugin",
       ],
       "prepare-sql-queries": [
         ". tools/prepare-sqlx-queries.sh",
