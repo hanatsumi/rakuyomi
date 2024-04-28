@@ -9,7 +9,6 @@ local ErrorDialog = require("ErrorDialog")
 local LoadingDialog = require("LoadingDialog")
 local ChapterListing = require("ChapterListing")
 
--- FIXME maybe rename to screen i think ill do it
 --- @class MangaSearchResults: { [any]: any }
 --- @field results SourceMangaSearchResults[]
 --- @field on_return_callback fun(): nil
@@ -41,7 +40,8 @@ function MangaSearchResults:init()
   self:updateItems()
 end
 
--- Updates the menu item contents with the manga information
+--- Updates the menu item contents with the manga information
+--- @private
 function MangaSearchResults:updateItems()
   self.item_table = self:generateItemTableFromSearchResults(self.results)
 
@@ -49,6 +49,7 @@ function MangaSearchResults:updateItems()
 end
 
 --- Generates the item table for displaying the search results.
+--- @private
 --- @param results SourceMangaSearchResults[]
 --- @return table
 function MangaSearchResults:generateItemTableFromSearchResults(results)
@@ -67,6 +68,7 @@ function MangaSearchResults:generateItemTableFromSearchResults(results)
   return item_table
 end
 
+--- @private
 function MangaSearchResults:onReturn()
   local path = table.remove(self.paths)
 
@@ -98,6 +100,7 @@ function MangaSearchResults:searchAndShow(search_text, onReturnCallback)
   })
 end
 
+--- @private
 function MangaSearchResults:onMenuSelect(item)
   Trapper:wrap(function()
     local manga = item.manga
@@ -112,6 +115,7 @@ function MangaSearchResults:onMenuSelect(item)
   end)
 end
 
+--- @private
 function MangaSearchResults:onMenuHold(item)
   local manga = item.manga
   UIManager:show(ConfirmBox:new {

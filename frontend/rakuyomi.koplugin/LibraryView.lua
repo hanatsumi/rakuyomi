@@ -36,6 +36,7 @@ function LibraryView:init()
   Menu.init(self)
 end
 
+--- @private
 function LibraryView:generateItemTableFromMangas(mangas)
   local item_table = {}
   for _, manga in ipairs(mangas) do
@@ -64,6 +65,7 @@ function LibraryView:fetchAndShow()
   })
 end
 
+--- @private
 function LibraryView:onMenuSelect(item)
   Trapper:wrap(function()
     local manga = item.manga
@@ -78,6 +80,7 @@ function LibraryView:onMenuSelect(item)
   end)
 end
 
+--- @private
 function LibraryView:openMenu()
   local dialog
 
@@ -111,6 +114,7 @@ function LibraryView:openMenu()
   UIManager:show(dialog)
 end
 
+--- @private
 function LibraryView:openSearchMangasDialog()
   local dialog
   dialog = InputDialog:new {
@@ -143,6 +147,7 @@ function LibraryView:openSearchMangasDialog()
   dialog:onShowKeyboard()
 end
 
+--- @private
 function LibraryView:searchMangas(search_text)
   Trapper:wrap(function()
     local onReturnCallback = function()
@@ -155,6 +160,7 @@ function LibraryView:searchMangas(search_text)
   end)
 end
 
+--- @private
 function LibraryView:openInstalledSourcesListing()
   Trapper:wrap(function()
     local onReturnCallback = function()

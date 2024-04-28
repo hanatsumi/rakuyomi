@@ -8,9 +8,7 @@ local Icons = require("Icons")
 local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
 local LoadingDialog = require("LoadingDialog")
-local ChapterListing = require("ChapterListing")
 
--- FIXME maybe rename to screen i think ill do it
 --- @class AvailableSourcesListing: { [any]: any }
 --- @field installed_sources SourceInformation[]
 --- @field available_sources SourceInformation[]
@@ -46,7 +44,8 @@ function AvailableSourcesListing:init()
   self:updateItems()
 end
 
--- Updates the menu item contents with the sources information
+--- Updates the menu item contents with the sources information.
+--- @private
 function AvailableSourcesListing:updateItems()
   self.item_table = self:generateItemTableFromInstalledAndAvailableSources(self.installed_sources, self
     .available_sources)
@@ -55,6 +54,7 @@ function AvailableSourcesListing:updateItems()
 end
 
 --- Generates the item table for displaying the search results.
+--- @private
 --- @param installed_sources SourceInformation[]
 --- @param available_sources SourceInformation[]
 --- @return table
@@ -98,6 +98,7 @@ function AvailableSourcesListing:generateItemTableFromInstalledAndAvailableSourc
   return item_table
 end
 
+--- @private
 function AvailableSourcesListing:onReturn()
   local path = table.remove(self.paths)
 
@@ -105,6 +106,7 @@ function AvailableSourcesListing:onReturn()
   path.callback()
 end
 
+--- @private
 --- @param source_information SourceInformation
 function AvailableSourcesListing:installSource(source_information)
   Trapper:wrap(function()

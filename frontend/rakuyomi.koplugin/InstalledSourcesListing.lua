@@ -7,7 +7,6 @@ local AvailableSourcesListing = require("AvailableSourcesListing")
 local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
 
--- FIXME maybe rename to screen i think ill do it
 --- @class InstalledSourcesListing: { [any]: any }
 --- @field installed_sources SourceInformation[]
 --- @field on_return_callback fun(): nil
@@ -42,7 +41,8 @@ function InstalledSourcesListing:init()
   self:updateItems()
 end
 
--- Updates the menu item contents with the sources information
+--- Updates the menu item contents with the sources information
+--- @private
 function InstalledSourcesListing:updateItems()
   self.item_table = self:generateItemTableFromInstalledSources(self.installed_sources)
 
@@ -50,6 +50,7 @@ function InstalledSourcesListing:updateItems()
 end
 
 --- Generates the item table for displaying the search results.
+--- @private
 --- @param installed_sources SourceInformation[]
 --- @return table
 function InstalledSourcesListing:generateItemTableFromInstalledSources(installed_sources)
@@ -64,6 +65,7 @@ function InstalledSourcesListing:generateItemTableFromInstalledSources(installed
   return item_table
 end
 
+--- @private
 function InstalledSourcesListing:onReturn()
   local path = table.remove(self.paths)
 
@@ -71,6 +73,7 @@ function InstalledSourcesListing:onReturn()
   path.callback()
 end
 
+--- @private
 function InstalledSourcesListing:openAvailableSourcesListing()
   Trapper:wrap(function()
     local onReturnCallback = function()
@@ -84,7 +87,7 @@ function InstalledSourcesListing:openAvailableSourcesListing()
 end
 
 --- Fetches and shows the installed sources.
---- @param onReturnCallback any
+--- @param onReturnCallback fun(): nil
 function InstalledSourcesListing:fetchAndShow(onReturnCallback)
   local response = Backend.listInstalledSources()
   if response.type == 'ERROR' then

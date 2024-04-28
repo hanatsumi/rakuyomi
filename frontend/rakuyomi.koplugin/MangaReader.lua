@@ -7,6 +7,7 @@ local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
 local LoadingDialog = require("LoadingDialog")
 
+--- @class MangaReader
 local MangaReader = {
   on_return_callback = nil,
   on_end_of_book_callback = nil,
@@ -24,6 +25,7 @@ function MangaReader:addToMainMenu(menu_items)
   }
 end
 
+--- @private
 function MangaReader:onReturn()
   self:closeReaderUi(function()
     self.on_return_callback()

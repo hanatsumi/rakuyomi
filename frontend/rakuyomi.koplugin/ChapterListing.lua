@@ -13,7 +13,7 @@ local Icons = require("Icons")
 local ErrorDialog = require("ErrorDialog")
 local MangaReader = require("MangaReader")
 
--- FIXME maybe rename to screen i think ill do it
+--- @class ChapterListing : { [any]: any }
 local ChapterListing = Menu:extend {
   name = "chapter_listing",
   is_enable_shortcut = false,
@@ -53,7 +53,8 @@ function ChapterListing:init()
   self:updateItems()
 end
 
--- Updates the menu item contents with the chapter information
+--- Updates the menu item contents with the chapter information
+--- @private
 function ChapterListing:updateItems()
   if #self.chapters > 0 then
     self.item_table = self:generateItemTableFromChapters(self.chapters)
@@ -66,6 +67,7 @@ function ChapterListing:updateItems()
   Menu.updateItems(self)
 end
 
+--- @private
 function ChapterListing:generateEmptyViewItemTable()
   return {
     {
@@ -76,6 +78,7 @@ function ChapterListing:generateEmptyViewItemTable()
   }
 end
 
+--- @private
 function ChapterListing:generateItemTableFromChapters(chapters)
   local item_table = {}
 
@@ -117,6 +120,7 @@ function ChapterListing:generateItemTableFromChapters(chapters)
   return item_table
 end
 
+--- @private
 function ChapterListing:onReturn()
   local path = table.remove(self.paths)
 
@@ -127,7 +131,7 @@ end
 --- Shows the chapter list for a given manga. Must be called from a function wrapped with `Trapper:wrap()`.
 ---
 --- @param manga Manga
---- @param onReturnCallback fun(): nil 
+--- @param onReturnCallback fun(): nil
 --- @param accept_cached_results? boolean If set, failing to refresh the list of chapters from the source
 --- will not show an error. Defaults to false.
 function ChapterListing:fetchAndShow(manga, onReturnCallback, accept_cached_results)
@@ -164,12 +168,14 @@ function ChapterListing:fetchAndShow(manga, onReturnCallback, accept_cached_resu
   })
 end
 
+--- @private
 function ChapterListing:onMenuChoice(item)
   local chapter = item.chapter
 
   self:openChapterOnReader(chapter)
 end
 
+--- @private
 function ChapterListing:onSwipe(arg, ges_ev)
   local direction = BD.flipDirectionIfMirroredUILayout(ges_ev.direction)
   if direction == "south" then
@@ -181,6 +187,7 @@ function ChapterListing:onSwipe(arg, ges_ev)
   Menu.onSwipe(self, arg, ges_ev)
 end
 
+--- @private
 function ChapterListing:refreshChapters()
   Trapper:wrap(function()
     local refresh_chapters_response = LoadingDialog:showAndRun(
@@ -211,6 +218,7 @@ function ChapterListing:refreshChapters()
   end)
 end
 
+--- @private
 function ChapterListing:openChapterOnReader(chapter)
   Trapper:wrap(function()
     local index = self:findChapterIndex(chapter)
@@ -253,6 +261,7 @@ function ChapterListing:openChapterOnReader(chapter)
   end)
 end
 
+--- @private
 function ChapterListing:openMenu()
   local dialog
 
@@ -278,6 +287,7 @@ end
 
 -- FIXME this is growing a bit too large
 -- maybe a component like `DownloadingAllChaptersDialog` or something would be good here?
+--- @private
 function ChapterListing:onDownloadAllChapters()
   local downloadingMessage = InfoMessage:new {
     text = "Downloading all chapters, this will take a while…",
@@ -410,8 +420,9 @@ function ChapterListing:onDownloadAllChapters()
 end
 
 --- Finds the index of the given chapter on the chapter listing.
----@param needle table The chapter being looked for.
----@return number|nil The index of the chapter on the listing, or nil, if it could not be found.
+--- @param needle table The chapter being looked for.
+--- @return number|nil The index of the chapter on the listing, or nil, if it could not be found.
+--- @private
 function ChapterListing:findChapterIndex(needle)
   local function isSameChapter(a, b)
     return a.source_id == b.source_id and a.manga_id == b.manga_id and a.id == b.id
