@@ -19,7 +19,10 @@ local Rakuyomi = WidgetContainer:extend({
 -- so we should register to the menu accordingly
 function Rakuyomi:init()
   if self.ui.name == "ReaderUI" then
-    self.ui.menu:registerToMainMenu(MangaReader)
+    if MangaReader:isShowing() then
+      self.ui.menu:registerToMainMenu(MangaReader)
+    end
+
     self.ui:registerPostInitCallback(function()
       self:hookWithPriorityOntoReaderUiEvents()
     end)
