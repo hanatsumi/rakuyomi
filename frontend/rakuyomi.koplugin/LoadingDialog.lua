@@ -12,6 +12,8 @@ local LoadingDialog = {}
 --- @param runnable fun(): T The function to be ran while showing the dialog.
 --- @return T
 function LoadingDialog:showAndRun(message, runnable)
+  assert(Trapper:isWrapped(), "expected to be called inside a function wrapped with `Trapper:wrap()`")
+
   local message_dialog = InfoMessage:new {
     text = message,
   }

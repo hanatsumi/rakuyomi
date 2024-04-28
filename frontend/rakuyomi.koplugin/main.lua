@@ -72,7 +72,7 @@ function Rakuyomi:hookWithPriorityOntoReaderUiEvents()
 end
 
 function Rakuyomi:openLibraryView()
-  LibraryView:show()
+  LibraryView:fetchAndShow()
 end
 
 return Rakuyomi

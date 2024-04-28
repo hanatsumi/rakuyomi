@@ -1,4 +1,3 @@
-local ConfirmBox = require("ui/widget/confirmbox")
 local Menu = require("ui/widget/menu")
 local UIManager = require("ui/uimanager")
 local Screen = require("device").screen
@@ -7,8 +6,6 @@ local AvailableSourcesListing = require("AvailableSourcesListing")
 
 local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
-local LoadingDialog = require("LoadingDialog")
-local ChapterListing = require("ChapterListing")
 
 -- FIXME maybe rename to screen i think ill do it
 --- @class InstalledSourcesListing: { [any]: any }
@@ -41,7 +38,6 @@ function InstalledSourcesListing:init()
   self.paths = {
     { callback = self.on_return_callback },
   }
-  self.on_return_callback = nil
 
   self:updateItems()
 end
@@ -77,26 +73,28 @@ end
 
 function InstalledSourcesListing:openAvailableSourcesListing()
   Trapper:wrap(function()
-    local response = LoadingDialog:showAndRun("Fetching available sources...", function()
-      return Backend.listAvailableSources()
-    end)
-
-    if response.type == 'ERROR' then
-      ErrorDialog:show(response.message)
-
-      return
+    local onReturnCallback = function()
+      self:fetchAndShow(self.on_return_callback)
     end
 
-    local available_sources = response.body
+    AvailableSourcesListing:fetchAndShow(onReturnCallback)
 
-    AvailableSourcesListing:show(self.installed_sources, available_sources)
+    self:onClose()
   end)
 end
 
---- Shows the installed sources.
---- @param installed_sources SourceInformation[] The results to be shown.
+--- Fetches and shows the installed sources.
 --- @param onReturnCallback any
-function InstalledSourcesListing:show(installed_sources, onReturnCallback)
+function InstalledSourcesListing:fetchAndShow(onReturnCallback)
+  local response = Backend.listInstalledSources()
+  if response.type == 'ERROR' then
+    ErrorDialog:show(response.message)
+
+    return
+  end
+
+  local installed_sources = response.body
+
   UIManager:show(InstalledSourcesListing:new {
     installed_sources = installed_sources,
     on_return_callback = onReturnCallback,

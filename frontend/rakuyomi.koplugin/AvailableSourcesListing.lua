@@ -123,11 +123,30 @@ function AvailableSourcesListing:installSource(source_information)
   end)
 end
 
---- Shows the installed sources.
---- @param installed_sources SourceInformation[] The sources that are already installed.
---- @param available_sources SourceInformation[] The sources that are available for installation.
+--- Fetches and shows the available sources. Must be called from a function wrapped with `Trapper:wrap()`.
 --- @param onReturnCallback any
-function AvailableSourcesListing:show(installed_sources, available_sources, onReturnCallback)
+function AvailableSourcesListing:fetchAndShow(onReturnCallback)
+  local installed_sources_response = Backend.listInstalledSources()
+  if installed_sources_response.type == 'ERROR' then
+    ErrorDialog:show(installed_sources_response.message)
+
+    return
+  end
+
+  local installed_sources = installed_sources_response.body
+
+  local available_sources_response = LoadingDialog:showAndRun("Fetching available sources...", function()
+    return Backend.listAvailableSources()
+  end)
+
+  if available_sources_response.type == 'ERROR' then
+    ErrorDialog:show(available_sources_response.message)
+
+    return
+  end
+
+  local available_sources = available_sources_response.body
+
   UIManager:show(AvailableSourcesListing:new {
     installed_sources = installed_sources,
     available_sources = available_sources,

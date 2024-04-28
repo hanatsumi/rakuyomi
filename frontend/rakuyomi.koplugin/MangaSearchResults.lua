@@ -74,10 +74,23 @@ function MangaSearchResults:onReturn()
   path.callback()
 end
 
---- Shows the results of a manga search.
---- @param results SourceMangaSearchResults[] The results to be shown.
+--- Searches for mangas and shows the results.
+--- @param search_text string The text to be searched for.
 --- @param onReturnCallback any
-function MangaSearchResults:show(results, onReturnCallback)
+function MangaSearchResults:searchAndShow(search_text, onReturnCallback)
+  local response = LoadingDialog:showAndRun(
+    "Searching for \"" .. search_text .. "\"",
+    function() return Backend.searchMangas(search_text) end
+  )
+
+  if response.type == 'ERROR' then
+    ErrorDialog:show(response.message)
+
+    return
+  end
+
+  local results = response.body
+
   UIManager:show(MangaSearchResults:new {
     results = results,
     on_return_callback = onReturnCallback,
@@ -89,36 +102,13 @@ function MangaSearchResults:onMenuSelect(item)
   Trapper:wrap(function()
     local manga = item.manga
 
-    local refresh_chapters_response = LoadingDialog:showAndRun(
-      "Refreshing chapters...",
-      function()
-        return Backend.refreshChapters(manga.source_id, manga.id)
-      end
-    )
-
-    if refresh_chapters_response.type == 'ERROR' then
-      ErrorDialog:show(refresh_chapters_response.message)
-
-      return
-    end
-
-    local response = Backend.listCachedChapters(manga.source_id, manga.id)
-
-    if response.type == 'ERROR' then
-      ErrorDialog:show(response.message)
-
-      return
-    end
-
-    local chapter_results = response.body
-
     local onReturnCallback = function()
       UIManager:show(self)
     end
 
-    UIManager:close(self)
+    ChapterListing:fetchAndShow(manga, onReturnCallback)
 
-    ChapterListing:show(manga, chapter_results, onReturnCallback)
+    UIManager:close(self)
   end)
 end
 

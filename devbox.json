@@ -6,7 +6,7 @@
     "sqlx-cli@latest",
     "cachix@latest",
     "python@latest",
-    "gcc@latest",
+    "gcc@13.2.0",
   ],
   "env": {
     "PROJECT_DIR": "$PWD",

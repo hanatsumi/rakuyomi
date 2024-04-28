@@ -124,7 +124,38 @@ function ChapterListing:onReturn()
   path.callback()
 end
 
-function ChapterListing:show(manga, chapters, onReturnCallback)
+--- Shows the chapter list for a given manga. Must be called from a function wrapped with `Trapper:wrap()`.
+---
+--- @param manga Manga
+--- @param onReturnCallback fun(): nil 
+--- @param accept_cached_results? boolean If set, failing to refresh the list of chapters from the source
+--- will not show an error. Defaults to false.
+function ChapterListing:fetchAndShow(manga, onReturnCallback, accept_cached_results)
+  accept_cached_results = accept_cached_results or false
+
+  local refresh_chapters_response = LoadingDialog:showAndRun(
+    "Refreshing chapters...",
+    function()
+      return Backend.refreshChapters(manga.source_id, manga.id)
+    end
+  )
+
+  if not accept_cached_results and refresh_chapters_response.type == 'ERROR' then
+    ErrorDialog:show(refresh_chapters_response.message)
+
+    return
+  end
+
+  local response = Backend.listCachedChapters(manga.source_id, manga.id)
+
+  if response.type == 'ERROR' then
+    ErrorDialog:show(response.message)
+
+    return
+  end
+
+  local chapters = response.body
+
   UIManager:show(ChapterListing:new {
     manga = manga,
     chapters = chapters,
@@ -181,38 +212,16 @@ function ChapterListing:refreshChapters()
 end
 
 function ChapterListing:openChapterOnReader(chapter)
-  local index = self:findChapterIndex(chapter)
-  assert(index ~= nil)
+  Trapper:wrap(function()
+    local index = self:findChapterIndex(chapter)
+    assert(index ~= nil)
 
-  local nextChapter = nil
-  if index > 1 then
-    -- Chapters are shown in source order, which means that newer chapters come _first_
-    nextChapter = self.chapters[index - 1]
-  end
-
-  local downloadingMessage = InfoMessage:new {
-    text = "Downloading chapter…",
-  }
-
-  UIManager:show(downloadingMessage)
-
-  UIManager:tickAfterNext(function()
-    local time = require("ui/time")
-    local startTime = time.now()
-    local response = Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id)
-    chapter.downloaded = true
-
-    UIManager:close(downloadingMessage)
-
-    if response.type == 'ERROR' then
-      ErrorDialog:show(response.message)
-
-      return
+    local nextChapter = nil
+    if index > 1 then
+      -- Chapters are shown in source order, which means that newer chapters come _first_
+      nextChapter = self.chapters[index - 1]
     end
 
-    local outputPath = response.body
-
-    logger.info("Downloaded chapter in ", time.to_ms(time.since(startTime)), "ms")
     local onReturnCallback = function()
       self:updateItems()
 
@@ -238,9 +247,9 @@ function ChapterListing:openChapterOnReader(chapter)
       end
     end
 
-    self:onClose()
+    MangaReader:downloadAndShow(chapter, onReturnCallback, onEndOfBookCallback)
 
-    MangaReader:show(outputPath, onReturnCallback, onEndOfBookCallback)
+    self:onClose()
   end)
 end
 

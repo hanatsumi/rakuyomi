@@ -3,6 +3,10 @@ local UIManager = require("ui/uimanager")
 local logger = require("logger")
 local _ = require("gettext")
 
+local Backend = require("Backend")
+local ErrorDialog = require("ErrorDialog")
+local LoadingDialog = require("LoadingDialog")
+
 local MangaReader = {
   on_return_callback = nil,
   on_end_of_book_callback = nil,
@@ -58,9 +62,35 @@ function MangaReader:onReaderUiCloseWidget()
   self.is_showing = false
 end
 
-function MangaReader:show(manga_path, onReturnCallback, onEndOfBookCallback)
+--- Downloads the given chapter and opens the reader. Must be called from a function wrapped with `Trapper:wrap()`
+--- @param chapter Chapter The chapter to be downloaded.
+--- @param onReturnCallback fun(): nil
+--- @param onEndOfBookCallback fun(): nil
+function MangaReader:downloadAndShow(chapter, onReturnCallback, onEndOfBookCallback)
   self.on_return_callback = onReturnCallback
   self.on_end_of_book_callback = onEndOfBookCallback
+
+  local time = require("ui/time")
+  local start_time = time.now()
+  local response = LoadingDialog:showAndRun(
+    "Downloading chapter...",
+    function()
+      return Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id)
+    end
+  )
+
+  if response.type == 'ERROR' then
+    ErrorDialog:show(response.message)
+
+    return
+  end
+
+  -- FIXME mutating here sucks, maybe a callback?
+  chapter.downloaded = true
+
+  local manga_path = response.body
+
+  logger.info("Downloaded chapter in ", time.to_ms(time.since(start_time)), "ms")
 
   if self.is_showing then
     -- if we're showing, just switch the document

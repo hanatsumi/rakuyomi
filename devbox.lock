@@ -21,7 +21,7 @@
         }
       }
     },
-    "gcc@latest": {
+    "gcc@13.2.0": {
       "last_modified": "2024-04-19T21:36:04Z",
       "resolved": "github:NixOS/nixpkgs/92d295f588631b0db2da509f381b4fb1e74173c5#gcc",
       "source": "devbox-search",
