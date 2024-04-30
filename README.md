@@ -18,13 +18,16 @@ Place the `rakuyomi.koplugin` folder inside KOReader's `plugins` folder.
 
 In order to use the plugin, you'll need to add some sources. rakuyomi is compatible with [Aidoku](https://github.com/Aidoku/Aidoku) sources. The easiest way to obtain sources is to configure _source lists_ and download the sources through the app.
 
+You'll most likely find links with the format `https://aidoku.app/add-source-list/?url=<source list URL>`. Grab the source list URL from these links and make sure it ends with `/index.min.json`. If it doesn't, add it yourself.
+
 Create a `rakuyomi/settings.json` file inside KOReader's home directory, with the following contents:
 
 ```json
 {
     "$schema": "https://github.com/hanatsumi/rakuyomi/releases/download/main/settings.schema.json",
     "source_lists": [
-        "<source list URL>",
+        "https://samplewebsite.com/sources/index.min.json",
+        "<your source list URL>",
     ],
     "languages": ["en", "<your preferred language here>"]
 }
