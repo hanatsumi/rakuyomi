@@ -3,6 +3,8 @@ use num_enum::FromPrimitive;
 use serde::Deserialize;
 use url::Url;
 
+// FIXME This model isn't exactly correct, as it allows groups to be nested inside other groups; while
+// Aidoku only allows top-level groups (or so it seems). Refactoring this might make this simpler later, but yeah.
 #[derive(Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum SettingDefinition {
