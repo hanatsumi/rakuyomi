@@ -11,9 +11,12 @@ use reqwest::{
 };
 use scraper::{ElementRef, Html};
 
-use crate::settings::Settings;
+use crate::settings::{Settings, SourceSettingValue};
 
-use super::model::{Chapter, DeepLink, Filter, Manga, MangaPageResult, Page, SettingDefinition};
+use super::{
+    model::{Chapter, DeepLink, Filter, Manga, MangaPageResult, Page},
+    source_settings::SourceSettings,
+};
 
 #[derive(Debug, Clone, From)]
 // FIXME Apply the suggestion from the following `clippy` lint
@@ -105,8 +108,9 @@ pub enum Context {
 pub struct WasmStore {
     pub id: String,
     pub context: Context,
-    pub setting_definitions: Vec<SettingDefinition>,
+    pub source_settings: SourceSettings,
     // FIXME this probably should be source-specific, and not a copy of all settigns
+    // we do rely on the `languages` global setting right now, so maybe this is really needed? idk
     pub settings: Settings,
     std_descriptor_pointer: Option<usize>,
     std_descriptors: HashMap<usize, Value>,
@@ -115,14 +119,10 @@ pub struct WasmStore {
 }
 
 impl WasmStore {
-    pub fn new(
-        id: String,
-        setting_definitions: Vec<SettingDefinition>,
-        settings: Settings,
-    ) -> Self {
+    pub fn new(id: String, source_settings: SourceSettings, settings: Settings) -> Self {
         Self {
             id,
-            setting_definitions,
+            source_settings,
             settings,
             ..Default::default()
         }
@@ -277,5 +277,14 @@ where
 {
     fn from(value: T) -> Self {
         Value::Object(value.into())
+    }
+}
+
+impl From<SourceSettingValue> for Value {
+    fn from(value: SourceSettingValue) -> Self {
+        match value {
+            SourceSettingValue::Bool(v) => Value::Bool(v),
+            SourceSettingValue::String(v) => Value::String(v),
+        }
     }
 }

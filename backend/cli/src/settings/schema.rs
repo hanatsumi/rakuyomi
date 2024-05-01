@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashMap};
 
 use regex::Regex;
 use schemars::JsonSchema;
@@ -11,6 +11,13 @@ use url::Url;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct StorageSizeLimit(pub Size);
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum SourceSettingValue {
+    Bool(bool),
+    String(String),
+}
 
 /// Settings used to configure rakuyomi's behavior.
 #[derive(Serialize, Deserialize, Default, Clone, Debug, JsonSchema)]
@@ -31,6 +38,10 @@ pub struct Settings {
         skip_serializing_if = "is_default_storage_size_limit"
     )]
     pub storage_size_limit: StorageSizeLimit,
+
+    /// Source-specific settings.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub source_settings: HashMap<String, HashMap<String, SourceSettingValue>>,
 }
 
 fn default_storage_size_limit() -> StorageSizeLimit {

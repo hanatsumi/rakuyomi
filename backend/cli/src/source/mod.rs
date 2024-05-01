@@ -16,6 +16,7 @@ use crate::settings::Settings;
 
 use self::{
     model::{Chapter, Filter, Manga, MangaPageResult, Page, SettingDefinition},
+    source_settings::SourceSettings,
     wasm_imports::{
         aidoku::register_aidoku_imports,
         defaults::register_defaults_imports,
@@ -31,6 +32,7 @@ use self::{
 };
 
 pub mod model;
+mod source_settings;
 mod wasm_imports;
 mod wasm_store;
 
@@ -134,12 +136,20 @@ impl BlockingSource {
                 Vec::new()
             };
 
+        let stored_source_settings = settings
+            .source_settings
+            .get(&manifest.info.id)
+            .cloned()
+            .unwrap_or_default();
+
+        let source_settings = SourceSettings::new(setting_definitions, stored_source_settings)?;
+
         let wasm_file = archive
             .by_name("Payload/main.wasm")
             .with_context(|| "while loading main.wasm")?;
 
         let engine = Engine::default();
-        let wasm_store = WasmStore::new(manifest.info.id.clone(), setting_definitions, settings);
+        let wasm_store = WasmStore::new(manifest.info.id.clone(), source_settings, settings);
         let mut store = Store::new(&engine, wasm_store);
         let module = Module::new(&engine, wasm_file)
             .with_context(|| format!("failed loading module from {}", path.display()))?;
