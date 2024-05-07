@@ -157,6 +157,8 @@ end
 --- @field source_information SourceInformation Information about the source that generated those results.
 --- @field mangas Manga[] Found mangas.
 
+-- REFACT Move `http://localhost:30727/` to a constant.
+
 --- Lists mangas added to the user's library.
 --- @return SuccessfulResponse<Manga[]>|ErrorResponse
 function Backend.getMangasInLibrary()
@@ -275,6 +277,37 @@ function Backend.installSource(source_id)
   return requestJson({
     url = "http://localhost:30727/available-sources/" .. source_id .. "/install",
     method = "POST",
+  })
+end
+
+--- @class GroupSettingDefinition: { type: 'group', title: string|nil, items: SettingDefinition[], footer: string|nil }
+--- @class SwitchSettingDefinition: { type: 'switch', title: string, key: string, default: boolean }
+--- @class SelectSettingDefinition: { type: 'select', title: string, key: string, values: string[], titles: string[], default: string  }
+--- @class TextSettingDefinition: { type: 'text', placeholder: string, key: string, default: string|nil }
+
+--- @alias SettingDefinition GroupSettingDefinition|SwitchSettingDefinition|SelectSettingDefinition|TextSettingDefinition
+
+--- Lists the setting definitions for a given source.
+--- @return SuccessfulResponse<SettingDefinition[]>|ErrorResponse
+function Backend.getSourceSettingDefinitions(source_id)
+  return requestJson({
+    url = "http://localhost:30727/installed-sources/" .. source_id .. "/setting-definitions",
+  })
+end
+
+--- Finds the stored settings for a given source.
+--- @return SuccessfulResponse<table<string, string|boolean>>|ErrorResponse
+function Backend.getSourceStoredSettings(source_id)
+  return requestJson({
+    url = "http://localhost:30727/installed-sources/" .. source_id .. "/stored-settings",
+  })
+end
+
+function Backend.setSourceStoredSettings(source_id, stored_settings)
+  return requestJson({
+    url = "http://localhost:30727/installed-sources/" .. source_id .. "/stored-settings",
+    method = 'POST',
+    body = stored_settings,
   })
 end
 

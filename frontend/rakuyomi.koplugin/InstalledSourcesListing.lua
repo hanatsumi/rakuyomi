@@ -6,6 +6,7 @@ local AvailableSourcesListing = require("AvailableSourcesListing")
 
 local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
+local SourceSettings = require("SourceSettings")
 
 --- @class InstalledSourcesListing: { [any]: any }
 --- @field installed_sources SourceInformation[]
@@ -63,6 +64,19 @@ function InstalledSourcesListing:generateItemTableFromInstalledSources(installed
   end
 
   return item_table
+end
+
+--- @private
+function InstalledSourcesListing:onMenuChoice(item)
+  local source_information = item.source_information
+
+  local on_return_callback = function()
+    self:fetchAndShow(self.on_return_callback)
+  end
+
+  SourceSettings:fetchAndShow(source_information.id, on_return_callback)
+
+  UIManager:close(self)
 end
 
 --- @private

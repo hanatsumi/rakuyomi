@@ -1,5 +1,4 @@
 local InfoMessage = require("ui/widget/infomessage")
-local InputDialog = require("ui/widget/inputdialog")
 local UIManager = require("ui/uimanager")
 
 local ErrorDialog = {}

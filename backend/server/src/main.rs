@@ -1,8 +1,10 @@
 mod model;
 mod source_extractor;
 
+use cli::source::model::SettingDefinition;
 use cli::usecases;
 use log::error;
+use std::collections::HashMap;
 use std::mem;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -16,7 +18,7 @@ use clap::Parser;
 use cli::chapter_storage::ChapterStorage;
 use cli::database::Database;
 use cli::model::{ChapterId, MangaId, SourceId};
-use cli::settings::Settings;
+use cli::settings::{Settings, SourceSettingValue};
 use cli::source_manager::SourceManager;
 use cli::usecases::fetch_all_manga_chapters::ProgressReport;
 use cli::usecases::{
@@ -26,7 +28,7 @@ use cli::usecases::{
 };
 use futures::{pin_mut, StreamExt};
 use serde::{Deserialize, Serialize};
-use source_extractor::SourceExtractor;
+use source_extractor::{SourceExtractor, SourceParams};
 use tokio::sync::Mutex;
 
 use model::{
@@ -60,7 +62,8 @@ struct State {
     database: Arc<Database>,
     chapter_storage: ChapterStorage,
     download_all_chapters_state: Arc<Mutex<DownloadAllChaptersState>>,
-    settings: Settings,
+    settings: Arc<Mutex<Settings>>,
+    settings_path: PathBuf,
 }
 
 #[tokio::main]
@@ -82,7 +85,8 @@ async fn main() -> anyhow::Result<()> {
         source_manager: Arc::new(Mutex::new(source_manager)),
         database: Arc::new(database),
         chapter_storage,
-        settings,
+        settings: Arc::new(Mutex::new(settings)),
+        settings_path,
         download_all_chapters_state: Default::default(),
     };
 
@@ -129,6 +133,18 @@ async fn main() -> anyhow::Result<()> {
             post(install_source),
         )
         .route("/installed-sources", get(list_installed_sources))
+        .route(
+            "/installed-sources/:source_id/setting-definitions",
+            get(get_source_setting_definitions),
+        )
+        .route(
+            "/installed-sources/:source_id/stored-settings",
+            get(get_source_stored_settings),
+        )
+        .route(
+            "/installed-sources/:source_id/stored-settings",
+            post(set_source_stored_settings),
+        )
         .with_state(state);
 
     // run our app with hyper, listening globally on port 30727
@@ -388,7 +404,8 @@ async fn mark_chapter_as_read(
 async fn list_available_sources(
     StateExtractor(State { settings, .. }): StateExtractor<State>,
 ) -> Result<Json<Vec<SourceInformation>>, AppError> {
-    let available_sources = usecases::list_available_sources(settings.source_lists)
+    let source_lists = settings.lock().await.source_lists.clone();
+    let available_sources = usecases::list_available_sources(source_lists)
         .await?
         .into_iter()
         .map(SourceInformation::from)
@@ -412,7 +429,7 @@ async fn install_source(
 ) -> Result<Json<()>, AppError> {
     usecases::install_source(
         &mut *source_manager.lock().await,
-        &settings.source_lists,
+        &settings.lock().await.source_lists,
         SourceId::new(source_id),
     )
     .await?;
@@ -429,6 +446,43 @@ async fn list_installed_sources(
         .collect();
 
     Json(installed_sources)
+}
+
+async fn get_source_setting_definitions(
+    SourceExtractor(source): SourceExtractor,
+) -> Json<Vec<SettingDefinition>> {
+    Json(usecases::get_source_setting_definitions(&source))
+}
+
+async fn get_source_stored_settings(
+    StateExtractor(State { settings, .. }): StateExtractor<State>,
+    Path(SourceParams { source_id }): Path<SourceParams>,
+) -> Json<HashMap<String, SourceSettingValue>> {
+    Json(usecases::get_source_stored_settings(
+        &*settings.lock().await,
+        &SourceId::new(source_id),
+    ))
+}
+
+async fn set_source_stored_settings(
+    StateExtractor(State {
+        settings,
+        settings_path,
+        source_manager,
+        ..
+    }): StateExtractor<State>,
+    Path(SourceParams { source_id }): Path<SourceParams>,
+    Json(stored_settings): Json<HashMap<String, SourceSettingValue>>,
+) -> Result<Json<()>, AppError> {
+    usecases::set_source_stored_settings(
+        &mut *settings.lock().await,
+        &settings_path,
+        &mut *source_manager.lock().await,
+        &SourceId::new(source_id),
+        stored_settings,
+    )?;
+
+    Ok(Json(()))
 }
 
 // Make our own error that wraps `anyhow::Error`.

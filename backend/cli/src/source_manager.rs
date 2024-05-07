@@ -1,4 +1,8 @@
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context, Result};
 
@@ -14,7 +18,36 @@ pub struct SourceManager {
 
 impl SourceManager {
     pub fn from_folder(path: PathBuf, settings: Settings) -> Result<Self> {
-        let files = fs::read_dir(&path).with_context(|| {
+        let sources_by_id = Self::load_all_sources(&path, &settings)?;
+
+        Ok(Self {
+            sources_folder: path,
+            sources_by_id,
+            settings,
+        })
+    }
+
+    pub fn install_source(&mut self, id: &SourceId, contents: impl AsRef<[u8]>) -> Result<()> {
+        let target_path = self.sources_folder.join(format!("{}.aix", id.value()));
+        fs::write(&target_path, contents)?;
+
+        self.sources_by_id.insert(
+            id.clone(),
+            Source::from_aix_file(&target_path, self.settings.clone())?,
+        );
+
+        Ok(())
+    }
+
+    pub fn update_settings(&mut self, settings: Settings) -> Result<()> {
+        self.sources_by_id = Self::load_all_sources(&self.sources_folder, &settings)?;
+        self.settings = settings;
+
+        Ok(())
+    }
+
+    fn load_all_sources(path: &Path, settings: &Settings) -> Result<HashMap<SourceId, Source>> {
+        let files = fs::read_dir(path).with_context(|| {
             format!(
                 "while attempting to read source collection at {}",
                 &path.display()
@@ -35,23 +68,7 @@ impl SourceManager {
             .map(|source| (SourceId::new(source.manifest().info.id.clone()), source))
             .collect();
 
-        Ok(Self {
-            sources_folder: path,
-            sources_by_id,
-            settings,
-        })
-    }
-
-    pub fn install_source(&mut self, id: &SourceId, contents: impl AsRef<[u8]>) -> Result<()> {
-        let target_path = self.sources_folder.join(format!("{}.aix", id.value()));
-        fs::write(&target_path, contents)?;
-
-        self.sources_by_id.insert(
-            id.clone(),
-            Source::from_aix_file(&target_path, self.settings.clone())?,
-        );
-
-        Ok(())
+        Ok(sources_by_id)
     }
 }
 

@@ -1,17 +1,22 @@
 use chrono::DateTime;
 use num_enum::FromPrimitive;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 // FIXME This model isn't exactly correct, as it allows groups to be nested inside other groups; while
 // Aidoku only allows top-level groups (or so it seems). Refactoring this might make this simpler later, but yeah.
-#[derive(Deserialize, Debug)]
+//
+// REFACT `Serialize` is only needed here because we use it in the `server` code, in order to
+// be able to read those setting definitions in the frontend. We should use a separate serializable type in
+// the frontend in order to separate concerns.
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum SettingDefinition {
     #[serde(rename = "group")]
     Group {
         title: Option<String>,
         items: Vec<SettingDefinition>,
+        footer: Option<String>,
     },
     #[serde(rename = "select")]
     Select {
