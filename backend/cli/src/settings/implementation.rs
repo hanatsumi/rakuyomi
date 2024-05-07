@@ -16,6 +16,6 @@ impl Settings {
     pub fn save_to_file(&self, path: &Path) -> Result<()> {
         let file = File::create(path)?;
 
-        Ok(serde_json::to_writer(file, self)?)
+        Ok(serde_json::to_writer_pretty(file, self)?)
     }
 }

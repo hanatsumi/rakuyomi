@@ -11,11 +11,11 @@ pub struct SourceSettings(HashMap<String, SourceSettingValue>);
 
 impl SourceSettings {
     pub fn new(
-        setting_definitions: Vec<SettingDefinition>,
+        setting_definitions: &[SettingDefinition],
         stored_settings: HashMap<String, SourceSettingValue>,
     ) -> Result<Self> {
         let default_settings: HashMap<_, _> = setting_definitions
-            .into_iter()
+            .iter()
             .flat_map(default_values_for_definition)
             .collect();
 
@@ -33,23 +33,24 @@ impl SourceSettings {
 }
 
 fn default_values_for_definition(
-    setting_definition: SettingDefinition,
+    setting_definition: &SettingDefinition,
 ) -> HashMap<String, SourceSettingValue> {
     match setting_definition {
         SettingDefinition::Group { items, .. } => items
-            .into_iter()
-            .flat_map(|definition| default_values_for_definition(definition))
+            .iter()
+            .flat_map(default_values_for_definition)
             .collect(),
         SettingDefinition::Select { key, default, .. } => {
-            HashMap::from([(key, SourceSettingValue::String(default))])
+            HashMap::from([(key.clone(), SourceSettingValue::String(default.clone()))])
         }
         SettingDefinition::Switch { key, default, .. } => {
-            HashMap::from([(key, SourceSettingValue::Bool(default))])
+            HashMap::from([(key.clone(), SourceSettingValue::Bool(*default))])
         }
         // FIXME use `if let` guard when they become stable
-        SettingDefinition::Text { key, default, .. } if default.is_some() => {
-            HashMap::from([(key, SourceSettingValue::String(default.unwrap()))])
-        }
+        SettingDefinition::Text { key, default, .. } if default.is_some() => HashMap::from([(
+            key.clone(),
+            SourceSettingValue::String(default.clone().unwrap()),
+        )]),
         _ => HashMap::new(),
     }
 }
@@ -70,7 +71,7 @@ mod tests {
             default: true,
         };
 
-        let source_settings = SourceSettings::new(vec![definition], stored_settings).unwrap();
+        let source_settings = SourceSettings::new(&vec![definition], stored_settings).unwrap();
 
         assert_eq!(
             Some(SourceSettingValue::Bool(true)),
@@ -89,7 +90,7 @@ mod tests {
             default: true,
         };
 
-        let source_settings = SourceSettings::new(vec![definition], stored_settings).unwrap();
+        let source_settings = SourceSettings::new(&vec![definition], stored_settings).unwrap();
 
         assert_eq!(
             Some(SourceSettingValue::Bool(false)),

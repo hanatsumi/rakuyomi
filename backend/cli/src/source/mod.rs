@@ -62,6 +62,10 @@ impl Source {
         self.0.lock().unwrap().manifest.clone()
     }
 
+    pub fn setting_definitions(&self) -> Vec<SettingDefinition> {
+        self.0.lock().unwrap().setting_definitions.clone()
+    }
+
     pub async fn get_manga_list(&self) -> Result<Vec<Manga>> {
         let blocking_source = self.0.clone();
 
@@ -117,6 +121,7 @@ struct BlockingSource {
     store: Store<WasmStore>,
     instance: Instance,
     manifest: SourceManifest,
+    setting_definitions: Vec<SettingDefinition>,
 }
 
 impl BlockingSource {
@@ -142,7 +147,7 @@ impl BlockingSource {
             .cloned()
             .unwrap_or_default();
 
-        let source_settings = SourceSettings::new(setting_definitions, stored_source_settings)?;
+        let source_settings = SourceSettings::new(&setting_definitions, stored_source_settings)?;
 
         let wasm_file = archive
             .by_name("Payload/main.wasm")
@@ -177,6 +182,7 @@ impl BlockingSource {
             store,
             instance,
             manifest,
+            setting_definitions,
         })
     }
 

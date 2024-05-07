@@ -11,8 +11,8 @@ use crate::{AppError, State};
 pub struct SourceExtractor(pub Source);
 
 #[derive(Deserialize)]
-struct SourceParams {
-    source_id: String,
+pub struct SourceParams {
+    pub source_id: String,
 }
 
 #[async_trait]
