@@ -20,13 +20,20 @@ jobs:
       run: "nix build .#rakuyomi.${{ matrix.target }} -o build/rakuyomi.koplugin"
     - name: Package plugin contents
       run: "cd build && zip -r rakuyomi-${{ matrix.target }}.zip rakuyomi.koplugin"
+    - name: Get version
+      id: get-version
+      run: |
+        echo "RAKUYOMI_VERSION=$(nix eval --raw .#rakuyomi.version)" >> "$GITHUB_OUTPUT"
     - name: Upload plugin to release
       if: ${{ github.ref == 'refs/heads/main' }}
       uses: svenstaro/upload-release-action@v2
       with:
+        release_name: ${{ steps.get-version.outputs.RAKUYOMI_VERSION }}
+        prerelease: true
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         file: build/rakuyomi-${{ matrix.target }}.zip
         tag: ${{ github.ref }}
+        body: Latest development build
         overwrite: true
   
   generate-settings-schema:
@@ -40,11 +47,18 @@ jobs:
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
     - name: Build settings schema
       run: "nix build .#rakuyomi.settings-schema -o build/settings.schema.json"
+    - name: Get version
+      id: get-version
+      run: |
+        echo "RAKUYOMI_VERSION=$(nix eval --raw .#rakuyomi.version)" >> "$GITHUB_OUTPUT"
     - name: Upload settings schema to release
       if: ${{ github.ref == 'refs/heads/main' }}
       uses: svenstaro/upload-release-action@v2
       with:
+        release_name: ${{ steps.get-version.outputs.RAKUYOMI_VERSION }}
+        prerelease: true
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         file: build/settings.schema.json
         tag: ${{ github.ref }}
+        body: Latest development build
         overwrite: true
