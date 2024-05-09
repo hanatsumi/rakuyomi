@@ -3,7 +3,8 @@ mod source_extractor;
 
 use cli::source::model::SettingDefinition;
 use cli::usecases;
-use log::error;
+use env_logger::Env;
+use log::{error, info};
 use std::collections::HashMap;
 use std::mem;
 use std::path::PathBuf;
@@ -35,6 +36,8 @@ use model::{
     Chapter, DownloadAllChaptersProgress, Manga, SourceInformation, SourceMangaSearchResults,
 };
 use tokio_util::sync::CancellationToken;
+
+const VERSION: Option<&str> = option_env!("RAKUYOMI_VERSION");
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -68,7 +71,14 @@ struct State {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    env_logger::init();
+    let env = Env::default().filter_or("RUST_LOG", "info");
+
+    env_logger::init_from_env(env);
+
+    info!(
+        "starting rakuyomi, version: {}",
+        VERSION.unwrap_or("unknown")
+    );
 
     let args = Args::parse();
     let sources_path = args.home_path.join("sources");
