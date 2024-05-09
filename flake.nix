@@ -16,7 +16,9 @@
   };
 
   outputs = { self, nixpkgs, nixpkgs-patched-koreader, naersk, fenix, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
+    let
+      version = self.lastModifiedDate + "-" + (self.shortRev or self.dirtyShortRev);
+    in flake-utils.lib.eachDefaultSystem (system:
       let
         # FIXME probably `armv7-unknown-linux-gnueabihf` is more accurate
         desktopTarget = "x86_64-unknown-linux-musl";
@@ -68,6 +70,8 @@
                 # https://github.com/rust-lang/cargo/issues/4133
                 "-C" "linker=${TARGET_CC}"
               ];
+
+              RAKUYOMI_VERSION = version;
             };
 
           mkServerPackage = buildBackendRustPackage { packageName = "server"; };
@@ -119,6 +123,7 @@
         packages.rakuyomi.kindle = mkPluginFolder kindleTarget;
         packages.rakuyomi.cli = mkCliPackage desktopTarget;
         packages.rakuyomi.settings-schema = mkSchemaFile desktopTarget;
+        packages.rakuyomi.version = version;
       }
     );
 }
