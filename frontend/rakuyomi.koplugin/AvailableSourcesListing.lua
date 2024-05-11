@@ -18,7 +18,6 @@ local AvailableSourcesListing = Menu:extend {
   is_enable_shortcut = false,
   is_popout = false,
   title = "Available sources",
-  single_line = true,
 
   available_sources = nil,
   installed_sources = nil,
@@ -47,8 +46,18 @@ end
 --- Updates the menu item contents with the sources information.
 --- @private
 function AvailableSourcesListing:updateItems()
-  self.item_table = self:generateItemTableFromInstalledAndAvailableSources(self.installed_sources, self
-    .available_sources)
+  if #self.available_sources > 0 then
+    self.item_table = self:generateItemTableFromInstalledAndAvailableSources(self.installed_sources, self
+      .available_sources)
+    self.multilines_show_more_text = false
+    self.items_per_page = nil
+    self.single_line = true
+  else
+    self.item_table = self:generateEmptyViewItemTable()
+    self.multilines_show_more_text = true
+    self.items_per_page = 1
+    self.single_line = false
+  end
 
   Menu.updateItems(self)
 end
@@ -96,6 +105,17 @@ function AvailableSourcesListing:generateItemTableFromInstalledAndAvailableSourc
   end
 
   return item_table
+end
+
+--- @private
+function AvailableSourcesListing:generateEmptyViewItemTable()
+  return {
+    {
+      text = "No available sources found. Try adding some source lists by looking at our README!",
+      dim = true,
+      select_enabled = false,
+    }
+  }
 end
 
 --- @private

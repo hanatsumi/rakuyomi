@@ -59,9 +59,11 @@ function ChapterListing:updateItems()
   if #self.chapters > 0 then
     self.item_table = self:generateItemTableFromChapters(self.chapters)
     self.multilines_show_more_text = false
+    self.items_per_page = nil
   else
     self.item_table = self:generateEmptyViewItemTable()
     self.multilines_show_more_text = true
+    self.items_per_page = 1
   end
 
   Menu.updateItems(self)
@@ -71,7 +73,7 @@ end
 function ChapterListing:generateEmptyViewItemTable()
   return {
     {
-      text = "No chapters found.\nTry swiping down to refresh the chapter list.",
+      text = "No chapters found. Try swiping down to refresh the chapter list.",
       dim = true,
       select_enabled = false,
     }

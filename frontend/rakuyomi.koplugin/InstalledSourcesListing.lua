@@ -45,7 +45,15 @@ end
 --- Updates the menu item contents with the sources information
 --- @private
 function InstalledSourcesListing:updateItems()
-  self.item_table = self:generateItemTableFromInstalledSources(self.installed_sources)
+  if #self.installed_sources > 0 then
+    self.item_table = self:generateItemTableFromInstalledSources(self.installed_sources)
+    self.multilines_show_more_text = false
+    self.items_per_page = nil
+  else
+    self.item_table = self:generateEmptyViewItemTable()
+    self.multilines_show_more_text = true
+    self.items_per_page = 1
+  end
 
   Menu.updateItems(self)
 end
@@ -64,6 +72,19 @@ function InstalledSourcesListing:generateItemTableFromInstalledSources(installed
   end
 
   return item_table
+end
+
+--- @private
+function InstalledSourcesListing:generateEmptyViewItemTable()
+  return {
+    {
+      text =
+          "No installed sources found. Try installing some by tapping " ..
+          "the top-left button to list the available sources.",
+      dim = true,
+      select_enabled = false,
+    }
+  }
 end
 
 --- @private
