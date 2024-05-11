@@ -30,10 +30,27 @@ function LibraryView:init()
   self.onLeftButtonTap = function()
     self:openMenu()
   end
-  self.item_table = self:generateItemTableFromMangas(self.mangas)
   self.width = Screen:getWidth()
   self.height = Screen:getHeight()
+
   Menu.init(self)
+
+  self:updateItems()
+end
+
+--- @private
+function LibraryView:updateItems()
+  if #self.mangas > 0 then
+    self.item_table = self:generateItemTableFromMangas(self.mangas)
+    self.multilines_show_more_text = false
+    self.items_per_page = nil
+  else
+    self.item_table = self:generateEmptyViewItemTable()
+    self.multilines_show_more_text = true
+    self.items_per_page = 1
+  end
+
+  Menu.updateItems(self)
 end
 
 --- @private
@@ -47,6 +64,17 @@ function LibraryView:generateItemTableFromMangas(mangas)
   end
 
   return item_table
+end
+
+--- @private
+function LibraryView:generateEmptyViewItemTable()
+  return {
+    {
+      text = "No mangas found in library. Try adding some by holding their name on the search results!",
+      dim = true,
+      select_enabled = false,
+    }
+  }
 end
 
 function LibraryView:fetchAndShow()
