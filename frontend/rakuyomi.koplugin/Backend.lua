@@ -171,7 +171,7 @@ end
 --- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.addMangaToLibrary(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. manga_id .. "/add-to-library",
+    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/add-to-library",
     method = "POST"
   })
 end
