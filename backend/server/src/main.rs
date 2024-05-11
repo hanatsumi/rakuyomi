@@ -1,14 +1,15 @@
 mod model;
 mod source_extractor;
 
+use anyhow::Context;
 use cli::source::model::SettingDefinition;
 use cli::usecases;
 use env_logger::Env;
 use log::{error, info};
 use std::collections::HashMap;
-use std::mem;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::{fs, mem};
 
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
@@ -81,6 +82,9 @@ async fn main() -> anyhow::Result<()> {
     );
 
     let args = Args::parse();
+    fs::create_dir_all(&args.home_path)
+        .with_context(|| "while trying to ensure rakuyomi's home folder exists")?;
+
     let sources_path = args.home_path.join("sources");
     let database_path = args.home_path.join("database.db");
     let downloads_folder_path = args.home_path.join("downloads");
@@ -89,7 +93,8 @@ async fn main() -> anyhow::Result<()> {
     let settings = Settings::from_file_or_default(&settings_path)?;
     let source_manager = SourceManager::from_folder(sources_path, settings.clone())?;
     let database = Database::new(&database_path).await?;
-    let chapter_storage = ChapterStorage::new(downloads_folder_path, settings.storage_size_limit.0);
+    let chapter_storage =
+        ChapterStorage::new(downloads_folder_path, settings.storage_size_limit.0)?;
 
     let state = State {
         source_manager: Arc::new(Mutex::new(source_manager)),

@@ -19,11 +19,14 @@ pub struct ChapterStorage {
 }
 
 impl ChapterStorage {
-    pub fn new(downloads_folder_path: PathBuf, storage_size_limit: Size) -> Self {
-        Self {
+    pub fn new(downloads_folder_path: PathBuf, storage_size_limit: Size) -> Result<Self> {
+        fs::create_dir_all(&downloads_folder_path)
+            .with_context(|| "while trying to ensure chapter storage exists")?;
+
+        Ok(Self {
             downloads_folder_path,
             storage_size_limit,
-        }
+        })
     }
 
     pub fn get_stored_chapter(&self, id: &ChapterId) -> Option<PathBuf> {
