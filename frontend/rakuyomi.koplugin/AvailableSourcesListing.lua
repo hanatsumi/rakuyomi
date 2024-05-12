@@ -141,7 +141,16 @@ function AvailableSourcesListing:installSource(source_information)
       return
     end
 
-    -- TODO refresh the listing
+    local installed_sources_response = Backend.listInstalledSources()
+    if installed_sources_response.type == 'ERROR' then
+      ErrorDialog:show(installed_sources_response.message)
+
+      return
+    end
+
+    self.installed_sources = installed_sources_response.body
+
+    self:updateItems()
   end)
 end
 
