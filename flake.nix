@@ -71,7 +71,9 @@
                 "-C" "linker=${TARGET_CC}"
               ];
 
-              RAKUYOMI_VERSION = version;
+              overrideMain = old: {
+                RAKUYOMI_VERSION = version;
+              };
             };
 
           mkServerPackage = buildBackendRustPackage { packageName = "server"; };
