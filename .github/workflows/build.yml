@@ -24,6 +24,11 @@ jobs:
       id: get-version
       run: |
         echo "RAKUYOMI_VERSION=$(nix eval --raw .#rakuyomi.version)" >> "$GITHUB_OUTPUT"
+    - name: Upload plugin to workflow artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.target }} build
+        path: build/rakuyomi-${{ matrix.target }}.zip
     - name: Upload plugin to release
       if: ${{ github.ref == 'refs/heads/main' }}
       uses: svenstaro/upload-release-action@v2
