@@ -1,5 +1,6 @@
 local DataStorage = require("datastorage")
 local logger = require("logger")
+local Device = require("device")
 local C = require("ffi").C
 local ffiutil = require("ffi/util")
 local rapidjson = require("rapidjson")
@@ -116,6 +117,11 @@ end
 
 function Backend.initialize()
   assert(Backend.server_pid == nil, "backend was already initialized!")
+
+  -- setup loopback on Kobo devices (see #22)
+  if Device:isKobo() then
+    os.execute("ifconfig lo 127.0.0.1")
+  end
 
   -- spawn subprocess and store the pid
   local pid = C.fork()
