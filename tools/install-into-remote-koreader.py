@@ -16,14 +16,14 @@ def main(host: str, ssh_port: int) -> None:
         ['nix', 'build', f'.#rakuyomi.{DEVICE_TYPE}', '--print-out-paths', '--no-link']
     ).decode('utf-8').strip())
 
-    REMOTE_OUTPUT_PATH = '/mnt/us/koreader/plugins/rakuyomi.koplugin/'
+    REMOTE_OUTPUT_PATH = '/mnt/us/koreader/plugins/rakuyomi.koplugin'
 
     subprocess.check_call([
-        'ssh', '-p', str(ssh_port), f'root@{host}', f'rm -r {REMOTE_OUTPUT_PATH}'
+        'ssh', '-p', str(ssh_port), f'root@{host}', f'rm -rf {REMOTE_OUTPUT_PATH}'
     ])
 
     subprocess.check_call([
-        'scp', '-r', '-P', str(ssh_port), plugin_output_path, f'root@{host}:/{REMOTE_OUTPUT_PATH}',
+        'scp', '-r', '-P', str(ssh_port), plugin_output_path, f'root@{host}:{REMOTE_OUTPUT_PATH}',
     ])
 
     print('Plugin successfully installed! Please restart KOReader on the target device.')

@@ -35,6 +35,9 @@
       "prepare-sql-queries": [
         ". tools/prepare-sqlx-queries.sh",
       ],
+      "remote-install": [
+        "python3 tools/install-into-remote-koreader.py",
+      ]
     },
   },
   "nixpkgs": {
