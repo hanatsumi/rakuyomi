@@ -34,8 +34,8 @@ impl TryFrom<JSONValue> for Value {
         Ok(match json_value {
             JSONValue::Array(arr) => {
                 let converted_array: Vec<Value> = arr
-                    .iter()
-                    .map(|v| v.clone().try_into().ok())
+                    .into_iter()
+                    .map(|v| v.try_into().ok())
                     .collect::<Option<_>>()
                     .ok_or(anyhow!("failed to convert array"))?;
 
@@ -55,8 +55,8 @@ impl TryFrom<JSONValue> for Value {
                 .ok_or(anyhow!("could not convert {n} to a valid number"))?,
             JSONValue::Object(object) => {
                 let converted_object: HashMap<String, Value> = object
-                    .iter()
-                    .map(|(k, v)| v.clone().try_into().ok().map(|v| (k.clone(), v)))
+                    .into_iter()
+                    .map(|(k, v)| v.try_into().ok().map(|v| (k, v)))
                     .collect::<Option<_>>()
                     .ok_or(anyhow!("could not convert object to our values"))?;
 
