@@ -28,12 +28,16 @@
           inherit system;
         };
 
-        pkgs-patched-koreader = import nixpkgs-patched-koreader {
+        pkgs-openssl-patched-koreader = import nixpkgs-patched-koreader {
           inherit system;
           config = {
             permittedInsecurePackages = [ "openssl-1.1.1w" ];
           };
         };
+
+        patchedKoreader = pkgs-openssl-patched-koreader.koreader.overrideAttrs (oldAttrs: {
+          patches = [./patches/fontlist-use-bitser.patch];
+        });
 
         buildBackendRustPackage = {
           packageName,
@@ -99,7 +103,7 @@
             let
               plugin = mkPluginFolder target;
             in
-              with pkgs-patched-koreader; koreader.overrideAttrs (finalAttrs: previousAttrs: {
+              patchedKoreader.overrideAttrs (finalAttrs: previousAttrs: {
                 installPhase = previousAttrs.installPhase + ''
                   ln -sf ${plugin} $out/lib/koreader/plugins/rakuyomi.koplugin
                 '';

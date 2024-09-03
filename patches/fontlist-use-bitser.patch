@@ -1,0 +1,11 @@
+--- ./usr/lib/koreader/frontend/fontlist.lua	1969-12-31 21:00:01.000000000 -0300
++++ ./usr/lib/koreader/frontend/fontlist.lua	2024-09-02 22:11:04.617313579 -0300
+@@ -167,7 +167,7 @@
+ 
+     local cache = Persist:new{
+         path = self.cachedir .. "/fontinfo.dat",
+-        codec = "zstd",
++        codec = "bitser",
+     }
+ 
+     local t, err = cache:load()
