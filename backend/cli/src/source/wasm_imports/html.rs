@@ -105,7 +105,7 @@ fn select(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, selector: Opti
     || -> Option<i32> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
         let wasm_store = caller.data_mut();
-        let html_elements = match wasm_store.read_std_value(descriptor)? {
+        let html_elements = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) => Some(elements),
             _ => None,
         }?;
@@ -137,7 +137,7 @@ fn attr(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, selector: Option
         let selector = selector?;
 
         let wasm_store = caller.data_mut();
-        let elements = match wasm_store.read_std_value(descriptor)? {
+        let elements = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) => Some(elements),
             _ => None,
         }?;
@@ -195,7 +195,7 @@ fn first(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
 
         let wasm_store = caller.data_mut();
         // TODO should this work if we have only one element? i guess so..?
-        let element = match wasm_store.read_std_value(descriptor)? {
+        let element = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) => Some(elements.first().unwrap().clone()),
             _ => None,
         }?;
@@ -212,7 +212,7 @@ fn last(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
 
         let wasm_store = caller.data_mut();
         // TODO should this work if we have only one element? i guess so..?
-        let element = match wasm_store.read_std_value(descriptor)? {
+        let element = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) => Some(elements.last().unwrap().clone()),
             _ => None,
         }?;
@@ -228,7 +228,7 @@ fn next(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let element = match wasm_store.read_std_value(descriptor)? {
+        let element = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) if elements.len() == 1 => {
                 Some(elements.last().unwrap().clone())
             }
@@ -252,7 +252,7 @@ fn previous(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let element = match wasm_store.read_std_value(descriptor)? {
+        let element = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) if elements.len() == 1 => {
                 Some(elements.last().unwrap().clone())
             }
@@ -286,7 +286,7 @@ fn text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let elements = match wasm_store.read_std_value(descriptor)? {
+        let elements = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) => Some(elements),
             _ => None,
         }?;
@@ -309,7 +309,7 @@ fn untrimmed_text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let elements = match wasm_store.read_std_value(descriptor)? {
+        let elements = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) => Some(elements),
             _ => None,
         }?;
@@ -331,14 +331,15 @@ fn own_text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let own_text = match wasm_store.read_std_value(descriptor)? {
+        let own_text = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) if elements.len() == 1 => {
                 let element = elements.first().unwrap();
                 let own_text = element
                     .element_ref()
                     .children()
                     .filter_map(|node_ref| match node_ref.value() {
-                        Node::Text(text) => Some(text.to_string()),
+                        // FIXME WHAT
+                        Node::Text(text) => Some(&**text),
                         _ => None,
                     })
                     .collect::<Vec<_>>()
@@ -346,7 +347,7 @@ fn own_text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
 
                 Some(own_text)
             }
-            Value::String(s) => Some(s), // what the fuck why is this valid i dont fucking know
+            Value::String(s) => Some(s.to_string()), // what the fuck why is this valid i dont fucking know
             _ => None,
         }?;
 
@@ -366,7 +367,7 @@ fn array(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let elements = match wasm_store.read_std_value(descriptor)? {
+        let elements = match wasm_store.get_std_value(descriptor)? {
             // why
             Value::HTMLElements(elements) => Some(elements),
             _ => None,
@@ -388,7 +389,7 @@ fn html(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let elements = match wasm_store.read_std_value(descriptor)? {
+        let elements = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) => Some(elements),
             _ => None,
         }?;
@@ -410,7 +411,7 @@ fn outer_html(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let elements = match wasm_store.read_std_value(descriptor)? {
+        let elements = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) => Some(elements),
             _ => None,
         }?;
@@ -432,7 +433,7 @@ fn escape(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let text = match wasm_store.read_std_value(descriptor)? {
+        let text = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) => {
                 let text = elements
                     .iter()
@@ -443,7 +444,7 @@ fn escape(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
 
                 Some(text)
             }
-            Value::String(s) => Some(s),
+            Value::String(s) => Some(s.to_owned()),
             _ => None,
         }?;
 
@@ -460,7 +461,7 @@ fn unescape(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let text = match wasm_store.read_std_value(descriptor)? {
+        let text = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) => {
                 let text = elements
                     .iter()
@@ -471,7 +472,7 @@ fn unescape(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
 
                 Some(text)
             }
-            Value::String(s) => Some(s),
+            Value::String(s) => Some(s.to_owned()),
             _ => None,
         }?;
 
@@ -488,7 +489,7 @@ fn id(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let element = match wasm_store.read_std_value(descriptor)? {
+        let element = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) if elements.len() == 1 => {
                 Some(elements.last().unwrap().clone())
             }
@@ -508,7 +509,7 @@ fn tag_name(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let element = match wasm_store.read_std_value(descriptor)? {
+        let element = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) if elements.len() == 1 => {
                 Some(elements.last().unwrap().clone())
             }
@@ -528,7 +529,7 @@ fn class_name(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let element = match wasm_store.read_std_value(descriptor)? {
+        let element = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) if elements.len() == 1 => {
                 Some(elements.last().unwrap().clone())
             }
@@ -558,7 +559,7 @@ fn has_class(
         let class_name = class_name?;
 
         let wasm_store = caller.data_mut();
-        let element = match wasm_store.read_std_value(descriptor)? {
+        let element = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) if elements.len() == 1 => {
                 Some(elements.last().unwrap().clone())
             }
@@ -587,7 +588,7 @@ fn has_attr(
         let attr_name = attr_name?;
 
         let wasm_store = caller.data_mut();
-        let element = match wasm_store.read_std_value(descriptor)? {
+        let element = match wasm_store.get_std_value(descriptor)? {
             Value::HTMLElements(elements) if elements.len() == 1 => {
                 Some(elements.last().unwrap().clone())
             }

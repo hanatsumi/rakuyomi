@@ -215,7 +215,8 @@ impl BlockingSource {
         let mangas: Vec<Manga> = match self
             .store
             .data_mut()
-            .read_std_value(page_descriptor as usize)
+            .get_std_value(page_descriptor as usize)
+            .cloned()
             .ok_or(anyhow!("could not read data from page descriptor"))?
         {
             Value::Object(ObjectValue::MangaPageResult(MangaPageResult { manga, .. })) => manga,
@@ -265,7 +266,8 @@ impl BlockingSource {
         let chapters: Vec<Chapter> = match self
             .store
             .data_mut()
-            .read_std_value(chapter_list_descriptor as usize)
+            .get_std_value(chapter_list_descriptor as usize)
+            .cloned()
             .ok_or(anyhow!("could not read data from chapter list descriptor"))?
         {
             Value::Array(array) => array
@@ -323,7 +325,8 @@ impl BlockingSource {
         let pages: Vec<Page> = match self
             .store
             .data_mut()
-            .read_std_value(page_list_descriptor as usize)
+            .get_std_value(page_list_descriptor as usize)
+            .cloned()
             .ok_or(anyhow!("could not read data from page list descriptor"))?
         {
             Value::Array(array) => array

@@ -1,6 +1,5 @@
 #![allow(clippy::too_many_arguments)]
 
-
 use anyhow::Result;
 use chrono::{DateTime, NaiveDateTime, TimeZone};
 use wasm_shared::{
@@ -81,8 +80,9 @@ fn copy(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
             let wasm_store = caller.data_mut();
 
             wasm_store
-                .read_std_value(descriptor)
-                .map(|value| wasm_store.store_std_value(value.clone(), None) as i32)
+                .get_std_value(descriptor)
+                .cloned()
+                .map(|value| wasm_store.store_std_value(value, None) as i32)
         })
         .unwrap_or(-1)
 }
@@ -149,7 +149,7 @@ fn type_of(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     || -> Option<ObjectType> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
         let wasm_store = caller.data_mut();
-        let value = wasm_store.read_std_value(descriptor)?;
+        let value = wasm_store.get_std_value(descriptor)?;
 
         Some(match value {
             Value::Null => ObjectType::Null,
@@ -170,7 +170,7 @@ fn string_len(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     || -> Option<i32> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
         let wasm_store = caller.data_mut();
-        let value = wasm_store.read_std_value(descriptor)?;
+        let value = wasm_store.get_std_value(descriptor)?;
 
         match value {
             Value::String(s) => Some(s.len() as i32),
@@ -192,7 +192,7 @@ fn read_string(
         let size: usize = size_i32.try_into().ok()?;
 
         let wasm_store = caller.data();
-        let string = match wasm_store.read_std_value(descriptor)? {
+        let string = match wasm_store.get_std_value(descriptor)? {
             Value::String(s) => Some(s.clone()),
             _ => None,
         }?;
@@ -212,11 +212,11 @@ fn read_int(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i64 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data();
-        let value = wasm_store.read_std_value(descriptor)?;
+        let value = wasm_store.get_std_value(descriptor)?;
 
         match value {
-            Value::Bool(b) => Some(if b { 1i64 } else { 0i64 }),
-            Value::Int(i) => Some(i),
+            Value::Bool(b) => Some(if *b { 1i64 } else { 0i64 }),
+            Value::Int(i) => Some(*i),
             Value::Float(f) => Some(f.trunc() as i64),
             Value::String(s) => s.parse().ok(),
             _ => None,
@@ -230,11 +230,11 @@ fn read_float(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> F64 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data();
-        let value = wasm_store.read_std_value(descriptor)?;
+        let value = wasm_store.get_std_value(descriptor)?;
 
         match value {
-            Value::Int(i) => Some(i as f64),
-            Value::Float(f) => Some(f),
+            Value::Int(i) => Some(*i as f64),
+            Value::Float(f) => Some(*f),
             Value::String(s) => s.parse().ok(),
             _ => None,
         }
@@ -248,11 +248,11 @@ fn read_bool(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data();
-        let value = wasm_store.read_std_value(descriptor)?;
+        let value = wasm_store.get_std_value(descriptor)?;
 
         match value {
-            Value::Bool(b) => Some(if b { 1i32 } else { 0i32 }),
-            Value::Int(i) => Some(if i != 0 { 1i32 } else { 0i32 }),
+            Value::Bool(b) => Some(if *b { 1i32 } else { 0i32 }),
+            Value::Int(i) => Some(if *i != 0 { 1i32 } else { 0i32 }),
             _ => None,
         }
     }()
@@ -264,7 +264,7 @@ fn read_date(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> F64 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data();
-        let value = wasm_store.read_std_value(descriptor)?;
+        let value = wasm_store.get_std_value(descriptor)?;
 
         match value {
             Value::Date(date) => Some(
@@ -311,7 +311,7 @@ fn read_date_string(
                 .and_then(|len| if len > 0 { Some(len) } else { None });
 
         let wasm_store = caller.data();
-        let string = match wasm_store.read_std_value(descriptor)? {
+        let string = match wasm_store.get_std_value(descriptor)? {
             Value::String(s) => Some(s.clone()),
             _ => None,
         }?;
@@ -356,7 +356,7 @@ fn object_len(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
         let wasm_store = caller.data();
 
-        if let Value::Object(ObjectValue::ValueMap(hm)) = wasm_store.read_std_value(descriptor)? {
+        if let Value::Object(ObjectValue::ValueMap(hm)) = wasm_store.get_std_value(descriptor)? {
             Some(hm.len() as i32)
         } else {
             None
@@ -385,7 +385,7 @@ fn object_get(
         };
 
         let wasm_store = caller.data_mut();
-        let object = match wasm_store.read_std_value(descriptor)? {
+        let object = match wasm_store.get_std_value(descriptor)? {
             Value::Object(obj) => Some(obj),
             _ => None,
         }?;
@@ -427,7 +427,7 @@ fn object_set(
         };
 
         let wasm_store = caller.data_mut();
-        let value = wasm_store.read_std_value(value_descriptor)?;
+        let value = wasm_store.get_std_value(value_descriptor)?.clone();
         let hashmap_object = if let Value::Object(ObjectValue::ValueMap(hm)) =
             wasm_store.get_mut_std_value(descriptor)?
         {
@@ -436,7 +436,7 @@ fn object_set(
             None
         }?;
 
-        hashmap_object.insert(key, value);
+        hashmap_object.insert(key, value.clone());
 
         Some(())
     }();
@@ -520,7 +520,7 @@ fn array_len(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let array = match wasm_store.read_std_value(descriptor)? {
+        let array = match wasm_store.get_std_value(descriptor)? {
             Value::Array(arr) => Some(arr),
             _ => None,
         }?;
@@ -559,7 +559,7 @@ fn array_set(
         let value_descriptor: usize = value_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let value = wasm_store.read_std_value(value_descriptor)?;
+        let value = wasm_store.get_std_value(value_descriptor)?.clone();
         let array = match wasm_store.get_mut_std_value(descriptor)? {
             Value::Array(arr) => Some(arr),
             _ => None,
@@ -584,7 +584,7 @@ fn array_append(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, value_i3
         let value_descriptor: usize = value_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let value = wasm_store.read_std_value(value_descriptor)?;
+        let value = wasm_store.get_std_value(value_descriptor)?.clone();
         let array = match wasm_store.get_mut_std_value(descriptor)? {
             Value::Array(arr) => Some(arr),
             _ => None,

@@ -61,11 +61,11 @@ pub enum Value {
     Float(f64),
     String(String),
     Bool(bool),
+    Date(DateTime<chrono_tz::Tz>),
     #[from(ignore)]
     Array(Vec<Value>),
     #[from(ignore)]
     Object(ObjectValue),
-    Date(DateTime<chrono_tz::Tz>),
     HTMLElements(Vec<HTMLElement>),
 }
 
@@ -132,8 +132,8 @@ impl WasmStore {
         }
     }
 
-    pub fn read_std_value(&self, descriptor: usize) -> Option<Value> {
-        self.std_descriptors.get(&descriptor).cloned()
+    pub fn get_std_value(&self, descriptor: usize) -> Option<&Value> {
+        self.std_descriptors.get(&descriptor)
     }
 
     pub fn get_mut_std_value(&mut self, descriptor: usize) -> Option<&mut Value> {
