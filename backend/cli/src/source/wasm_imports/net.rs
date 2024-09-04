@@ -4,7 +4,7 @@ use futures::executor;
 use num_enum::FromPrimitive;
 use reqwest::{blocking::Request, Method};
 use scraper::Html;
-use serde_json::Value as JSONValue;
+
 use url::Url;
 use wasm_macros::{aidoku_wasm_function, register_wasm_function};
 use wasm_shared::{get_memory, memory_reader::write_bytes};
@@ -241,7 +241,7 @@ fn get_data_size(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32)
             _ => None,
         }?;
 
-        let bytes_left = response.body.clone()?.len() - response.bytes_read;
+        let bytes_left = response.body.as_ref()?.len() - response.bytes_read;
 
         Some(bytes_left as i32)
     }()
@@ -338,8 +338,10 @@ fn json(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> i32 {
             _ => None,
         }?;
 
-        let json: JSONValue = serde_json::from_slice(response.body.clone()?.as_slice()).ok()?;
-        let value: Value = json.try_into().ok()?;
+        // PERF If we remove the response from the state, we can parse this with ownership of the body,
+        // which might enable some optimizations to be done by serde.
+        // Check if Aidoku's source allows us to read from the response _after_ we have read it.
+        let value: Value = serde_json::from_slice(response.body.as_ref()?.as_slice()).unwrap();
 
         Some(wasm_store.store_std_value(value, None) as i32)
     }()

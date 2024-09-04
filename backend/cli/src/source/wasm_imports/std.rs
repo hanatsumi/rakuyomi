@@ -1,5 +1,5 @@
 #![allow(clippy::too_many_arguments)]
-use std::collections::HashMap;
+
 
 use anyhow::Result;
 use chrono::{DateTime, NaiveDateTime, TimeZone};
@@ -11,7 +11,7 @@ use wasmi::{core::F64, Caller, Linker};
 
 use crate::source::{
     model::{Filter, FilterType, Manga, MangaPageResult},
-    wasm_store::{ObjectValue, Value, WasmStore},
+    wasm_store::{ObjectValue, Value, ValueMap, WasmStore},
 };
 
 use super::util::timestamp_f64;
@@ -142,7 +142,7 @@ fn create_value(mut caller: Caller<'_, WasmStore>, value: Value) -> i32 {
 }
 
 fn create_object(caller: Caller<'_, WasmStore>) -> i32 {
-    create_value(caller, HashMap::default().into())
+    create_value(caller, ValueMap::default().into())
 }
 
 fn type_of(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
@@ -356,7 +356,7 @@ fn object_len(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
         let wasm_store = caller.data();
 
-        if let Value::Object(ObjectValue::HashMap(hm)) = wasm_store.read_std_value(descriptor)? {
+        if let Value::Object(ObjectValue::ValueMap(hm)) = wasm_store.read_std_value(descriptor)? {
             Some(hm.len() as i32)
         } else {
             None
@@ -392,7 +392,7 @@ fn object_get(
 
         // FIXME see above comment
         let value = match object {
-            ObjectValue::HashMap(hm) => hm.get(&key)?.clone(),
+            ObjectValue::ValueMap(hm) => hm.get(&key)?.clone(),
             ObjectValue::Manga(m) => m.field_as_value(&key)?,
             ObjectValue::MangaPageResult(mpr) => mpr.field_as_value(&key)?,
             ObjectValue::Filter(f) => f.field_as_value(&key)?,
@@ -428,7 +428,7 @@ fn object_set(
 
         let wasm_store = caller.data_mut();
         let value = wasm_store.read_std_value(value_descriptor)?;
-        let hashmap_object = if let Value::Object(ObjectValue::HashMap(hm)) =
+        let hashmap_object = if let Value::Object(ObjectValue::ValueMap(hm)) =
             wasm_store.get_mut_std_value(descriptor)?
         {
             Some(hm)
@@ -463,7 +463,7 @@ fn object_remove(
         };
 
         let wasm_store = caller.data_mut();
-        let hashmap_object = if let Value::Object(ObjectValue::HashMap(hm)) =
+        let hashmap_object = if let Value::Object(ObjectValue::ValueMap(hm)) =
             wasm_store.get_mut_std_value(descriptor)?
         {
             Some(hm)
@@ -482,7 +482,7 @@ fn object_keys(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let hashmap_object = if let Value::Object(ObjectValue::HashMap(hm)) =
+        let hashmap_object = if let Value::Object(ObjectValue::ValueMap(hm)) =
             wasm_store.get_mut_std_value(descriptor)?
         {
             Some(hm)
@@ -501,7 +501,7 @@ fn object_values(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let hashmap_object = if let Value::Object(ObjectValue::HashMap(hm)) =
+        let hashmap_object = if let Value::Object(ObjectValue::ValueMap(hm)) =
             wasm_store.get_mut_std_value(descriptor)?
         {
             Some(hm)
