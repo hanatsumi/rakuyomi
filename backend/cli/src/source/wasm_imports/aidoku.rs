@@ -127,7 +127,7 @@ fn create_manga_result(
         let has_more = has_more_i32 != 0;
 
         let wasm_store = caller.data_mut();
-        let array = match wasm_store.read_std_value(manga_array)? {
+        let array = match wasm_store.get_std_value(manga_array)? {
             Value::Array(arr) => Some(arr),
             _ => None,
         }?;
@@ -220,13 +220,13 @@ pub fn create_deeplink(mut caller: Caller<'_, WasmStore>, manga: i32, chapter: i
         let chapter: usize = chapter.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let manga = match wasm_store.read_std_value(manga)? {
-            Value::Object(ObjectValue::Manga(manga)) => Some(manga),
+        let manga = match wasm_store.get_std_value(manga)? {
+            Value::Object(ObjectValue::Manga(manga)) => Some(manga.clone()),
             _ => None,
         };
 
-        let chapter = match wasm_store.read_std_value(chapter)? {
-            Value::Object(ObjectValue::Chapter(chapter)) => Some(chapter),
+        let chapter = match wasm_store.get_std_value(chapter)? {
+            Value::Object(ObjectValue::Chapter(chapter)) => Some(chapter.clone()),
             _ => None,
         };
 
