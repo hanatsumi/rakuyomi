@@ -2,7 +2,6 @@ use anyhow::{anyhow, bail, Context, Result};
 use reqwest::{Method, Request};
 use serde::Deserialize;
 use std::{
-    collections::HashMap,
     fs,
     path::Path,
     sync::{Arc, Mutex},
@@ -27,7 +26,8 @@ use self::{
         std::register_std_imports,
     },
     wasm_store::{
-        Context as StoreContext, ObjectValue, RequestBuildingState, RequestState, Value, WasmStore,
+        Context as StoreContext, ObjectValue, RequestBuildingState, RequestState, Value, ValueMap,
+        WasmStore,
     },
 };
 
@@ -247,13 +247,13 @@ impl BlockingSource {
         // HACK aidoku actually places the entire `Manga` object into the store, but it seems only
         // the `id` field is needed, so we just store a `HashMap` with the `id` set.
         // surely this wont break in the future!
-        let mut manga_hashmap = HashMap::new();
+        let mut manga_hashmap = ValueMap::new();
         manga_hashmap.insert("id".to_string(), manga_id.into());
 
         let manga_descriptor = self
             .store
             .data_mut()
-            .store_std_value(Value::Object(ObjectValue::HashMap(manga_hashmap)), None);
+            .store_std_value(Value::Object(ObjectValue::ValueMap(manga_hashmap)), None);
 
         // FIXME what the fuck is chapter counter, aidoku sets it here
         let wasm_function = self
@@ -304,14 +304,14 @@ impl BlockingSource {
         // from the `Chapter` object
         // FIXME we could create an `ObjectValue` for this concept? something like
         // `MangaId` or `ChapterId` would be a cleaner implementation
-        let mut chapter_hashmap = HashMap::new();
+        let mut chapter_hashmap = ValueMap::new();
         chapter_hashmap.insert("id".to_string(), Value::String(chapter_id));
         chapter_hashmap.insert("mangaId".to_string(), Value::String(manga_id));
 
         let chapter_descriptor = self
             .store
             .data_mut()
-            .store_std_value(Value::Object(ObjectValue::HashMap(chapter_hashmap)), None);
+            .store_std_value(Value::Object(ObjectValue::ValueMap(chapter_hashmap)), None);
 
         // FIXME what the fuck is chapter counter, aidoku sets it here
         let wasm_function = self

@@ -71,7 +71,7 @@ mod tests {
             default: true,
         };
 
-        let source_settings = SourceSettings::new(&vec![definition], stored_settings).unwrap();
+        let source_settings = SourceSettings::new(&[definition], stored_settings).unwrap();
 
         assert_eq!(
             Some(SourceSettingValue::Bool(true)),
@@ -90,7 +90,7 @@ mod tests {
             default: true,
         };
 
-        let source_settings = SourceSettings::new(&vec![definition], stored_settings).unwrap();
+        let source_settings = SourceSettings::new(&[definition], stored_settings).unwrap();
 
         assert_eq!(
             Some(SourceSettingValue::Bool(false)),

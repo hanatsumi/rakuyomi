@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use anyhow::anyhow;
 use chrono::DateTime;
@@ -18,13 +18,17 @@ use super::{
     source_settings::SourceSettings,
 };
 
+// We use a BTreeMap instead of a HashMap due to lower average memory overhead:
+// https://ntietz.com/blog/rust-hashmap-overhead/
+pub type ValueMap = BTreeMap<String, Value>;
+
 #[derive(Debug, Clone, From)]
 // FIXME Apply the suggestion from the following `clippy` lint
 // This enum is needlessly large, maybe we could measure the impact of
 // actually changing this.
 #[allow(clippy::large_enum_variant)]
 pub enum ObjectValue {
-    HashMap(HashMap<String, Value>),
+    ValueMap(ValueMap),
     Manga(Manga),
     MangaPageResult(MangaPageResult),
     Chapter(Chapter),
