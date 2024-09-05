@@ -18,7 +18,7 @@ fn parse(mut caller: Caller<'_, WasmStore>, json: Option<String>) -> i32 {
 
         let wasm_store = caller.data_mut();
 
-        Some(wasm_store.store_std_value(value, None) as i32)
+        Some(wasm_store.store_std_value(value.into(), None) as i32)
     }()
     .unwrap_or(-1)
 }
