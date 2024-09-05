@@ -224,7 +224,7 @@ fn get_url(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> i3
 
         let url: String = request_builder.url.clone()?.into();
 
-        Some(wasm_store.store_std_value(url.into(), None) as i32)
+        Some(wasm_store.store_std_value(Value::from(url).into(), None) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -302,7 +302,7 @@ fn get_header(
 
         let value: String = response.headers.get(name?)?.to_str().ok()?.into();
 
-        Some(wasm_store.store_std_value(value.into(), None) as i32)
+        Some(wasm_store.store_std_value(Value::from(value).into(), None) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -321,7 +321,7 @@ fn get_status_code(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i3
 
         let status_code = response.status_code.as_u16() as i64;
 
-        Some(wasm_store.store_std_value(status_code.into(), None) as i32)
+        Some(wasm_store.store_std_value(Value::from(status_code).into(), None) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -343,7 +343,7 @@ fn json(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> i32 {
         // Check if Aidoku's source allows us to read from the response _after_ we have read it.
         let value: Value = serde_json::from_slice(response.body.as_ref()?.as_slice()).unwrap();
 
-        Some(wasm_store.store_std_value(value, None) as i32)
+        Some(wasm_store.store_std_value(Value::from(value).into(), None) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -369,7 +369,7 @@ fn html(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> i32 {
         let node_id = document.root_element().id();
         let html_element = HTMLElement { document, node_id };
 
-        Some(wasm_store.store_std_value(vec![html_element].into(), None) as i32)
+        Some(wasm_store.store_std_value(Value::from(vec![html_element]).into(), None) as i32)
     }()
     .unwrap_or(-1)
 }

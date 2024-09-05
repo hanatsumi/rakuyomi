@@ -112,7 +112,10 @@ fn create_manga(
             ..Manga::default()
         };
 
-        Some(wasm_store.store_std_value(manga.into(), None) as i32)
+        Some(
+            wasm_store.store_std_value(Value::Object(ObjectValue::Manga(manga)).into(), None)
+                as i32,
+        )
     }()
     .unwrap_or(-1)
 }
@@ -127,15 +130,15 @@ fn create_manga_result(
         let has_more = has_more_i32 != 0;
 
         let wasm_store = caller.data_mut();
-        let array = match wasm_store.get_std_value(manga_array)? {
-            Value::Array(arr) => Some(arr),
+        let array = match wasm_store.get_std_value(manga_array)?.as_ref() {
+            Value::Array(arr) => Some(arr.clone()),
             _ => None,
         }?;
 
         let manga_array = array
-            .iter()
+            .into_iter()
             .map(|value| match value {
-                Value::Object(ObjectValue::Manga(manga)) => Some(manga.clone()),
+                Value::Object(ObjectValue::Manga(manga)) => Some(manga),
                 _ => None,
             })
             .collect::<Option<Vec<_>>>()?;
@@ -147,7 +150,10 @@ fn create_manga_result(
 
         // TODO the original code has `add_std_reference` here.
         // Not sure if it's actually needed as we clone stuff around.
-        Some(wasm_store.store_std_value(manga_page_result.into(), None) as i32)
+        Some(wasm_store.store_std_value(
+            Value::Object(ObjectValue::MangaPageResult(manga_page_result)).into(),
+            None,
+        ) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -184,7 +190,10 @@ fn create_chapter(
             source_order: 123,
         };
 
-        Some(wasm_store.store_std_value(chapter.into(), None) as i32)
+        Some(
+            wasm_store.store_std_value(Value::Object(ObjectValue::Chapter(chapter)).into(), None)
+                as i32,
+        )
     }()
     .unwrap_or(-1)
 }
@@ -210,7 +219,7 @@ pub fn create_page(
         text,
     };
 
-    wasm_store.store_std_value(page.into(), None) as i32
+    wasm_store.store_std_value(Value::Object(ObjectValue::Page(page)).into(), None) as i32
 }
 
 #[aidoku_wasm_function]
@@ -220,19 +229,22 @@ pub fn create_deeplink(mut caller: Caller<'_, WasmStore>, manga: i32, chapter: i
         let chapter: usize = chapter.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let manga = match wasm_store.get_std_value(manga)? {
+        let manga = match wasm_store.get_std_value(manga)?.as_ref() {
             Value::Object(ObjectValue::Manga(manga)) => Some(manga.clone()),
             _ => None,
         };
 
-        let chapter = match wasm_store.get_std_value(chapter)? {
+        let chapter = match wasm_store.get_std_value(chapter)?.as_ref() {
             Value::Object(ObjectValue::Chapter(chapter)) => Some(chapter.clone()),
             _ => None,
         };
 
         let deeplink = DeepLink { manga, chapter };
 
-        Some(wasm_store.store_std_value(deeplink.into(), None) as i32)
+        Some(
+            wasm_store.store_std_value(Value::Object(ObjectValue::DeepLink(deeplink)).into(), None)
+                as i32,
+        )
     }()
     .unwrap_or(-1)
 }

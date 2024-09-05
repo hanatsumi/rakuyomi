@@ -199,11 +199,13 @@ impl BlockingSource {
             .instance
             .get_typed_func::<(i32, i32), i32>(&mut self.store, "get_manga_list")?;
         let filters_descriptor = self.store.data_mut().store_std_value(
-            filters
-                .iter()
-                .map(|filter| Value::Object(ObjectValue::Filter(filter.clone())))
-                .collect::<Vec<_>>()
-                .into(),
+            Value::from(
+                filters
+                    .iter()
+                    .map(|filter| Value::Object(ObjectValue::Filter(filter.clone())))
+                    .collect::<Vec<_>>(),
+            )
+            .into(),
             None,
         );
 
@@ -216,10 +218,12 @@ impl BlockingSource {
             .store
             .data_mut()
             .get_std_value(page_descriptor as usize)
-            .cloned()
             .ok_or(anyhow!("could not read data from page descriptor"))?
+            .as_ref()
         {
-            Value::Object(ObjectValue::MangaPageResult(MangaPageResult { manga, .. })) => manga,
+            Value::Object(ObjectValue::MangaPageResult(MangaPageResult { manga, .. })) => {
+                manga.clone()
+            }
             other => bail!(
                 "expected page descriptor to be an array, found {:?} instead",
                 other
@@ -251,10 +255,10 @@ impl BlockingSource {
         let mut manga_hashmap = ValueMap::new();
         manga_hashmap.insert("id".to_string(), manga_id.into());
 
-        let manga_descriptor = self
-            .store
-            .data_mut()
-            .store_std_value(Value::Object(ObjectValue::ValueMap(manga_hashmap)), None);
+        let manga_descriptor = self.store.data_mut().store_std_value(
+            Value::Object(ObjectValue::ValueMap(manga_hashmap)).into(),
+            None,
+        );
 
         // FIXME what the fuck is chapter counter, aidoku sets it here
         let wasm_function = self
@@ -267,13 +271,13 @@ impl BlockingSource {
             .store
             .data_mut()
             .get_std_value(chapter_list_descriptor as usize)
-            .cloned()
             .ok_or(anyhow!("could not read data from chapter list descriptor"))?
+            .as_ref()
         {
             Value::Array(array) => array
                 .into_iter()
                 .map(|v| match v {
-                    Value::Object(ObjectValue::Chapter(chapter)) => Some(chapter),
+                    Value::Object(ObjectValue::Chapter(chapter)) => Some(chapter.clone()),
                     _ => None,
                 })
                 .collect::<Option<Vec<_>>>()
@@ -310,10 +314,10 @@ impl BlockingSource {
         chapter_hashmap.insert("id".to_string(), Value::String(chapter_id));
         chapter_hashmap.insert("mangaId".to_string(), Value::String(manga_id));
 
-        let chapter_descriptor = self
-            .store
-            .data_mut()
-            .store_std_value(Value::Object(ObjectValue::ValueMap(chapter_hashmap)), None);
+        let chapter_descriptor = self.store.data_mut().store_std_value(
+            Value::Object(ObjectValue::ValueMap(chapter_hashmap)).into(),
+            None,
+        );
 
         // FIXME what the fuck is chapter counter, aidoku sets it here
         let wasm_function = self
@@ -326,13 +330,13 @@ impl BlockingSource {
             .store
             .data_mut()
             .get_std_value(page_list_descriptor as usize)
-            .cloned()
             .ok_or(anyhow!("could not read data from page list descriptor"))?
+            .as_ref()
         {
             Value::Array(array) => array
                 .into_iter()
                 .map(|v| match v {
-                    Value::Object(ObjectValue::Page(page)) => Some(page),
+                    Value::Object(ObjectValue::Page(page)) => Some(page.clone()),
                     _ => None,
                 })
                 .collect::<Option<Vec<_>>>()

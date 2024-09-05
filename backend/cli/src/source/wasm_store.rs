@@ -1,8 +1,9 @@
+use pared::sync::Parc;
 use std::collections::{BTreeMap, HashMap};
 
 use anyhow::anyhow;
 use chrono::DateTime;
-use derive_more::From;
+use derive_more::{From, TryUnwrap};
 use ego_tree::NodeId;
 use reqwest::{
     blocking::Request as BlockingRequest,
@@ -22,7 +23,8 @@ use super::{
 // https://ntietz.com/blog/rust-hashmap-overhead/
 pub type ValueMap = BTreeMap<String, Value>;
 
-#[derive(Debug, Clone, From)]
+#[derive(Debug, Clone, From, TryUnwrap)]
+#[try_unwrap(ref)]
 // FIXME Apply the suggestion from the following `clippy` lint
 // This enum is needlessly large, maybe we could measure the impact of
 // actually changing this.
@@ -51,8 +53,10 @@ impl HTMLElement {
 
 // FIXME THIS IS BORKED AS FUCK
 unsafe impl Send for HTMLElement {}
+unsafe impl Sync for HTMLElement {}
 
-#[derive(Debug, Clone, From)]
+#[derive(Debug, Clone, From, TryUnwrap)]
+#[try_unwrap(ref)]
 // FIXME See above.
 #[allow(clippy::large_enum_variant)]
 pub enum Value {
@@ -68,6 +72,8 @@ pub enum Value {
     Object(ObjectValue),
     HTMLElements(Vec<HTMLElement>),
 }
+
+pub type ValueRef = Parc<Value>;
 
 #[derive(Debug, Default)]
 pub struct RequestBuildingState {
@@ -117,7 +123,7 @@ pub struct WasmStore {
     // we do rely on the `languages` global setting right now, so maybe this is really needed? idk
     pub settings: Settings,
     std_descriptor_pointer: Option<usize>,
-    std_descriptors: HashMap<usize, Value>,
+    std_descriptors: HashMap<usize, ValueRef>,
     std_references: HashMap<usize, Vec<usize>>,
     requests: Vec<RequestState>,
 }
@@ -132,15 +138,15 @@ impl WasmStore {
         }
     }
 
-    pub fn get_std_value(&self, descriptor: usize) -> Option<&Value> {
-        self.std_descriptors.get(&descriptor)
+    pub fn get_std_value(&self, descriptor: usize) -> Option<ValueRef> {
+        self.std_descriptors.get(&descriptor).cloned()
     }
 
-    pub fn get_mut_std_value(&mut self, descriptor: usize) -> Option<&mut Value> {
-        self.std_descriptors.get_mut(&descriptor)
+    pub fn set_std_value(&mut self, descriptor: usize, data: ValueRef) {
+        self.std_descriptors.insert(descriptor, data);
     }
 
-    pub fn store_std_value(&mut self, data: Value, from: Option<usize>) -> usize {
+    pub fn store_std_value(&mut self, data: ValueRef, from: Option<usize>) -> usize {
         let pointer = self.increase_and_get_std_desciptor_pointer();
         self.std_descriptors.insert(pointer, data);
 

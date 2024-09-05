@@ -10,7 +10,7 @@ use wasmi::{core::F64, Caller, Linker};
 
 use crate::source::{
     model::{Filter, FilterType, Manga, MangaPageResult},
-    wasm_store::{ObjectValue, Value, ValueMap, WasmStore},
+    wasm_store::{ObjectValue, Value, ValueMap, ValueRef, WasmStore},
 };
 
 use super::util::timestamp_f64;
@@ -81,7 +81,6 @@ fn copy(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
 
             wasm_store
                 .get_std_value(descriptor)
-                .cloned()
                 .map(|value| wasm_store.store_std_value(value, None) as i32)
         })
         .unwrap_or(-1)
@@ -138,7 +137,7 @@ fn create_date(caller: Caller<'_, WasmStore>, seconds_since_1970: F64) -> i32 {
 fn create_value(mut caller: Caller<'_, WasmStore>, value: Value) -> i32 {
     let wasm_store = caller.data_mut();
 
-    wasm_store.store_std_value(value, None) as i32
+    wasm_store.store_std_value(value.into(), None) as i32
 }
 
 fn create_object(caller: Caller<'_, WasmStore>) -> i32 {
@@ -151,7 +150,7 @@ fn type_of(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let wasm_store = caller.data_mut();
         let value = wasm_store.get_std_value(descriptor)?;
 
-        Some(match value {
+        Some(match *value {
             Value::Null => ObjectType::Null,
             Value::Int(_) => ObjectType::Int,
             Value::Float(_) => ObjectType::Float,
@@ -172,7 +171,7 @@ fn string_len(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let wasm_store = caller.data_mut();
         let value = wasm_store.get_std_value(descriptor)?;
 
-        match value {
+        match value.as_ref() {
             Value::String(s) => Some(s.len() as i32),
             _ => None,
         }
@@ -192,10 +191,8 @@ fn read_string(
         let size: usize = size_i32.try_into().ok()?;
 
         let wasm_store = caller.data();
-        let string = match wasm_store.get_std_value(descriptor)? {
-            Value::String(s) => Some(s.clone()),
-            _ => None,
-        }?;
+        let value_ref = wasm_store.get_std_value(descriptor)?;
+        let string = value_ref.try_unwrap_string_ref().ok()?;
 
         let memory = get_memory(&mut caller)?;
         if size <= string.len() {
@@ -212,9 +209,9 @@ fn read_int(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i64 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data();
-        let value = wasm_store.get_std_value(descriptor)?;
+        let value: ValueRef = wasm_store.get_std_value(descriptor)?;
 
-        match value {
+        match value.as_ref() {
             Value::Bool(b) => Some(if *b { 1i64 } else { 0i64 }),
             Value::Int(i) => Some(*i),
             Value::Float(f) => Some(f.trunc() as i64),
@@ -232,7 +229,7 @@ fn read_float(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> F64 {
         let wasm_store = caller.data();
         let value = wasm_store.get_std_value(descriptor)?;
 
-        match value {
+        match value.as_ref() {
             Value::Int(i) => Some(*i as f64),
             Value::Float(f) => Some(*f),
             Value::String(s) => s.parse().ok(),
@@ -250,7 +247,7 @@ fn read_bool(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let wasm_store = caller.data();
         let value = wasm_store.get_std_value(descriptor)?;
 
-        match value {
+        match value.as_ref() {
             Value::Bool(b) => Some(if *b { 1i32 } else { 0i32 }),
             Value::Int(i) => Some(if *i != 0 { 1i32 } else { 0i32 }),
             _ => None,
@@ -266,7 +263,7 @@ fn read_date(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> F64 {
         let wasm_store = caller.data();
         let value = wasm_store.get_std_value(descriptor)?;
 
-        match value {
+        match value.as_ref() {
             Value::Date(date) => Some(
                 date.timestamp() as f64 + (date.timestamp_subsec_nanos() as f64) / (10f64.powi(9)),
             ),
@@ -311,8 +308,9 @@ fn read_date_string(
                 .and_then(|len| if len > 0 { Some(len) } else { None });
 
         let wasm_store = caller.data();
-        let string = match wasm_store.get_std_value(descriptor)? {
-            Value::String(s) => Some(s.clone()),
+        let value_ref = wasm_store.get_std_value(descriptor)?;
+        let string = match value_ref.as_ref() {
+            Value::String(s) => Some(s),
             _ => None,
         }?;
 
@@ -356,7 +354,9 @@ fn object_len(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
         let wasm_store = caller.data();
 
-        if let Value::Object(ObjectValue::ValueMap(hm)) = wasm_store.get_std_value(descriptor)? {
+        if let Value::Object(ObjectValue::ValueMap(hm)) =
+            wasm_store.get_std_value(descriptor)?.as_ref()
+        {
             Some(hm.len() as i32)
         } else {
             None
@@ -385,21 +385,35 @@ fn object_get(
         };
 
         let wasm_store = caller.data_mut();
-        let object = match wasm_store.get_std_value(descriptor)? {
-            Value::Object(obj) => Some(obj),
-            _ => None,
-        }?;
+        let object_ref = wasm_store
+            .get_std_value(descriptor)?
+            .try_project(|value| match value {
+                Value::Object(obj) => Ok(obj),
+                _ => Err(()),
+            })
+            .ok()?;
 
         // FIXME see above comment
-        let value = match object {
-            ObjectValue::ValueMap(hm) => hm.get(&key)?.clone(),
-            ObjectValue::Manga(m) => m.field_as_value(&key)?,
-            ObjectValue::MangaPageResult(mpr) => mpr.field_as_value(&key)?,
-            ObjectValue::Filter(f) => f.field_as_value(&key)?,
+        let value = match object_ref.as_ref() {
+            // FIXME This is kinda ugly, but since we know it's a `ValueMap` we force a projection here.
+            ObjectValue::ValueMap(_) => object_ref
+                .try_project(|object| {
+                    if let ObjectValue::ValueMap(map) = object {
+                        map.get(&key).ok_or(())
+                    } else {
+                        panic!("expected object to be a ValueMap")
+                    }
+                })
+                .ok()?,
+            // PERF We can't really use Parc projections here, as we wrap things in another enum..?
+            // Hopefully this has little impact.
+            ObjectValue::Manga(m) => m.field_as_value(&key)?.into(),
+            ObjectValue::MangaPageResult(mpr) => mpr.field_as_value(&key)?.into(),
+            ObjectValue::Filter(f) => f.field_as_value(&key)?.into(),
             _ => todo!("missing implementation"),
         };
 
-        Some(wasm_store.store_std_value(value.clone(), Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(value, Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -427,16 +441,21 @@ fn object_set(
         };
 
         let wasm_store = caller.data_mut();
-        let value = wasm_store.get_std_value(value_descriptor)?.clone();
-        let hashmap_object = if let Value::Object(ObjectValue::ValueMap(hm)) =
-            wasm_store.get_mut_std_value(descriptor)?
+        let value = wasm_store.get_std_value(value_descriptor)?.as_ref().clone();
+        let mut hashmap_object = if let Value::Object(ObjectValue::ValueMap(hm)) =
+            wasm_store.get_std_value(descriptor)?.as_ref()
         {
-            Some(hm)
+            Some(hm.clone())
         } else {
             None
         }?;
 
-        hashmap_object.insert(key, value.clone());
+        hashmap_object.insert(key, value);
+
+        wasm_store.set_std_value(
+            descriptor,
+            Value::Object(ObjectValue::ValueMap(hashmap_object)).into(),
+        );
 
         Some(())
     }();
@@ -463,15 +482,20 @@ fn object_remove(
         };
 
         let wasm_store = caller.data_mut();
-        let hashmap_object = if let Value::Object(ObjectValue::ValueMap(hm)) =
-            wasm_store.get_mut_std_value(descriptor)?
+        let mut hashmap_object = if let Value::Object(ObjectValue::ValueMap(hm)) =
+            wasm_store.get_std_value(descriptor)?.as_ref()
         {
-            Some(hm)
+            Some(hm.clone())
         } else {
             None
         }?;
 
         hashmap_object.remove(&key);
+
+        wasm_store.set_std_value(
+            descriptor,
+            Value::Object(ObjectValue::ValueMap(hashmap_object)).into(),
+        );
 
         Some(())
     }();
@@ -482,16 +506,15 @@ fn object_keys(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let hashmap_object = if let Value::Object(ObjectValue::ValueMap(hm)) =
-            wasm_store.get_mut_std_value(descriptor)?
-        {
-            Some(hm)
-        } else {
-            None
-        }?;
+        let std_value = wasm_store.get_std_value(descriptor)?;
+        let hashmap_object = std_value
+            .try_unwrap_object_ref()
+            .ok()?
+            .try_unwrap_value_map_ref()
+            .ok()?;
 
         let keys: Vec<Value> = hashmap_object.keys().cloned().map(Value::String).collect();
-        Some(wasm_store.store_std_value(Value::Array(keys), Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(Value::Array(keys).into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -501,16 +524,15 @@ fn object_values(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let hashmap_object = if let Value::Object(ObjectValue::ValueMap(hm)) =
-            wasm_store.get_mut_std_value(descriptor)?
-        {
-            Some(hm)
-        } else {
-            None
-        }?;
+        let std_value = wasm_store.get_std_value(descriptor)?;
+        let hashmap_object = std_value
+            .try_unwrap_object_ref()
+            .ok()?
+            .try_unwrap_value_map_ref()
+            .ok()?;
 
         let keys: Vec<Value> = hashmap_object.values().cloned().collect();
-        Some(wasm_store.store_std_value(Value::Array(keys), Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(Value::Array(keys).into(), Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -520,10 +542,8 @@ fn array_len(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let array = match wasm_store.get_std_value(descriptor)? {
-            Value::Array(arr) => Some(arr),
-            _ => None,
-        }?;
+        let std_value = wasm_store.get_std_value(descriptor)?;
+        let array = std_value.try_unwrap_array_ref().ok()?;
 
         Some(array.len() as i32)
     }()
@@ -536,14 +556,16 @@ fn array_get(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, index_i32: 
         let index: usize = index_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let array = match wasm_store.get_mut_std_value(descriptor)? {
-            Value::Array(arr) => Some(arr),
-            _ => None,
-        }?;
 
-        let value = array.get(index)?.clone();
+        let value_ref = wasm_store
+            .get_std_value(descriptor)?
+            .try_project(|maybe_array| match maybe_array {
+                Value::Array(arr) => arr.get(index).ok_or(()),
+                _ => Err(()),
+            })
+            .ok()?;
 
-        Some(wasm_store.store_std_value(value, Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(value_ref, Some(descriptor)) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -559,9 +581,9 @@ fn array_set(
         let value_descriptor: usize = value_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let value = wasm_store.get_std_value(value_descriptor)?.clone();
-        let array = match wasm_store.get_mut_std_value(descriptor)? {
-            Value::Array(arr) => Some(arr),
+        let value_ref = wasm_store.get_std_value(value_descriptor)?;
+        let mut array = match wasm_store.get_std_value(descriptor)?.as_ref() {
+            Value::Array(arr) => Some(arr.clone()),
             _ => None,
         }?;
 
@@ -572,7 +594,10 @@ fn array_set(
                 None
             }
         })?;
-        array[index] = value;
+
+        array[index] = value_ref.as_ref().clone();
+
+        wasm_store.set_std_value(descriptor, Value::Array(array).into());
 
         Some(())
     }();
@@ -584,13 +609,16 @@ fn array_append(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, value_i3
         let value_descriptor: usize = value_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let value = wasm_store.get_std_value(value_descriptor)?.clone();
-        let array = match wasm_store.get_mut_std_value(descriptor)? {
-            Value::Array(arr) => Some(arr),
+        let value_ref = wasm_store.get_std_value(value_descriptor)?;
+        let mut array = match wasm_store.get_std_value(descriptor)?.as_ref() {
+            Value::Array(arr) => Some(arr.clone()),
             _ => None,
         }?;
 
-        array.push(value);
+        // PERF arrays could store ValueRefs too.
+        array.push(value_ref.as_ref().clone());
+
+        wasm_store.set_std_value(descriptor, Value::Array(array).into());
 
         Some(())
     }();
@@ -601,8 +629,8 @@ fn array_remove(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, index_i3
         let descriptor: usize = descriptor_i32.try_into().ok()?;
 
         let wasm_store = caller.data_mut();
-        let array = match wasm_store.get_mut_std_value(descriptor)? {
-            Value::Array(arr) => Some(arr),
+        let mut array = match wasm_store.get_std_value(descriptor)?.as_ref() {
+            Value::Array(arr) => Some(arr.clone()),
             _ => None,
         }?;
 
@@ -613,7 +641,10 @@ fn array_remove(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, index_i3
                 None
             }
         })?;
+
         array.remove(index);
+
+        wasm_store.set_std_value(descriptor, Value::Array(array).into());
 
         Some(())
     }();
