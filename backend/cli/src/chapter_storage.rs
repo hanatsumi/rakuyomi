@@ -133,11 +133,11 @@ impl ChapterStorage {
     }
 
     fn path_for_chapter(&self, chapter_id: &ChapterId) -> PathBuf {
-        let output_filename = format!(
+        let output_filename = sanitize_filename::sanitize(format!(
             "{}-{}.cbz",
             chapter_id.source_id().value(),
             chapter_id.value()
-        );
+        ));
 
         self.downloads_folder_path.join(output_filename)
     }
