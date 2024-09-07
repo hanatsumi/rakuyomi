@@ -166,8 +166,8 @@ impl WasmStore {
     pub fn remove_std_value(&mut self, descriptor: usize) {
         let removed_value = self.std_descriptors.remove(&descriptor);
 
-        if let Some(references_to_descriptor) = self.std_references.get_mut(&descriptor) {
-            for &reference in references_to_descriptor.clone().iter() {
+        if let Some(references_to_descriptor) = self.std_references.remove(&descriptor) {
+            for reference in references_to_descriptor {
                 if reference == descriptor {
                     panic!(
                         "found self-reference at descriptor {descriptor}: value was {:?}",
@@ -177,8 +177,6 @@ impl WasmStore {
 
                 self.remove_std_value(reference);
             }
-
-            self.std_references.remove(&descriptor);
         };
     }
 
