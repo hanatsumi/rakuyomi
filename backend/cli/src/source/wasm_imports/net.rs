@@ -1,9 +1,9 @@
-use crate::util::has_internet_connection;
+use crate::{source::wasm_store::Html, util::has_internet_connection};
 use anyhow::Result;
 use futures::executor;
 use num_enum::FromPrimitive;
 use reqwest::{blocking::Request, Method};
-use scraper::Html;
+use scraper::Html as ScraperHtml;
 
 use url::Url;
 use wasm_macros::{aidoku_wasm_function, register_wasm_function};
@@ -365,9 +365,12 @@ fn html(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> i32 {
 
         // FIXME this is duplicated from the html module. not sure it's really worth refactoring
         // but here's a note
-        let document = Html::parse_document(&html_string);
+        let document = ScraperHtml::parse_document(&html_string);
         let node_id = document.root_element().id();
-        let html_element = HTMLElement { document, node_id };
+        let html_element = HTMLElement {
+            document: Html::from(document).into(),
+            node_id,
+        };
 
         Some(wasm_store.store_std_value(Value::from(vec![html_element]).into(), None) as i32)
     }()

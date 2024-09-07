@@ -1,9 +1,10 @@
 use anyhow::Result;
-use scraper::{Element, Html, Node, Selector};
+
+use scraper::{Element, Html as ScraperHtml, Node, Selector};
 use wasm_macros::{aidoku_wasm_function, register_wasm_function};
 use wasmi::{Caller, Linker};
 
-use crate::source::wasm_store::{HTMLElement, Value, WasmStore};
+use crate::source::wasm_store::{HTMLElement, Html, Value, WasmStore};
 
 pub fn register_html_imports(linker: &mut Linker<WasmStore>) -> Result<()> {
     register_wasm_function!(linker, "html", "parse", parse)?;
@@ -53,9 +54,12 @@ pub fn register_html_imports(linker: &mut Linker<WasmStore>) -> Result<()> {
 #[aidoku_wasm_function]
 fn parse(mut caller: Caller<'_, WasmStore>, data: Option<String>) -> i32 {
     || -> Option<i32> {
-        let document = Html::parse_document(&data?);
+        let document = ScraperHtml::parse_document(&data?);
         let node_id = document.root_element().id();
-        let html_element = HTMLElement { document, node_id };
+        let html_element = HTMLElement {
+            document: Html::from(document).into(),
+            node_id,
+        };
         let wasm_store = caller.data_mut();
 
         Some(wasm_store.store_std_value(Value::from(vec![html_element]).into(), None) as i32)
@@ -66,10 +70,10 @@ fn parse(mut caller: Caller<'_, WasmStore>, data: Option<String>) -> i32 {
 #[aidoku_wasm_function]
 fn parse_fragment(mut caller: Caller<'_, WasmStore>, data: Option<String>) -> i32 {
     || -> Option<i32> {
-        let fragment = Html::parse_fragment(&data?);
+        let fragment = ScraperHtml::parse_fragment(&data?);
         let node_id = fragment.root_element().id();
         let html_element = HTMLElement {
-            document: fragment,
+            document: Html::from(fragment).into(),
             node_id,
         };
 
