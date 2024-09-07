@@ -275,7 +275,7 @@ impl BlockingSource {
             .as_ref()
         {
             Value::Array(array) => array
-                .into_iter()
+                .iter()
                 .map(|v| match v {
                     Value::Object(ObjectValue::Chapter(chapter)) => Some(chapter.clone()),
                     _ => None,
@@ -334,7 +334,7 @@ impl BlockingSource {
             .as_ref()
         {
             Value::Array(array) => array
-                .into_iter()
+                .iter()
                 .map(|v| match v {
                     Value::Object(ObjectValue::Page(page)) => Some(page.clone()),
                     _ => None,

@@ -343,7 +343,7 @@ fn json(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> i32 {
         // Check if Aidoku's source allows us to read from the response _after_ we have read it.
         let value: Value = serde_json::from_slice(response.body.as_ref()?.as_slice()).unwrap();
 
-        Some(wasm_store.store_std_value(Value::from(value).into(), None) as i32)
+        Some(wasm_store.store_std_value(value.into(), None) as i32)
     }()
     .unwrap_or(-1)
 }

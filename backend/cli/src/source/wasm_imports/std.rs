@@ -337,7 +337,7 @@ fn read_date_string(
         let timezone: chrono_tz::Tz = timezone_string
             .and_then(|tz_str| tz_str.parse().ok())
             .unwrap_or(chrono_tz::UTC);
-        let date_time = NaiveDateTime::parse_from_str(&string, &format_string)
+        let date_time = NaiveDateTime::parse_from_str(string, &format_string)
             .ok()?
             .and_local_timezone(timezone)
             .single()?;
