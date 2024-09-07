@@ -49,7 +49,7 @@ size = "0.4.1"
 walkdir = "2.5.0"
 regex = "1.10.4"
 schemars = { version = "0.8.16", features = ["url"] }
-pared = "0.3.0"
+pared = { git = "https://github.com/hanatsumi/pared.git", branch = "feat/unwrap-or-clone" }
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["async_tokio"] }

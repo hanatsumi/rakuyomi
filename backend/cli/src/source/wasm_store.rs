@@ -24,7 +24,7 @@ use super::{
 pub type ValueMap = BTreeMap<String, Value>;
 
 #[derive(Debug, Clone, From, TryUnwrap)]
-#[try_unwrap(ref)]
+#[try_unwrap(ref, ref_mut)]
 // FIXME Apply the suggestion from the following `clippy` lint
 // This enum is needlessly large, maybe we could measure the impact of
 // actually changing this.
@@ -56,7 +56,7 @@ unsafe impl Send for HTMLElement {}
 unsafe impl Sync for HTMLElement {}
 
 #[derive(Debug, Clone, From, TryUnwrap)]
-#[try_unwrap(ref)]
+#[try_unwrap(ref, ref_mut)]
 // FIXME See above.
 #[allow(clippy::large_enum_variant)]
 pub enum Value {
@@ -140,6 +140,10 @@ impl WasmStore {
 
     pub fn get_std_value(&self, descriptor: usize) -> Option<ValueRef> {
         self.std_descriptors.get(&descriptor).cloned()
+    }
+
+    pub fn take_std_value(&mut self, descriptor: usize) -> Option<ValueRef> {
+        self.std_descriptors.remove(&descriptor)
     }
 
     pub fn set_std_value(&mut self, descriptor: usize, data: ValueRef) {

@@ -1969,8 +1969,7 @@ dependencies = [
 [[package]]
 name = "pared"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd869f4a7856dfb6bf40fe168fb7a0792cb387c79a6903b2e6b94990ace9c073"
+source = "git+https://github.com/hanatsumi/pared.git?branch=feat/unwrap-or-clone#6852f59f6ee8570603e313bae9c62dbcb360b126"
 
 [[package]]
 name = "parking_lot"

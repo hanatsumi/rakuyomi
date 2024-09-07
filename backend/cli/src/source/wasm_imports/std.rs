@@ -2,6 +2,8 @@
 
 use anyhow::Result;
 use chrono::{DateTime, NaiveDateTime, TimeZone};
+use log::debug;
+use pared::sync::Parc;
 use wasm_shared::{
     get_memory,
     memory_reader::{read_string as read_memory_string, write_bytes},
@@ -442,20 +444,13 @@ fn object_set(
 
         let wasm_store = caller.data_mut();
         let value = wasm_store.get_std_value(value_descriptor)?.as_ref().clone();
-        let mut hashmap_object = if let Value::Object(ObjectValue::ValueMap(hm)) =
-            wasm_store.get_std_value(descriptor)?.as_ref()
-        {
-            Some(hm.clone())
-        } else {
-            None
-        }?;
+        let mut hm_value = Parc::unwrap_or_clone(wasm_store.take_std_value(descriptor)?);
+        let object_value = hm_value.try_unwrap_object_mut().unwrap();
+        let hashmap = object_value.try_unwrap_value_map_mut().unwrap();
 
-        hashmap_object.insert(key, value);
+        hashmap.insert(key, value);
 
-        wasm_store.set_std_value(
-            descriptor,
-            Value::Object(ObjectValue::ValueMap(hashmap_object)).into(),
-        );
+        wasm_store.set_std_value(descriptor, hm_value.into());
 
         Some(())
     }();
@@ -482,20 +477,13 @@ fn object_remove(
         };
 
         let wasm_store = caller.data_mut();
-        let mut hashmap_object = if let Value::Object(ObjectValue::ValueMap(hm)) =
-            wasm_store.get_std_value(descriptor)?.as_ref()
-        {
-            Some(hm.clone())
-        } else {
-            None
-        }?;
+        let mut value = Parc::unwrap_or_clone(wasm_store.take_std_value(descriptor)?);
+        let object_value = value.try_unwrap_object_mut().unwrap();
+        let hashmap = object_value.try_unwrap_value_map_mut().unwrap();
 
-        hashmap_object.remove(&key);
+        hashmap.remove(&key);
 
-        wasm_store.set_std_value(
-            descriptor,
-            Value::Object(ObjectValue::ValueMap(hashmap_object)).into(),
-        );
+        wasm_store.set_std_value(descriptor, value.into());
 
         Some(())
     }();
@@ -582,10 +570,8 @@ fn array_set(
 
         let wasm_store = caller.data_mut();
         let value_ref = wasm_store.get_std_value(value_descriptor)?;
-        let mut array = match wasm_store.get_std_value(descriptor)?.as_ref() {
-            Value::Array(arr) => Some(arr.clone()),
-            _ => None,
-        }?;
+        let mut array_value = Parc::unwrap_or_clone(wasm_store.take_std_value(descriptor)?);
+        let array = array_value.try_unwrap_array_mut().unwrap();
 
         let index: usize = index_i32.try_into().ok().and_then(|index| {
             if index < array.len() {
@@ -597,7 +583,7 @@ fn array_set(
 
         array[index] = value_ref.as_ref().clone();
 
-        wasm_store.set_std_value(descriptor, Value::Array(array).into());
+        wasm_store.set_std_value(descriptor, array_value.into());
 
         Some(())
     }();
@@ -610,15 +596,22 @@ fn array_append(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, value_i3
 
         let wasm_store = caller.data_mut();
         let value_ref = wasm_store.get_std_value(value_descriptor)?;
-        let mut array = match wasm_store.get_std_value(descriptor)?.as_ref() {
-            Value::Array(arr) => Some(arr.clone()),
-            _ => None,
-        }?;
 
+        let array_value_ref = wasm_store.take_std_value(descriptor)?;
+        if Parc::strong_count(&array_value_ref) > 1 {
+            debug!(
+                "attempting to add to array with more than 1 reference (got {}), slow!",
+                Parc::strong_count(&array_value_ref)
+            );
+        }
+
+        let mut array_value_ref = Parc::unwrap_or_clone(array_value_ref);
+
+        let array_value = array_value_ref.try_unwrap_array_mut().unwrap();
         // PERF arrays could store ValueRefs too.
-        array.push(value_ref.as_ref().clone());
+        array_value.push(value_ref.as_ref().clone());
 
-        wasm_store.set_std_value(descriptor, Value::Array(array).into());
+        wasm_store.set_std_value(descriptor, array_value_ref.into());
 
         Some(())
     }();
