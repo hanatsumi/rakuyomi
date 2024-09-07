@@ -39,21 +39,19 @@ impl<T> TryFromWasmValues<T> for String {
     fn try_from_wasm_values(caller: &mut Caller<'_, T>, values: &[Value]) -> Result<Self> {
         let offset: usize = values[0]
             .i32()
-            .ok_or(anyhow!("expected to receive a i32 as the offset argument"))?
+            .ok_or_else(|| anyhow!("expected to receive a i32 as the offset argument"))?
             .try_into()?;
         let length: usize = values[1]
             .i32()
-            .ok_or(anyhow!("expected to receive a i32 as the length argument"))?
+            .ok_or_else(|| anyhow!("expected to receive a i32 as the length argument"))?
             .try_into()
             .ok()
             .and_then(|length: usize| if length > 0 { Some(length) } else { None })
-            .ok_or(anyhow!(
-                "expected the length argument to be strictly positive"
-            ))?;
+            .ok_or_else(|| anyhow!("expected the length argument to be strictly positive"))?;
 
-        let memory = get_memory(caller).ok_or(anyhow!("could not get WASM memory"))?;
+        let memory = get_memory(caller).ok_or_else(|| anyhow!("could not get WASM memory"))?;
         read_string(&memory, caller, offset, length)
-            .ok_or(anyhow!("could not read string from WASM memory"))
+            .ok_or_else(|| anyhow!("could not read string from WASM memory"))
     }
 }
 
@@ -68,18 +66,18 @@ impl<T> TryFromWasmValues<T> for DateTime<chrono_tz::Tz> {
         use chrono::TimeZone;
         let seconds_since_1970 = values[0]
             .f64()
-            .ok_or(anyhow!("expected to receive a f64"))?
+            .ok_or_else(|| anyhow!("expected to receive a f64"))?
             .to_float();
         let full_seconds = seconds_since_1970.floor() as i64;
         let nanos_remainder = ((seconds_since_1970 - full_seconds as f64) * (10f64.powi(9))) as u32;
         let naive_date_time = NaiveDateTime::from_timestamp_opt(full_seconds, nanos_remainder)
-            .ok_or(anyhow!("could not convert into a naive date time"))?;
+            .ok_or_else(|| anyhow!("could not convert into a naive date time"))?;
         let date_time: DateTime<chrono_tz::Tz> = chrono_tz::UTC
             .from_local_datetime(&naive_date_time)
             .single()
-            .ok_or(anyhow!(
-                "could not convert naive date time into date time with timestamp"
-            ))?;
+            .ok_or_else(|| {
+                anyhow!("could not convert naive date time into date time with timestamp")
+            })?;
 
         Ok(date_time)
     }
@@ -95,21 +93,19 @@ impl<T> TryFromWasmValues<T> for Vec<u8> {
     fn try_from_wasm_values(caller: &mut Caller<'_, T>, values: &[Value]) -> Result<Self> {
         let offset: usize = values[0]
             .i32()
-            .ok_or(anyhow!("expected to receive a i32 as the offset argument"))?
+            .ok_or_else(|| anyhow!("expected to receive a i32 as the offset argument"))?
             .try_into()?;
         let length: usize = values[1]
             .i32()
-            .ok_or(anyhow!("expected to receive a i32 as the length argument"))?
+            .ok_or_else(|| anyhow!("expected to receive a i32 as the length argument"))?
             .try_into()
             .ok()
             .and_then(|length: usize| if length > 0 { Some(length) } else { None })
-            .ok_or(anyhow!(
-                "expected the length argument to be strictly positive"
-            ))?;
+            .ok_or_else(|| anyhow!("expected the length argument to be strictly positive"))?;
 
-        let memory = get_memory(caller).ok_or(anyhow!("could not get WASM memory"))?;
+        let memory = get_memory(caller).ok_or_else(|| anyhow!("could not get WASM memory"))?;
         read_bytes(&memory, caller, offset, length)
-            .ok_or(anyhow!("could not read bytes from WASM memory"))
+            .ok_or_else(|| anyhow!("could not read bytes from WASM memory"))
     }
 }
 
