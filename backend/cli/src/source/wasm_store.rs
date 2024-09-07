@@ -3,14 +3,14 @@ use std::collections::{BTreeMap, HashMap};
 
 use anyhow::anyhow;
 use chrono::DateTime;
-use derive_more::{From, TryUnwrap};
+use derive_more::{Deref, From, TryUnwrap};
 use ego_tree::NodeId;
 use reqwest::{
     blocking::Request as BlockingRequest,
     header::{HeaderMap, HeaderName, HeaderValue},
     Method, Request, StatusCode, Url,
 };
-use scraper::{ElementRef, Html};
+use scraper::{ElementRef, Html as ScraperHtml};
 
 use crate::settings::{Settings, SourceSettingValue};
 
@@ -39,9 +39,16 @@ pub enum ObjectValue {
     Filter(Filter),
 }
 
+#[derive(From, Deref, Debug)]
+pub struct Html(ScraperHtml);
+
+// FIXME THIS IS BORKED AS FUCK
+unsafe impl Send for Html {}
+unsafe impl Sync for Html {}
+
 #[derive(Debug, Clone)]
 pub struct HTMLElement {
-    pub document: Html,
+    pub document: Parc<Html>,
     pub node_id: NodeId,
 }
 
@@ -50,10 +57,6 @@ impl HTMLElement {
         ElementRef::wrap(self.document.tree.get(self.node_id).unwrap()).unwrap()
     }
 }
-
-// FIXME THIS IS BORKED AS FUCK
-unsafe impl Send for HTMLElement {}
-unsafe impl Sync for HTMLElement {}
 
 #[derive(Debug, Clone, From, TryUnwrap)]
 #[try_unwrap(ref, ref_mut)]
