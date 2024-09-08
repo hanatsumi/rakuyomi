@@ -14,6 +14,8 @@ local ErrorDialog = require("ErrorDialog")
 local MangaReader = require("MangaReader")
 
 --- @class ChapterListing : { [any]: any }
+--- @field manga Manga
+--- @field chapters Chapter[]
 local ChapterListing = Menu:extend {
   name = "chapter_listing",
   is_enable_shortcut = false,
@@ -142,7 +144,7 @@ function ChapterListing:fetchAndShow(manga, onReturnCallback, accept_cached_resu
   local refresh_chapters_response = LoadingDialog:showAndRun(
     "Refreshing chapters...",
     function()
-      return Backend.refreshChapters(manga.source_id, manga.id)
+      return Backend.refreshChapters(manga.source.id, manga.id)
     end
   )
 
@@ -152,7 +154,7 @@ function ChapterListing:fetchAndShow(manga, onReturnCallback, accept_cached_resu
     return
   end
 
-  local response = Backend.listCachedChapters(manga.source_id, manga.id)
+  local response = Backend.listCachedChapters(manga.source.id, manga.id)
 
   if response.type == 'ERROR' then
     ErrorDialog:show(response.message)
@@ -195,7 +197,7 @@ function ChapterListing:refreshChapters()
     local refresh_chapters_response = LoadingDialog:showAndRun(
       "Refreshing chapters...",
       function()
-        return Backend.refreshChapters(self.manga.source_id, self.manga.id)
+        return Backend.refreshChapters(self.manga.source.id, self.manga.id)
       end
     )
 
@@ -205,7 +207,7 @@ function ChapterListing:refreshChapters()
       return
     end
 
-    local response = Backend.listCachedChapters(self.manga.source_id, self.manga.id)
+    local response = Backend.listCachedChapters(self.manga.source.id, self.manga.id)
 
     if response.type == 'ERROR' then
       ErrorDialog:show(response.message)
@@ -301,7 +303,7 @@ function ChapterListing:onDownloadAllChapters()
   UIManager:nextTick(function()
     local time = require("ui/time")
     local startTime = time.now()
-    local response = Backend.downloadAllChapters(self.manga.source_id, self.manga.id)
+    local response = Backend.downloadAllChapters(self.manga.source.id, self.manga.id)
 
     if response.type == 'ERROR' then
       ErrorDialog:show(response.message)
@@ -329,7 +331,7 @@ function ChapterListing:onDownloadAllChapters()
 
     local cancellationRequested = false
     local onCancellationRequested = function()
-      local response = Backend.cancelDownloadAllChapters(self.manga.source_id, self.manga.id)
+      local response = Backend.cancelDownloadAllChapters(self.manga.source.id, self.manga.id)
       -- FIXME is it ok to assume there are no errors here?
       assert(response.type == 'SUCCESS')
 
@@ -355,7 +357,7 @@ function ChapterListing:onDownloadAllChapters()
       UIManager:unschedule(updateProgress)
       UIManager:close(downloadingMessage)
 
-      local response = Backend.getDownloadAllChaptersProgress(self.manga.source_id, self.manga.id)
+      local response = Backend.getDownloadAllChaptersProgress(self.manga.source.id, self.manga.id)
       if response.type == 'ERROR' then
         ErrorDialog:show(response.message)
 

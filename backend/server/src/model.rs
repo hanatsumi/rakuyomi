@@ -32,8 +32,13 @@ pub struct SourceMangaSearchResults {
 impl From<DomainSourceMangaSearchResults> for SourceMangaSearchResults {
     fn from(value: DomainSourceMangaSearchResults) -> Self {
         Self {
-            source_information: value.source_information.into(),
-            mangas: value.mangas.into_iter().map(Manga::from).collect(),
+            // FIXME mangas already contain the source information, this is kinda redundant rn
+            source_information: value.source_information.clone().into(),
+            mangas: value
+                .mangas
+                .into_iter()
+                .map(|manga| Manga::from((value.source_information.clone(), manga)))
+                .collect(),
         }
     }
 }
@@ -43,15 +48,17 @@ pub struct Manga {
     // FIXME maybe both `id` and `source_id` should be encoded into a single field
     // imo it makes more sense from the frontend perspective
     id: String,
-    source_id: String,
+    source: SourceInformation,
     title: String,
 }
 
-impl From<MangaInformation> for Manga {
-    fn from(manga_information: MangaInformation) -> Self {
+impl From<(DomainSourceInformation, MangaInformation)> for Manga {
+    fn from(
+        (source_information, manga_information): (DomainSourceInformation, MangaInformation),
+    ) -> Self {
         Self {
             id: manga_information.id.value().clone(),
-            source_id: manga_information.id.source_id().value().clone(),
+            source: source_information.into(),
             // FIXME what the fuck
             title: manga_information.title.unwrap_or("Unknown title".into()),
         }
