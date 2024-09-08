@@ -113,6 +113,10 @@ async fn main() -> anyhow::Result<()> {
             post(add_manga_to_library),
         )
         .route(
+            "/mangas/:source_id/:manga_id/remove-from-library",
+            post(remove_manga_from_library),
+        )
+        .route(
             "/mangas/:source_id/:manga_id/chapters",
             get(get_cached_manga_chapters),
         )
@@ -231,6 +235,18 @@ async fn add_manga_to_library(
     let manga_id = MangaId::from(params);
 
     usecases::add_manga_to_library(&database, manga_id).await?;
+
+    Ok(Json(()))
+}
+
+async fn remove_manga_from_library(
+    StateExtractor(State { database, .. }): StateExtractor<State>,
+    SourceExtractor(_source): SourceExtractor,
+    Path(params): Path<MangaChaptersPathParams>,
+) -> Result<Json<()>, AppError> {
+    let manga_id = MangaId::from(params);
+
+    usecases::remove_manga_from_library(&database, manga_id).await?;
 
     Ok(Json(()))
 }

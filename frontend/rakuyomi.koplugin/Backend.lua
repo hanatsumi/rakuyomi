@@ -176,6 +176,15 @@ function Backend.addMangaToLibrary(source_id, manga_id)
   })
 end
 
+--- Removes a manga from the user's library.
+--- @return SuccessfulResponse<nil>|ErrorResponse
+function Backend.removeMangaFromLibrary(source_id, manga_id)
+  return requestJson({
+    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/remove-from-library",
+    method = "POST"
+  })
+end
+
 --- Searches manga from the manga sources.
 --- @return SuccessfulResponse<SourceMangaSearchResults[]>|ErrorResponse
 function Backend.searchMangas(search_text)

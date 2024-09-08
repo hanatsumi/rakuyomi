@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                DELETE FROM manga_library\n                WHERE source_id = ?1 AND manga_id = ?2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "0ce0037460ed0882a561d6bca1d898a3928b1f8a9d08d50e21909a906c3f8607"
+}

@@ -1,4 +1,5 @@
 -- FIXME make class names have _some_ kind of logic
+local ConfirmBox = require("ui/widget/confirmbox")
 local Menu = require("ui/widget/menu")
 local InputDialog = require("ui/widget/inputdialog")
 local UIManager = require("ui/uimanager")
@@ -97,6 +98,7 @@ end
 --- @private
 function LibraryView:onMenuSelect(item)
   Trapper:wrap(function()
+    --- @type Manga
     local manga = item.manga
 
     local onReturnCallback = function()
@@ -107,6 +109,38 @@ function LibraryView:onMenuSelect(item)
 
     self:onClose(self)
   end)
+end
+
+--- @private
+function LibraryView:onMenuHold(item)
+  --- @type Manga
+  local manga = item.manga
+
+  UIManager:show(ConfirmBox:new {
+    text = "Do you want to remove \"" .. manga.title .. "\" from your library?",
+    ok_text = "Remove",
+    ok_callback = function()
+      local _, err = Backend.removeMangaFromLibrary(manga.source.id, manga.id)
+
+      if err ~= nil then
+        ErrorDialog:show(err)
+
+        return
+      end
+
+      local mangas, err = Backend.getMangasInLibrary()
+
+      if err ~= nil then
+        ErrorDialog:show(err)
+
+        return
+      end
+
+      self.mangas = mangas
+
+      self:updateItems()
+    end
+  })
 end
 
 --- @private
