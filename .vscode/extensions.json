@@ -3,6 +3,7 @@
         "rust-lang.rust-analyzer",
         "sumneko.lua",
         "ms-python.python",
-        "editorconfig.editorconfig"
+        "editorconfig.editorconfig",
+        "mkhl.direnv"
     ]
 }
