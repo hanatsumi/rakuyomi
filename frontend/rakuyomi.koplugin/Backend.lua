@@ -133,9 +133,14 @@ function Backend.initialize()
   Backend.server_pid = pid
 end
 
+--- @class SourceInformation
+--- @field id string The ID of the source.
+--- @field name string The name of the source.
+--- @field version number The version of the source.
+
 --- @class Manga
 --- @field id string The ID of the manga.
---- @field source_id string The ID of the source for this manga.
+--- @field source SourceInformation The source information for this manga.
 --- @field title string The title of this manga.
 
 --- @class Chapter
@@ -147,11 +152,6 @@ end
 --- @field volume_num number? The volume that this chapter belongs to, if known.
 --- @field read boolean If this chapter was read to its end.
 --- @field downloaded boolean If this chapter was already downloaded to the storage.
-
---- @class SourceInformation
---- @field id string The ID of the source.
---- @field name string The name of the source.
---- @field version number The version of the source.
 
 --- @class SourceMangaSearchResults
 --- @field source_information SourceInformation Information about the source that generated those results.

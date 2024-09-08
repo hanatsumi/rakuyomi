@@ -103,6 +103,7 @@ end
 --- @private
 function MangaSearchResults:onMenuSelect(item)
   Trapper:wrap(function()
+    --- @type Manga
     local manga = item.manga
 
     local onReturnCallback = function()
@@ -117,12 +118,13 @@ end
 
 --- @private
 function MangaSearchResults:onMenuHold(item)
+  --- @type Manga
   local manga = item.manga
   UIManager:show(ConfirmBox:new {
     text = "Do you want to add \"" .. manga.title .. "\" to your library?",
     ok_text = "Add",
     ok_callback = function()
-      local _, err = Backend.addMangaToLibrary(manga.source_id, manga.id)
+      local _, err = Backend.addMangaToLibrary(manga.source.id, manga.id)
 
       if err ~= nil then
         ErrorDialog:show(err)

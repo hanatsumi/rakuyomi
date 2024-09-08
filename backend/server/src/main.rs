@@ -173,9 +173,13 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn get_manga_library(
-    StateExtractor(State { database, .. }): StateExtractor<State>,
+    StateExtractor(State {
+        database,
+        source_manager,
+        ..
+    }): StateExtractor<State>,
 ) -> Result<Json<Vec<Manga>>, AppError> {
-    let mangas = usecases::get_manga_library(&database)
+    let mangas = usecases::get_manga_library(&database, &*source_manager.lock().await)
         .await?
         .into_iter()
         .map(Manga::from)

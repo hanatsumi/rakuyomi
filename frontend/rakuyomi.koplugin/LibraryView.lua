@@ -54,12 +54,13 @@ function LibraryView:updateItems()
 end
 
 --- @private
+--- @param mangas Manga[]
 function LibraryView:generateItemTableFromMangas(mangas)
   local item_table = {}
   for _, manga in ipairs(mangas) do
     table.insert(item_table, {
       manga = manga,
-      text = manga.title,
+      text = manga.title .. " (" .. manga.source.name .. ")",
     })
   end
 
