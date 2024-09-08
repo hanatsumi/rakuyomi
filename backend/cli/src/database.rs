@@ -59,6 +59,23 @@ impl Database {
         .unwrap();
     }
 
+    pub async fn remove_manga_from_library(&self, manga_id: MangaId) {
+        let source_id = manga_id.source_id().value();
+        let manga_id = manga_id.value();
+
+        sqlx::query!(
+            r#"
+                DELETE FROM manga_library
+                WHERE source_id = ?1 AND manga_id = ?2
+            "#,
+            source_id,
+            manga_id
+        )
+        .execute(&self.pool)
+        .await
+        .unwrap();
+    }
+
     pub async fn find_cached_manga_information(
         &self,
         manga_id: &MangaId,

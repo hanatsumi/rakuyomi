@@ -10,6 +10,7 @@ pub mod list_available_sources;
 pub mod list_installed_sources;
 pub mod mark_chapter_as_read;
 pub mod refresh_manga_chapters;
+pub mod remove_manga_from_library;
 pub mod search_mangas;
 pub mod set_source_stored_settings;
 
@@ -25,5 +26,6 @@ pub use list_available_sources::list_available_sources;
 pub use list_installed_sources::list_installed_sources;
 pub use mark_chapter_as_read::mark_chapter_as_read;
 pub use refresh_manga_chapters::refresh_manga_chapters;
+pub use remove_manga_from_library::remove_manga_from_library;
 pub use search_mangas::search_mangas;
 pub use set_source_stored_settings::set_source_stored_settings;
