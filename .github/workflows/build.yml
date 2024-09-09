@@ -16,25 +16,34 @@ jobs:
       with:
         name: rakuyomi
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: "lts/*"
+    - name: Get next version
+      run: |
+        npm install -D semantic-release-export-data
+        npx semantic-release --dry-run
+      id: get-next-version
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Build plugin
-      run: "nix build .#rakuyomi.${{ matrix.target }} -o build/rakuyomi.koplugin"
+      run: |
+        export SEMANTIC_RELEASE_VERSION="${{ steps.get-next-version.outputs.new-release-git-tag }}"
+        # Using `--impure` here kinda sucks, but it's needed so that we can insert the `semantic-release`
+        # version into the build.
+        nix build --impure .#rakuyomi.${{ matrix.target }} -o build/rakuyomi.koplugin
     - name: Package plugin contents
       run: "cd build && zip -r rakuyomi-${{ matrix.target }}.zip rakuyomi.koplugin"
     - name: Get version
       id: get-version
       run: |
         echo "RAKUYOMI_VERSION=$(nix eval --raw .#rakuyomi.version)" >> "$GITHUB_OUTPUT"
-    - name: Upload plugin to release
-      if: ${{ github.ref == 'refs/heads/main' }}
-      uses: svenstaro/upload-release-action@v2
+    - name: Upload plugin as workflow artifact
+      uses: actions/upload-artifact@v4
       with:
-        release_name: ${{ steps.get-version.outputs.RAKUYOMI_VERSION }}
-        prerelease: true
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: build/rakuyomi-${{ matrix.target }}.zip
-        tag: ${{ github.ref }}
-        body: Latest development build
-        overwrite: true
+        name: ${{ matrix.target }} build
+        path: build/rakuyomi-${{ matrix.target }}.zip
   
   generate-settings-schema:
     runs-on: ubuntu-latest
@@ -47,18 +56,27 @@ jobs:
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
     - name: Build settings schema
       run: "nix build .#rakuyomi.settings-schema -o build/settings.schema.json"
-    - name: Get version
-      id: get-version
-      run: |
-        echo "RAKUYOMI_VERSION=$(nix eval --raw .#rakuyomi.version)" >> "$GITHUB_OUTPUT"
-    - name: Upload settings schema to release
-      if: ${{ github.ref == 'refs/heads/main' }}
-      uses: svenstaro/upload-release-action@v2
+    - name: Upload plugin as workflow artifact
+      uses: actions/upload-artifact@v4
       with:
-        release_name: ${{ steps.get-version.outputs.RAKUYOMI_VERSION }}
-        prerelease: true
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: build/settings.schema.json
-        tag: ${{ github.ref }}
-        body: Latest development build
-        overwrite: true
+        name: settings.schema.json
+        path: build/settings.schema.json
+  
+  release:
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
+    permissions:
+      contents: write # to be able to publish a GitHub release
+      issues: write # to be able to comment on released issues
+      pull-requests: write # to be able to comment on released pull requests
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: build
+    - name: Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        npm install -D semantic-release-export-data
+        npx semantic-release

@@ -4,6 +4,7 @@
         "sumneko.lua",
         "ms-python.python",
         "editorconfig.editorconfig",
-        "mkhl.direnv"
+        "mkhl.direnv",
+        "github.vscode-github-actions"
     ]
 }

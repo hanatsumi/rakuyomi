@@ -1,0 +1,17 @@
+branches:
+  - main
+plugins:
+  - "@semantic-release/commit-analyzer"
+  - "@semantic-release/release-notes-generator"
+  - [
+      "@semantic-release/github",
+      {
+        "assets": [
+          { "path": "build/rakuyomi-desktop.zip", "label": "Desktop (Linux) build" },
+          { "path": "build/rakuyomi-kindle.zip", "label": "Kindle build" },
+          { "path": "build/settings.schema.json", "label": "Settings JSON schema" },
+        ],
+        "successComment": false,
+      }
+    ]
+  - "semantic-release-export-data"

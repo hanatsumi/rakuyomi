@@ -17,7 +17,9 @@
 
   outputs = { self, nixpkgs, nixpkgs-patched-koreader, naersk, fenix, flake-utils }:
     let
-      version = self.lastModifiedDate + "-" + (self.shortRev or self.dirtyShortRev);
+      genericVersion = self.lastModifiedDate + "-" + (self.shortRev or self.dirtyShortRev);
+      semanticReleaseVersion = builtins.getEnv "SEMANTIC_RELEASE_VERSION";
+      version = if semanticReleaseVersion != "" then semanticReleaseVersion else genericVersion;
     in flake-utils.lib.eachDefaultSystem (system:
       let
         # FIXME probably `armv7-unknown-linux-gnueabihf` is more accurate
@@ -129,7 +131,6 @@
         packages.rakuyomi.kindle = mkPluginFolder kindleTarget;
         packages.rakuyomi.cli = mkCliPackage desktopTarget;
         packages.rakuyomi.settings-schema = mkSchemaFile desktopTarget;
-        packages.rakuyomi.version = version;
       }
     );
 }
