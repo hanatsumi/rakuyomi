@@ -27,7 +27,7 @@ jobs:
     - name: Get next version
       run: |
         npm install -D semantic-release-export-data
-        npx semantic-release --dry-run
+        npx semantic-release --dry-run --debug
       id: get-next-version
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -87,4 +87,4 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         npm install -D semantic-release-export-data
-        npx semantic-release
+        npx semantic-release --debug
