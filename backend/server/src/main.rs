@@ -5,10 +5,11 @@ use anyhow::Context;
 use cli::source::model::SettingDefinition;
 use cli::usecases;
 use env_logger::Env;
-use log::{error, info};
+use log::{error, info, warn};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 use std::{fs, mem};
 
 use axum::extract::{Path, Query};
@@ -28,7 +29,7 @@ use cli::usecases::{
     fetch_manga_chapter::Error as FetchMangaChaptersError,
     search_mangas::Error as SearchMangasError,
 };
-use futures::{pin_mut, StreamExt};
+use futures::{pin_mut, Future, StreamExt};
 use serde::{Deserialize, Serialize};
 use source_extractor::{SourceExtractor, SourceParams};
 use tokio::sync::Mutex;
@@ -205,12 +206,15 @@ async fn get_mangas(
     }): StateExtractor<State>,
     Query(GetMangasQuery { q }): Query<GetMangasQuery>,
 ) -> Result<Json<Vec<SourceMangaSearchResults>>, AppError> {
-    let results = usecases::search_mangas(&*source_manager.lock().await, &database, q)
-        .await
-        .map_err(AppError::from_search_mangas_error)?
-        .into_iter()
-        .map(SourceMangaSearchResults::from)
-        .collect();
+    let source_manager = &*source_manager.lock().await;
+    let results = cancel_after(Duration::from_secs(15), |token| {
+        usecases::search_mangas(source_manager, &database, token, q)
+    })
+    .await
+    .map_err(AppError::from_search_mangas_error)?
+    .into_iter()
+    .map(SourceMangaSearchResults::from)
+    .collect();
 
     Ok(Json(results))
 }
@@ -518,6 +522,28 @@ async fn set_source_stored_settings(
     )?;
 
     Ok(Json(()))
+}
+
+async fn cancel_after<F, Fut>(duration: Duration, f: F) -> Fut::Output
+where
+    Fut: Future,
+    F: FnOnce(CancellationToken) -> Fut,
+{
+    let token = CancellationToken::new();
+    let future = f(token.clone());
+
+    let request_cancellation_handle = tokio::spawn(async move {
+        tokio::time::sleep(duration).await;
+
+        warn!("cancellation requested!");
+        token.cancel();
+    });
+
+    let result = future.await;
+
+    request_cancellation_handle.abort();
+
+    result
 }
 
 // Make our own error that wraps `anyhow::Error`.

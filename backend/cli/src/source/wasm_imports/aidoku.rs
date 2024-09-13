@@ -15,7 +15,7 @@ use crate::source::{
         Chapter, DeepLink, Manga, MangaContentRating, MangaPageResult, MangaViewer, Page,
         PublishingStatus,
     },
-    wasm_store::{Context, ObjectValue, Value, WasmStore},
+    wasm_store::{ObjectValue, OperationContextObject, Value, WasmStore},
 };
 
 pub fn register_aidoku_imports(linker: &mut Linker<WasmStore>) -> Result<()> {
@@ -175,8 +175,8 @@ fn create_chapter(
         let chapter = Chapter {
             source_id: wasm_store.id.clone(),
             id: id?,
-            manga_id: match &wasm_store.context {
-                Context::Manga { id } => id.clone(),
+            manga_id: match &wasm_store.context.current_object {
+                OperationContextObject::Manga { id } => id.clone(),
                 other => panic!("unexpected `create_chapter` call under {:?} context", other),
             },
             title,
@@ -209,8 +209,8 @@ pub fn create_page(
     let wasm_store = caller.data_mut();
     let page = Page {
         source_id: wasm_store.id.clone(),
-        chapter_id: match &wasm_store.context {
-            Context::Chapter { id, .. } => id.clone(),
+        chapter_id: match &wasm_store.context.current_object {
+            OperationContextObject::Chapter { id, .. } => id.clone(),
             other => panic!("unexpected `create_page` call under {:?} context", other),
         },
         index: index as usize,

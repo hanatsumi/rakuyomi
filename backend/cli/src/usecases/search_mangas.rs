@@ -3,40 +3,56 @@ use crate::{
     model::{MangaInformation, SourceInformation},
     source_collection::SourceCollection,
 };
-use futures::{stream, StreamExt, TryStreamExt};
+use futures::{stream, StreamExt};
+use log::warn;
+use tokio_util::sync::CancellationToken;
 
 pub async fn search_mangas(
     source_collection: &impl SourceCollection,
     db: &Database,
+    cancellation_token: CancellationToken,
     query: String,
 ) -> Result<Vec<SourceMangaSearchResults>, Error> {
     // FIXME this looks awful
     let query = &query;
+    let cancellation_token = &cancellation_token;
 
-    // FIXME the conversion between `SourceManga` and `MangaInformation` probably should
-    // be inside the source itself
     let source_results: Vec<SourceMangaSearchResults> = stream::iter(source_collection.sources())
         .then(|source| async move {
-            let manga_informations: Vec<_> = source
-                .search_mangas(query.clone())
-                .await
-                .map_err(Error::SourceError)?
-                .into_iter()
-                .map(MangaInformation::from)
-                .collect();
+            // FIXME the conversion between `SourceManga` and `MangaInformation` probably should
+            // be inside the source itself
+            let search_result = source
+                .search_mangas(cancellation_token.clone(), query.clone())
+                .await;
+
+            let manga_informations = match search_result {
+                Ok(source_mangas) => source_mangas
+                    .into_iter()
+                    .map(MangaInformation::from)
+                    .collect(),
+                Err(e) => {
+                    warn!(
+                        "failed to search mangas from source {}: {}",
+                        source.manifest().info.id,
+                        e
+                    );
+
+                    vec![]
+                }
+            };
 
             // Write through to the database
             stream::iter(&manga_informations)
                 .for_each(|information| db.upsert_cached_manga_information(information.clone()))
                 .await;
 
-            Ok(SourceMangaSearchResults {
+            SourceMangaSearchResults {
                 source_information: source.manifest().into(),
                 mangas: manga_informations,
-            })
+            }
         })
-        .try_collect()
-        .await?;
+        .collect()
+        .await;
 
     Ok(source_results)
 }
