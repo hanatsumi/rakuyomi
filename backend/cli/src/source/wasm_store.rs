@@ -1,5 +1,6 @@
 use pared::sync::Parc;
 use std::collections::{BTreeMap, HashMap};
+use tokio_util::sync::CancellationToken;
 
 use anyhow::anyhow;
 use chrono::DateTime;
@@ -102,10 +103,10 @@ pub enum RequestState {
     Closed,
 }
 
-// Determines the context in which operations are being done.
+// Determines the current object in which operations are being done.
 // TODO think about stuff??
 #[derive(Debug, Default)]
-pub enum Context {
+pub enum OperationContextObject {
     #[default]
     None,
     Manga {
@@ -118,9 +119,15 @@ pub enum Context {
 }
 
 #[derive(Default, Debug)]
+pub struct OperationContext {
+    pub cancellation_token: CancellationToken,
+    pub current_object: OperationContextObject,
+}
+
+#[derive(Default, Debug)]
 pub struct WasmStore {
     pub id: String,
-    pub context: Context,
+    pub context: OperationContext,
     pub source_settings: SourceSettings,
     // FIXME this probably should be source-specific, and not a copy of all settigns
     // we do rely on the `languages` global setting right now, so maybe this is really needed? idk

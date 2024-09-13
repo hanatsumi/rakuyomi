@@ -5,6 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use tempfile::NamedTempFile;
+use tokio_util::sync::CancellationToken;
 
 use anyhow::anyhow;
 use zip::{write::FileOptions, CompressionMethod, ZipWriter};
@@ -29,6 +30,7 @@ pub async fn ensure_chapter_is_in_storage(
     // FIXME like downloaderror is a really bad name??
     let pages = source
         .get_page_list(
+            CancellationToken::new(),
             chapter_id.manga_id().value().clone(),
             chapter_id.value().clone(),
         )

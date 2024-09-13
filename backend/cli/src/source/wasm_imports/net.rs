@@ -1,8 +1,9 @@
 use crate::{source::wasm_store::Html, util::has_internet_connection};
 use anyhow::Result;
 use futures::executor;
+use log::warn;
 use num_enum::FromPrimitive;
-use reqwest::{blocking::Request, Method};
+use reqwest::{Method, Request};
 use scraper::Html as ScraperHtml;
 
 use url::Url;
@@ -173,18 +174,21 @@ fn set_rate_limit_period(_caller: Caller<'_, WasmStore>, _rate_limit_period: i32
 #[aidoku_wasm_function]
 fn send(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) {
     || -> Option<()> {
+        let wasm_store = caller.data_mut();
+        let cancellation_token = wasm_store.context.cancellation_token.clone();
+
         // HACK Before everything, we want to fail fast if no internet connection is available.
         // In theory, it would be easier to just let things fail naturally and move on
         // with our lives; but DNS resolution takes forever (~5s or so) when we have no connection
         // available - due to musl's `getaddrinfo()` call not realizing we have no connection and
         // timing out (EAI_AGAIN). The overhead of checking for a connection here seems worth it.
-        let has_internet_connection = executor::block_on(has_internet_connection());
+        let has_internet_connection =
+            executor::block_on(cancellation_token.run_until_cancelled(has_internet_connection()))?;
         if !has_internet_connection {
             return None;
         }
 
         let request_descriptor: usize = request_descriptor_i32.try_into().ok()?;
-        let wasm_store = caller.data_mut();
 
         let request_state = wasm_store.get_mut_request(request_descriptor)?;
         let request_builder = match request_state {
@@ -192,14 +196,39 @@ fn send(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) {
             _ => None,
         }?;
 
-        let client = reqwest::blocking::Client::new();
+        let client = reqwest::Client::new();
         let request = Request::try_from(request_builder).ok()?;
 
-        let response = client.execute(request).ok()?;
+        let warn_cancellation = || {
+            warn!(
+                "request to {:?} was cancelled mid-flight!",
+                &request_builder.url
+            );
+        };
+
+        let response = match executor::block_on(
+            cancellation_token.run_until_cancelled(client.execute(request)),
+        ) {
+            Some(response) => response.ok()?,
+            _ => {
+                warn_cancellation();
+
+                return None;
+            }
+        };
+
         let response_data = ResponseData {
             headers: response.headers().clone(),
             status_code: response.status(),
-            body: response.bytes().ok().map(|bytes| bytes.to_vec()),
+            body: match executor::block_on(cancellation_token.run_until_cancelled(response.bytes()))
+            {
+                Some(bytes) => bytes.ok().map(|bytes| bytes.to_vec()),
+                _ => {
+                    warn_cancellation();
+
+                    return None;
+                }
+            },
             bytes_read: 0,
         };
 

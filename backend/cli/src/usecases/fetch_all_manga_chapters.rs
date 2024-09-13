@@ -22,7 +22,7 @@ pub fn fetch_all_manga_chapters<'a>(
     let cloned_cancellation_token = cancellation_token.clone();
     let stream = stream! {
         let chapter_informations: Vec<ChapterInformation> = match source
-            .get_chapter_list(id.value().clone())
+            .get_chapter_list(cloned_cancellation_token.clone(), id.value().clone())
             .await {
             Ok(chapters) => chapters.into_iter().map(|c| c.into()).collect(),
             Err(e) => {

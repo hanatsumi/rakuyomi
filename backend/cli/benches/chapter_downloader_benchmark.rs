@@ -4,6 +4,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use futures::executor;
 use pprof::criterion::{Output, PProfProfiler};
 use std::{env, io, path::PathBuf};
+use tokio_util::sync::CancellationToken;
 
 pub fn chapter_downloader_benchmark(c: &mut Criterion) {
     let source_path: PathBuf = env::var("BENCHMARK_SOURCE_PATH").unwrap().into();
@@ -12,7 +13,9 @@ pub fn chapter_downloader_benchmark(c: &mut Criterion) {
     let settings = Settings::default();
 
     let source = Source::from_aix_file(source_path.as_ref(), settings).unwrap();
-    let pages = executor::block_on(source.get_page_list(manga_id, chapter_id)).unwrap();
+    let pages =
+        executor::block_on(source.get_page_list(CancellationToken::new(), manga_id, chapter_id))
+            .unwrap();
 
     let runtime = tokio::runtime::Runtime::new().unwrap();
 

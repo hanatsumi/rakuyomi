@@ -6,7 +6,7 @@ use std::{
     path::Path,
     sync::{Arc, Mutex},
 };
-use tokio::task::spawn_blocking;
+use tokio_util::sync::CancellationToken;
 use url::Url;
 use wasmi::*;
 use zip::ZipArchive;
@@ -26,8 +26,8 @@ use self::{
         std::register_std_imports,
     },
     wasm_store::{
-        Context as StoreContext, ObjectValue, RequestBuildingState, RequestState, Value, ValueMap,
-        WasmStore,
+        ObjectValue, OperationContext, OperationContextObject, RequestBuildingState, RequestState,
+        Value, ValueMap, WasmStore,
     },
 };
 
@@ -50,6 +50,16 @@ pub struct Source(
     Arc<Mutex<BlockingSource>>,
 );
 
+macro_rules! wrap_blocking_source_fn {
+    ($fn_name:ident, $return_type:ty, $($param:ident : $type:ty),*) => {
+        pub async fn $fn_name(&self, $($param: $type),*) -> $return_type {
+            let blocking_source = self.0.clone();
+
+            ::tokio::task::spawn_blocking(move || blocking_source.lock().unwrap().$fn_name($($param),*)).await?
+        }
+    };
+}
+
 impl Source {
     pub fn from_aix_file(path: &Path, settings: Settings) -> Result<Self> {
         let blocking_source = BlockingSource::from_aix_file(path, settings)?;
@@ -66,41 +76,39 @@ impl Source {
         self.0.lock().unwrap().setting_definitions.clone()
     }
 
-    pub async fn get_manga_list(&self) -> Result<Vec<Manga>> {
-        let blocking_source = self.0.clone();
+    wrap_blocking_source_fn!(
+        get_manga_list,
+        Result<Vec<Manga>>,
+        cancellation_token: CancellationToken
+    );
 
-        spawn_blocking(move || blocking_source.lock().unwrap().get_manga_list()).await?
-    }
+    wrap_blocking_source_fn!(
+        search_mangas,
+        Result<Vec<Manga>>,
+        cancellation_token: CancellationToken,
+        query: String
+    );
 
-    pub async fn search_mangas(&self, query: String) -> Result<Vec<Manga>> {
-        let blocking_source = self.0.clone();
+    wrap_blocking_source_fn!(
+        get_chapter_list,
+        Result<Vec<Chapter>>,
+        cancellation_token: CancellationToken,
+        manga_id: String
+    );
 
-        spawn_blocking(move || blocking_source.lock().unwrap().search_mangas(query)).await?
-    }
+    wrap_blocking_source_fn!(
+        get_page_list,
+        Result<Vec<Page>>,
+        cancellation_token: CancellationToken,
+        manga_id: String,
+        chapter_id: String
+    );
 
-    pub async fn get_chapter_list(&self, manga_id: String) -> Result<Vec<Chapter>> {
-        let blocking_source = self.0.clone();
-
-        spawn_blocking(move || blocking_source.lock().unwrap().get_chapter_list(manga_id)).await?
-    }
-
-    pub async fn get_page_list(&self, manga_id: String, chapter_id: String) -> Result<Vec<Page>> {
-        let blocking_source = self.0.clone();
-
-        spawn_blocking(move || {
-            blocking_source
-                .lock()
-                .unwrap()
-                .get_page_list(manga_id, chapter_id)
-        })
-        .await?
-    }
-
-    pub async fn get_image_request(&self, url: Url) -> Result<Request> {
-        let blocking_source = self.0.clone();
-
-        spawn_blocking(move || blocking_source.lock().unwrap().get_image_request(url)).await?
-    }
+    wrap_blocking_source_fn!(
+        get_image_request,
+        Result<Request>,
+        url: Url
+    );
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -186,15 +194,23 @@ impl BlockingSource {
         })
     }
 
-    pub fn get_manga_list(&mut self) -> Result<Vec<Manga>> {
-        self.search_mangas_by_filters(vec![])
+    pub fn get_manga_list(&mut self, cancellation_token: CancellationToken) -> Result<Vec<Manga>> {
+        self.run_under_context(cancellation_token, OperationContextObject::None, |this| {
+            this.search_mangas_by_filters_inner(vec![])
+        })
     }
 
-    pub fn search_mangas(&mut self, query: String) -> Result<Vec<Manga>> {
-        self.search_mangas_by_filters(vec![Filter::Title(query)])
+    pub fn search_mangas(
+        &mut self,
+        cancellation_token: CancellationToken,
+        query: String,
+    ) -> Result<Vec<Manga>> {
+        self.run_under_context(cancellation_token, OperationContextObject::None, |this| {
+            this.search_mangas_by_filters_inner(vec![Filter::Title(query)])
+        })
     }
 
-    fn search_mangas_by_filters(&mut self, filters: Vec<Filter>) -> Result<Vec<Manga>> {
+    fn search_mangas_by_filters_inner(&mut self, filters: Vec<Filter>) -> Result<Vec<Manga>> {
         let wasm_function = self
             .instance
             .get_typed_func::<(i32, i32), i32>(&mut self.store, "get_manga_list")?;
@@ -235,17 +251,18 @@ impl BlockingSource {
         Ok(mangas)
     }
 
-    pub fn get_chapter_list(&mut self, manga_id: String) -> Result<Vec<Chapter>> {
-        // FIXME setting the context modifies some of the operations done inside the
-        // Aidoku functions (mainly `create_chapter`/`create_page`)
-        // not sure if i like this but i think its decent for now
-        self.store.data_mut().context = StoreContext::Manga {
-            id: manga_id.clone(),
-        };
-        let result = self.get_chapter_list_inner(manga_id);
-        self.store.data_mut().context = StoreContext::None;
-
-        result
+    pub fn get_chapter_list(
+        &mut self,
+        cancellation_token: CancellationToken,
+        manga_id: String,
+    ) -> Result<Vec<Chapter>> {
+        self.run_under_context(
+            cancellation_token,
+            OperationContextObject::Manga {
+                id: manga_id.clone(),
+            },
+            |this| this.get_chapter_list_inner(manga_id),
+        )
     }
 
     fn get_chapter_list_inner(&mut self, manga_id: String) -> Result<Vec<Chapter>> {
@@ -291,18 +308,20 @@ impl BlockingSource {
         Ok(chapters)
     }
 
-    pub fn get_page_list(&mut self, manga_id: String, chapter_id: String) -> Result<Vec<Page>> {
-        // FIXME setting the context modifies some of the operations done inside the
-        // Aidoku functions (mainly `create_chapter`/`create_page`)
-        // not sure if i like this but i think its decent for now
-        self.store.data_mut().context = StoreContext::Chapter {
-            manga_id: manga_id.clone(),
-            id: chapter_id.clone(),
-        };
-        let result = self.get_page_list_inner(manga_id, chapter_id);
-        self.store.data_mut().context = StoreContext::None;
-
-        result
+    pub fn get_page_list(
+        &mut self,
+        cancellation_token: CancellationToken,
+        manga_id: String,
+        chapter_id: String,
+    ) -> Result<Vec<Page>> {
+        self.run_under_context(
+            cancellation_token,
+            OperationContextObject::Chapter {
+                manga_id: manga_id.clone(),
+                id: chapter_id.clone(),
+            },
+            |this| this.get_page_list_inner(manga_id, chapter_id),
+        )
     }
 
     fn get_page_list_inner(&mut self, manga_id: String, chapter_id: String) -> Result<Vec<Page>> {
@@ -402,5 +421,26 @@ impl BlockingSource {
         .unwrap();
 
         (request_building_state as &RequestBuildingState).try_into()
+    }
+
+    fn run_under_context<T, F>(
+        &mut self,
+        cancellation_token: CancellationToken,
+        current_object: OperationContextObject,
+        f: F,
+    ) -> T
+    where
+        F: FnOnce(&mut Self) -> T,
+    {
+        self.store.data_mut().context = OperationContext {
+            cancellation_token,
+            current_object,
+        };
+
+        let result = f(self);
+
+        self.store.data_mut().context = OperationContext::default();
+
+        result
     }
 }
