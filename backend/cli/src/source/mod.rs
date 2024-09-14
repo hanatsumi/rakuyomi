@@ -164,7 +164,7 @@ impl BlockingSource {
         let engine = Engine::default();
         let wasm_store = WasmStore::new(manifest.info.id.clone(), source_settings, settings);
         let mut store = Store::new(&engine, wasm_store);
-        let module = Module::new(&engine, wasm_file)
+        let module = Module::new_streaming(&engine, wasm_file)
             .with_context(|| format!("failed loading module from {}", path.display()))?;
 
         let mut linker = Linker::new(&engine);
@@ -317,7 +317,6 @@ impl BlockingSource {
         self.run_under_context(
             cancellation_token,
             OperationContextObject::Chapter {
-                manga_id: manga_id.clone(),
                 id: chapter_id.clone(),
             },
             |this| this.get_page_list_inner(manga_id, chapter_id),

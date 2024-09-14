@@ -65,7 +65,7 @@ pub fn aidoku_wasm_function(_args: OGTokenStream, input: OGTokenStream) -> OGTok
         .collect();
 
     let wasm_parameter_types_array_definition = quote! {
-        let mut wasm_parameter_types = ::std::vec::Vec::<::wasmi::core::ValueType>::new();
+        let mut wasm_parameter_types = ::std::vec::Vec::<::wasmi::core::ValType>::new();
     };
 
     let wasm_parameter_types_appenders: Vec<TokenStream> = input_types.iter()
@@ -102,7 +102,7 @@ pub fn aidoku_wasm_function(_args: OGTokenStream, input: OGTokenStream) -> OGTok
     let func = quote! {
         #input
 
-        pub fn #internal_ident(mut caller: ::wasmi::Caller<'_, #caller_store_type>, params: &[::wasmi::Value], results: &mut [::wasmi::Value]) -> ::core::result::Result<(), ::wasmi::core::Trap> {
+        pub fn #internal_ident(mut caller: ::wasmi::Caller<'_, #caller_store_type>, params: &[::wasmi::Val], results: &mut [::wasmi::Val]) -> ::core::result::Result<(), ::wasmi::Error> {
             use ::wasm_shared::ToWasmValue;
             #argument_accessor_start
             #(#argument_setters)*

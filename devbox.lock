@@ -21,6 +21,54 @@
         }
       }
     },
+    "cargo-flamegraph@latest": {
+      "last_modified": "2024-09-12T11:58:09Z",
+      "resolved": "github:NixOS/nixpkgs/280db3decab4cbeb22a4599bd472229ab74d25e1#cargo-flamegraph",
+      "source": "devbox-search",
+      "version": "0.6.5",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/lq17d5iqpq2m08dhlr7d66338a4qjd0s-cargo-flamegraph-0.6.5",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/lq17d5iqpq2m08dhlr7d66338a4qjd0s-cargo-flamegraph-0.6.5"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/7qn5nsa46jn9nz77ag8hy0yw77jwzbzd-cargo-flamegraph-0.6.5",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/7qn5nsa46jn9nz77ag8hy0yw77jwzbzd-cargo-flamegraph-0.6.5"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/mrfbql0wwncr4z0j8qpkyda743xrdcv6-cargo-flamegraph-0.6.5",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/mrfbql0wwncr4z0j8qpkyda743xrdcv6-cargo-flamegraph-0.6.5"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/p8al5b1s0jdhasrdqpq340sf0lgqsal7-cargo-flamegraph-0.6.5",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/p8al5b1s0jdhasrdqpq340sf0lgqsal7-cargo-flamegraph-0.6.5"
+        }
+      }
+    },
     "gcc@13.2.0": {
       "last_modified": "2024-04-19T21:36:04Z",
       "resolved": "github:NixOS/nixpkgs/92d295f588631b0db2da509f381b4fb1e74173c5#gcc",
@@ -97,10 +145,53 @@
       }
     },
     "rustup@latest": {
-      "last_modified": "2023-11-19T17:46:56Z",
+      "last_modified": "2024-09-12T11:58:09Z",
       "plugin_version": "0.0.1",
-      "resolved": "github:NixOS/nixpkgs/0bf3f5cf6a98b5d077cdcdb00a6d4b3d92bc78b5#rustup",
-      "version": "1.26.0"
+      "resolved": "github:NixOS/nixpkgs/280db3decab4cbeb22a4599bd472229ab74d25e1#rustup",
+      "source": "devbox-search",
+      "version": "1.27.1",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/prbpax89x3wad4f2ckjbxs5z9bh39yfj-rustup-1.27.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/prbpax89x3wad4f2ckjbxs5z9bh39yfj-rustup-1.27.1"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/cw6vj5y265hixh2l80rwv7pb9n39s80s-rustup-1.27.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/cw6vj5y265hixh2l80rwv7pb9n39s80s-rustup-1.27.1"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/hf2hwb243fwclc417mmacyyas2fnkqxg-rustup-1.27.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/hf2hwb243fwclc417mmacyyas2fnkqxg-rustup-1.27.1"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/a04bnqgj3mvg777a70jymwnxcgm7cdcv-rustup-1.27.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/a04bnqgj3mvg777a70jymwnxcgm7cdcv-rustup-1.27.1"
+        }
+      }
     },
     "sqlx-cli@latest": {
       "last_modified": "2023-12-13T22:54:10Z",
