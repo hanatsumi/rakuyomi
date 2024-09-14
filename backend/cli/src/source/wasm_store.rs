@@ -29,7 +29,7 @@ pub type ValueMap = BTreeMap<String, Value>;
 // FIXME Apply the suggestion from the following `clippy` lint
 // This enum is needlessly large, maybe we could measure the impact of
 // actually changing this.
-#[allow(clippy::large_enum_variant)]
+#[allow(clippy::large_enum_variant, dead_code)]
 pub enum ObjectValue {
     ValueMap(ValueMap),
     Manga(Manga),
@@ -113,7 +113,6 @@ pub enum OperationContextObject {
         id: String,
     },
     Chapter {
-        manga_id: String,
         id: String,
     },
 }

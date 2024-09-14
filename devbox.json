@@ -7,6 +7,7 @@
     "cachix@latest",
     "python@latest",
     "gcc@13.2.0",
+    "cargo-flamegraph@latest",
   ],
   "env": {
     "PROJECT_DIR": "$PWD",
@@ -37,7 +38,7 @@
       ],
       "remote-install": [
         "python3 tools/install-into-remote-koreader.py",
-      ]
+      ],
     },
   },
   "nixpkgs": {

@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, NaiveDateTime};
 use memory_reader::{read_bytes, read_string};
-use wasmi::{core::ValueType, Caller, Extern, Memory, Value};
+use wasmi::{core::ValType, Caller, Extern, Memory, Val};
 
 pub mod memory_reader;
 
@@ -15,8 +15,8 @@ pub fn get_memory<T>(caller: &mut Caller<'_, T>) -> Option<Memory> {
 pub trait FromWasmValues<T> {
     const WASM_VALUE_COUNT: usize;
 
-    fn get_wasm_value_types() -> &'static [ValueType];
-    fn from_wasm_values(caller: &mut Caller<'_, T>, values: &[Value]) -> Self;
+    fn get_wasm_value_types() -> &'static [ValType];
+    fn from_wasm_values(caller: &mut Caller<'_, T>, values: &[Val]) -> Self;
 }
 
 pub trait TryFromWasmValues<T>
@@ -25,18 +25,18 @@ where
 {
     const WASM_VALUE_COUNT: usize;
 
-    fn get_wasm_value_types() -> &'static [ValueType];
-    fn try_from_wasm_values(caller: &mut Caller<'_, T>, values: &[Value]) -> Result<Self>;
+    fn get_wasm_value_types() -> &'static [ValType];
+    fn try_from_wasm_values(caller: &mut Caller<'_, T>, values: &[Val]) -> Result<Self>;
 }
 
 impl<T> TryFromWasmValues<T> for String {
     const WASM_VALUE_COUNT: usize = 2;
 
-    fn get_wasm_value_types() -> &'static [ValueType] {
-        &[ValueType::I32, ValueType::I32]
+    fn get_wasm_value_types() -> &'static [ValType] {
+        &[ValType::I32, ValType::I32]
     }
 
-    fn try_from_wasm_values(caller: &mut Caller<'_, T>, values: &[Value]) -> Result<Self> {
+    fn try_from_wasm_values(caller: &mut Caller<'_, T>, values: &[Val]) -> Result<Self> {
         let offset: usize = values[0]
             .i32()
             .ok_or_else(|| anyhow!("expected to receive a i32 as the offset argument"))?
@@ -58,11 +58,11 @@ impl<T> TryFromWasmValues<T> for String {
 impl<T> TryFromWasmValues<T> for DateTime<chrono_tz::Tz> {
     const WASM_VALUE_COUNT: usize = 1;
 
-    fn get_wasm_value_types() -> &'static [ValueType] {
-        &[ValueType::F64]
+    fn get_wasm_value_types() -> &'static [ValType] {
+        &[ValType::F64]
     }
 
-    fn try_from_wasm_values(_caller: &mut Caller<'_, T>, values: &[Value]) -> Result<Self> {
+    fn try_from_wasm_values(_caller: &mut Caller<'_, T>, values: &[Val]) -> Result<Self> {
         use chrono::TimeZone;
         let seconds_since_1970 = values[0]
             .f64()
@@ -86,11 +86,11 @@ impl<T> TryFromWasmValues<T> for DateTime<chrono_tz::Tz> {
 impl<T> TryFromWasmValues<T> for Vec<u8> {
     const WASM_VALUE_COUNT: usize = 2;
 
-    fn get_wasm_value_types() -> &'static [ValueType] {
-        &[ValueType::I32, ValueType::I32]
+    fn get_wasm_value_types() -> &'static [ValType] {
+        &[ValType::I32, ValType::I32]
     }
 
-    fn try_from_wasm_values(caller: &mut Caller<'_, T>, values: &[Value]) -> Result<Self> {
+    fn try_from_wasm_values(caller: &mut Caller<'_, T>, values: &[Val]) -> Result<Self> {
         let offset: usize = values[0]
             .i32()
             .ok_or_else(|| anyhow!("expected to receive a i32 as the offset argument"))?
@@ -115,11 +115,11 @@ where
 {
     const WASM_VALUE_COUNT: usize = U::WASM_VALUE_COUNT;
 
-    fn get_wasm_value_types() -> &'static [ValueType] {
+    fn get_wasm_value_types() -> &'static [ValType] {
         U::get_wasm_value_types()
     }
 
-    fn from_wasm_values(caller: &mut Caller<'_, T>, values: &[Value]) -> Self {
+    fn from_wasm_values(caller: &mut Caller<'_, T>, values: &[Val]) -> Self {
         U::try_from_wasm_values(caller, values).ok()
     }
 }
@@ -128,11 +128,11 @@ where
 impl<T> FromWasmValues<T> for i32 {
     const WASM_VALUE_COUNT: usize = 1;
 
-    fn get_wasm_value_types() -> &'static [ValueType] {
-        &[ValueType::I32]
+    fn get_wasm_value_types() -> &'static [ValType] {
+        &[ValType::I32]
     }
 
-    fn from_wasm_values(_caller: &mut Caller<'_, T>, values: &[Value]) -> Self {
+    fn from_wasm_values(_caller: &mut Caller<'_, T>, values: &[Val]) -> Self {
         values[0].i32().unwrap()
     }
 }
@@ -140,11 +140,11 @@ impl<T> FromWasmValues<T> for i32 {
 impl<T> FromWasmValues<T> for i64 {
     const WASM_VALUE_COUNT: usize = 1;
 
-    fn get_wasm_value_types() -> &'static [ValueType] {
-        &[ValueType::I64]
+    fn get_wasm_value_types() -> &'static [ValType] {
+        &[ValType::I64]
     }
 
-    fn from_wasm_values(_caller: &mut Caller<'_, T>, values: &[Value]) -> Self {
+    fn from_wasm_values(_caller: &mut Caller<'_, T>, values: &[Val]) -> Self {
         values[0].i64().unwrap()
     }
 }
@@ -152,11 +152,11 @@ impl<T> FromWasmValues<T> for i64 {
 impl<T> FromWasmValues<T> for f32 {
     const WASM_VALUE_COUNT: usize = 1;
 
-    fn get_wasm_value_types() -> &'static [ValueType] {
-        &[ValueType::F32]
+    fn get_wasm_value_types() -> &'static [ValType] {
+        &[ValType::F32]
     }
 
-    fn from_wasm_values(_caller: &mut Caller<'_, T>, values: &[Value]) -> Self {
+    fn from_wasm_values(_caller: &mut Caller<'_, T>, values: &[Val]) -> Self {
         values[0].f32().unwrap().to_float()
     }
 }
@@ -164,25 +164,25 @@ impl<T> FromWasmValues<T> for f32 {
 impl<T> FromWasmValues<T> for f64 {
     const WASM_VALUE_COUNT: usize = 1;
 
-    fn get_wasm_value_types() -> &'static [ValueType] {
-        &[ValueType::F64]
+    fn get_wasm_value_types() -> &'static [ValType] {
+        &[ValType::F64]
     }
 
-    fn from_wasm_values(_caller: &mut Caller<'_, T>, values: &[Value]) -> Self {
+    fn from_wasm_values(_caller: &mut Caller<'_, T>, values: &[Val]) -> Self {
         values[0].f64().unwrap().to_float()
     }
 }
 
 pub trait ToWasmValue {
-    const WASM_VALUE_TYPE: ValueType;
+    const WASM_VALUE_TYPE: ValType;
 
-    fn to_wasm_value(&self) -> Value;
+    fn to_wasm_value(&self) -> Val;
 }
 
 impl ToWasmValue for i32 {
-    const WASM_VALUE_TYPE: ValueType = ValueType::I32;
+    const WASM_VALUE_TYPE: ValType = ValType::I32;
 
-    fn to_wasm_value(&self) -> Value {
-        Value::I32(*self)
+    fn to_wasm_value(&self) -> Val {
+        Val::I32(*self)
     }
 }
