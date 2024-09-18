@@ -120,23 +120,23 @@ function LibraryView:onMenuHold(item)
     text = "Do you want to remove \"" .. manga.title .. "\" from your library?",
     ok_text = "Remove",
     ok_callback = function()
-      local _, err = Backend.removeMangaFromLibrary(manga.source.id, manga.id)
+      local response = Backend.removeMangaFromLibrary(manga.source.id, manga.id)
 
-      if err ~= nil then
-        ErrorDialog:show(err)
-
-        return
-      end
-
-      local mangas, err = Backend.getMangasInLibrary()
-
-      if err ~= nil then
-        ErrorDialog:show(err)
+      if response.type == 'ERROR' then
+        ErrorDialog:show(response.message)
 
         return
       end
 
-      self.mangas = mangas
+      local response = Backend.getMangasInLibrary()
+
+      if response.type == 'ERROR' then
+        ErrorDialog:show(response.message)
+
+        return
+      end
+
+      self.mangas = response.body
 
       self:updateItems()
     end
