@@ -19,6 +19,14 @@ pub enum SourceSettingValue {
     String(String),
 }
 
+#[derive(Copy, Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ChapterSortingMode {
+    ChapterAscending,
+    #[default]
+    ChapterDescending,
+}
+
 /// Settings used to configure rakuyomi's behavior.
 #[derive(Serialize, Deserialize, Default, Clone, Debug, JsonSchema)]
 pub struct Settings {
@@ -42,6 +50,11 @@ pub struct Settings {
     /// Source-specific settings.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub source_settings: HashMap<String, HashMap<String, SourceSettingValue>>,
+
+    /// The order in which chapters will be displayed in the chapter listing. Defaults to
+    /// `volume_descending`.
+    #[serde(default)]
+    pub chapter_sorting_mode: ChapterSortingMode,
 }
 
 fn default_storage_size_limit() -> StorageSizeLimit {
