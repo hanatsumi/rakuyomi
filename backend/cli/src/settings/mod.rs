@@ -1,4 +1,4 @@
 mod implementation;
 mod schema;
 
-pub use schema::{Settings, SourceSettingValue};
+pub use schema::{ChapterSortingMode, Settings, SourceSettingValue};
