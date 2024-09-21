@@ -1,19 +1,12 @@
 local Blitbuffer = require("ffi/blitbuffer")
-local CheckButton = require("ui/widget/checkbutton")
-local CheckMark = require("ui/widget/checkmark")
-local Device = require("device")
 local FocusManager = require("ui/widget/focusmanager")
 local HorizontalGroup = require("ui/widget/horizontalgroup")
 local HorizontalSpan = require("ui/widget/horizontalspan")
-local InputDialog = require("ui/widget/inputdialog")
-local GestureRange = require("ui/gesturerange")
 local Geom = require("ui/geometry")
 local Font = require("ui/font")
 local FrameContainer = require("ui/widget/container/framecontainer")
-local InputContainer = require("ui/widget/container/inputcontainer")
 local LineWidget = require("ui/widget/linewidget")
 local OverlapGroup = require("ui/widget/overlapgroup")
-local RadioButtonWidget = require("ui/widget/radiobuttonwidget")
 local Screen = require("device").screen
 local Size = require("ui/size")
 local TextWidget = require("ui/widget/textwidget")
@@ -21,222 +14,43 @@ local TextBoxWidget = require("ui/widget/textboxwidget")
 local TitleBar = require("ui/widget/titlebar")
 local UIManager = require("ui/uimanager")
 local VerticalGroup = require("ui/widget/verticalgroup")
-local logger = require("logger")
 
 local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
-local Icons = require("Icons")
+local SettingItem = require("widgets/SettingItem")
 
 local FOOTER_FONT_SIZE = 14
-local SETTING_ITEM_FONT_SIZE = 18
 
---- @class SettingItemValue: { [any]: any }
---- @field setting_definition SettingDefinition
---- @field on_return_callback fun(): nil
-local SettingItemValue = InputContainer:extend {
-  show_parent = nil,
-  max_width = nil,
-  setting_definition = nil,
-  -- If not set, the default value from the setting definition will be shown instead.
-  value = nil,
-  on_value_changed_callback = nil,
-}
+--- @param setting_definition SettingDefinition
+--- @return ValueDefinition
+local function mapSettingDefinitionToValueDefinition(setting_definition)
+  if setting_definition.type == 'switch' then
+    return {
+      type = 'boolean'
+    }
+  elseif setting_definition.type == 'select' then
+    local options = {}
 
---- @private
-function SettingItemValue:init()
-  -- REFACT We should refactor this `SettingDefinition` type in a way that actual settings
-  -- are different from a group. See the backend's side defintiion of `SettingDefinition` for
-  -- more details.
-  assert(self.setting_definition.type ~= "group")
-  self.show_parent = self.show_parent or self
+    for index, value in ipairs(setting_definition.values) do
+      local title = setting_definition.titles[index]
 
-  self.ges_events = {
-    Tap = {
-      GestureRange:new {
-        ges = "tap",
-        range = function()
-          return self.dimen
-        end
-      }
-    },
-  }
-
-  self[1] = self:createValueWidget()
-end
-
---- @private
-function SettingItemValue:getCurrentValue()
-  local value = self.value
-  if value == nil then
-    value = self.setting_definition.default
-  end
-
-  return value
-end
-
---- @private
-function SettingItemValue:createValueWidget()
-  -- REFACT maybe split this into multiple widgets, one for each setting definition type
-  -- TODO add support for the `subtitle` field of the setting definition
-  if self.setting_definition.type == "select" then
-    local title_for_value = {}
-    for index, value in ipairs(self.setting_definition.values) do
-      title_for_value[value] = self.setting_definition.titles[index]
+      table.insert(options, { label = title, value = value })
     end
 
-    return TextWidget:new {
-      text = title_for_value[self:getCurrentValue()] .. " " .. Icons.UNICODE_ARROW_RIGHT,
-      editable = true,
-      face = Font:getFace("cfont", SETTING_ITEM_FONT_SIZE),
-      max_width = self.max_width,
+    return {
+      type = 'enum',
+      title = setting_definition.title,
+      options = options,
     }
-  elseif self.setting_definition.type == "switch" then
-    return CheckMark:new {
-      checked = self:getCurrentValue(),
-      face = Font:getFace("smallinfofont", SETTING_ITEM_FONT_SIZE),
-    }
-  elseif self.setting_definition.type == "text" then
-    return TextWidget:new {
-      text = self:getCurrentValue(),
-      editable = true,
-      face = Font:getFace("cfont", SETTING_ITEM_FONT_SIZE),
-      max_width = self.max_width,
+  elseif setting_definition.type == 'text' then
+    return {
+      type = 'string',
+      title = setting_definition.title or setting_definition.placeholder,
+      placeholder = setting_definition.placeholder
     }
   else
-    error("unexpected setting definition type: " .. self.setting_definition.type)
+    error("unexpected setting definition type: " .. setting_definition.type)
   end
-end
-
---- @private
-function SettingItemValue:onTap()
-  if self.setting_definition.type == "select" then
-    local radio_buttons = {}
-    for index, value in ipairs(self.setting_definition.values) do
-      local title = self.setting_definition.titles[index]
-
-      table.insert(radio_buttons, {
-        {
-          text = title,
-          provider = value,
-          checked = self:getCurrentValue() == value,
-        },
-      })
-    end
-
-    local dialog
-    dialog = RadioButtonWidget:new {
-      title_text = self.setting_definition.title,
-      radio_buttons = radio_buttons,
-      callback = function(radio)
-        UIManager:close(dialog)
-
-        self:updateCurrentValue(radio.provider)
-      end
-    }
-
-    UIManager:show(dialog)
-  elseif self.setting_definition.type == "switch" then
-    self:updateCurrentValue(not self:getCurrentValue())
-  elseif self.setting_definition.type == "text" then
-    local dialog
-    dialog = InputDialog:new {
-      title = self.setting_definition.title or self.setting_definition.placeholder,
-      input = self:getCurrentValue(),
-      input_hint = self.setting_definition.placeholder,
-      buttons = {
-        {
-          {
-            text = "Cancel",
-            id = "close",
-            callback = function()
-              UIManager:close(dialog)
-            end,
-          },
-          {
-            text = "Save",
-            is_enter_default = true,
-            callback = function()
-              UIManager:close(dialog)
-
-              self:updateCurrentValue(dialog:getInputText())
-            end,
-          },
-        }
-      }
-    }
-
-    UIManager:show(dialog)
-    dialog:onShowKeyboard()
-  end
-end
-
---- @private
-function SettingItemValue:updateCurrentValue(new_value)
-  self.value = new_value
-  self[1] = self:createValueWidget()
-  -- our dimensions are cached? i mean what the actual fuck
-  self.dimen = nil
-  UIManager:setDirty(self.show_parent, "ui")
-
-  self.on_value_changed_callback(self.setting_definition.key, new_value)
-end
-
-local SettingItem = InputContainer:extend {
-  show_parent = nil,
-  width = nil,
-  setting_definition = nil,
-  stored_value = nil,
-  on_value_changed_callback = nil,
-}
-
-function SettingItem:init()
-  self.show_parent = self.show_parent or self
-  self.width = self.width or Screen:getWidth()
-  self.label_widget = TextBoxWidget:new {
-    -- REFACT `text` setting definitions usually have the `placeholder` field as a replacement for
-    -- `title`, however this is a implementation detail of Aidoku's extensions and it shouldn't
-    -- leak here
-    text = self.setting_definition.title or self.setting_definition.placeholder,
-    face = Font:getFace("cfont", SETTING_ITEM_FONT_SIZE),
-    width = self.width / 2,
-  }
-
-  -- FIXME what is this name?????????
-  self.value_widget = SettingItemValue:new {
-    show_parent = self.show_parent,
-    setting_definition = self.setting_definition,
-    max_width = self.width / 2,
-    value = self.stored_value,
-    on_value_changed_callback = function(key, new_value)
-      self:onValueChanged(key, new_value)
-    end,
-  }
-
-  self[1] = HorizontalGroup:new {
-    self.label_widget,
-    self:createHorizontalSpacerWidget(),
-    self.value_widget,
-  }
-end
-
---- @private
-function SettingItem:createHorizontalSpacerWidget()
-  return HorizontalSpan:new {
-    width = self.width - self.label_widget:getSize().w - self.value_widget:getSize().w,
-  }
-end
-
---- @private
-function SettingItem:onValueChanged(key, new_value)
-  -- The value widget's size might have changed, which means we need to recalculate the size
-  -- of the spacer widget.
-  self[1][2] = self:createHorizontalSpacerWidget()
-  -- The HorizontalGroup layout is also cached, so we clear it too
-  self[1]:resetLayout()
-
-  UIManager:setDirty(self.show_parent, "ui")
-
-  self.on_value_changed_callback(key, new_value)
 end
 
 local SourceSettings = FocusManager:extend {
@@ -311,10 +125,14 @@ function SourceSettings:init()
       local setting_item = SettingItem:new {
         show_parent = self,
         width = self.item_width,
-        setting_definition = child,
-        stored_value = self.stored_settings[child.key],
-        on_value_changed_callback = function(key, new_value)
-          self:updateStoredSetting(key, new_value)
+        -- REFACT `text` setting definitions usually have the `placeholder` field as a replacement for
+        -- `title`, however this is a implementation detail of Aidoku's extensions and it shouldn't
+        -- leak here
+        label = child.title or child.placeholder,
+        value_definition = mapSettingDefinitionToValueDefinition(child),
+        value = self.stored_settings[child.key] or child.default,
+        on_value_changed_callback = function(new_value)
+          self:updateStoredSetting(child.key, new_value)
         end
       }
 
