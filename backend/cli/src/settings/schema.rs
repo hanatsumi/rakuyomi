@@ -150,3 +150,22 @@ impl JsonSchema for StorageSizeLimit {
         schema_object.into()
     }
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateableSettings {
+    chapter_sorting_mode: ChapterSortingMode,
+}
+
+impl UpdateableSettings {
+    pub fn apply_updates(&self, settings: &mut Settings) {
+        settings.chapter_sorting_mode = self.chapter_sorting_mode
+    }
+}
+
+impl From<&Settings> for UpdateableSettings {
+    fn from(value: &Settings) -> Self {
+        Self {
+            chapter_sorting_mode: value.chapter_sorting_mode,
+        }
+    }
+}

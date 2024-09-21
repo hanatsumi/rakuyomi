@@ -320,6 +320,27 @@ function Backend.setSourceStoredSettings(source_id, stored_settings)
   })
 end
 
+--- @alias ChapterSortingMode 'chapter_ascending'|'chapter_descending'
+--- @class Settings: { chapter_sorting_mode: ChapterSortingMode }
+
+--- Reads the application settings.
+--- @return SuccessfulResponse<Settings>|ErrorResponse
+function Backend.getSettings()
+  return requestJson({
+    url = "http://localhost:30727/settings"
+  })
+end
+
+--- Updates the application settings.
+--- @return SuccessfulResponse<Settings>|ErrorResponse
+function Backend.setSettings(settings)
+  return requestJson({
+    url = "http://localhost:30727/settings",
+    method = 'PUT',
+    body = settings
+  })
+end
+
 function Backend.cleanup()
   logger.info("Terminating subprocess with PID " .. Backend.server_pid)
   -- send SIGTERM to the backend
