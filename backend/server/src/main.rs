@@ -15,13 +15,13 @@ use std::{fs, mem};
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::routing::{get, post};
+use axum::routing::{get, post, put};
 use axum::{extract::State as StateExtractor, Json, Router};
 use clap::Parser;
 use cli::chapter_storage::ChapterStorage;
 use cli::database::Database;
 use cli::model::{ChapterId, MangaId, SourceId};
-use cli::settings::{Settings, SourceSettingValue};
+use cli::settings::{Settings, SourceSettingValue, UpdateableSettings};
 use cli::source_manager::SourceManager;
 use cli::usecases::fetch_all_manga_chapters::ProgressReport;
 use cli::usecases::{
@@ -165,6 +165,8 @@ async fn main() -> anyhow::Result<()> {
             "/installed-sources/:source_id/stored-settings",
             post(set_source_stored_settings),
         )
+        .route("/settings", get(get_settings))
+        .route("/settings", put(update_settings))
         .with_state(state);
 
     // run our app with hyper, listening globally on port 30727
@@ -528,6 +530,26 @@ async fn set_source_stored_settings(
     )?;
 
     Ok(Json(()))
+}
+
+async fn get_settings(
+    StateExtractor(State { settings, .. }): StateExtractor<State>,
+) -> Json<UpdateableSettings> {
+    Json(UpdateableSettings::from(&*settings.lock().await))
+}
+
+async fn update_settings(
+    StateExtractor(State {
+        settings,
+        settings_path,
+        ..
+    }): StateExtractor<State>,
+    Json(updateable_settings): Json<UpdateableSettings>,
+) -> Result<Json<UpdateableSettings>, AppError> {
+    let mut settings = settings.lock().await;
+    usecases::update_settings(&mut settings, &settings_path, updateable_settings)?;
+
+    Ok(Json(UpdateableSettings::from(&*settings)))
 }
 
 async fn cancel_after<F, Fut>(duration: Duration, f: F) -> Fut::Output

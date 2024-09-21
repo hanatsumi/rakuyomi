@@ -13,6 +13,7 @@ pub mod refresh_manga_chapters;
 pub mod remove_manga_from_library;
 pub mod search_mangas;
 pub mod set_source_stored_settings;
+pub mod update_settings;
 
 pub use add_manga_to_library::add_manga_to_library;
 pub use fetch_all_manga_chapters::fetch_all_manga_chapters;
@@ -29,3 +30,4 @@ pub use refresh_manga_chapters::refresh_manga_chapters;
 pub use remove_manga_from_library::remove_manga_from_library;
 pub use search_mangas::search_mangas;
 pub use set_source_stored_settings::set_source_stored_settings;
+pub use update_settings::update_settings;

@@ -14,6 +14,7 @@ local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
 local ChapterListing = require("ChapterListing")
 local MangaSearchResults = require("MangaSearchResults")
+local Settings = require("Settings")
 
 local LibraryView = Menu:extend {
   name = "library_view",
@@ -167,7 +168,17 @@ function LibraryView:openMenu()
           self:openInstalledSourcesListing()
         end
       },
-    }
+    },
+    {
+      {
+        text = Icons.FA_GEAR .. " Settings",
+        callback = function()
+          UIManager:close(dialog)
+
+          self:openSettings()
+        end
+      },
+    },
   }
 
   dialog = ButtonDialog:new {
@@ -231,6 +242,19 @@ function LibraryView:openInstalledSourcesListing()
     end
 
     InstalledSourcesListing:fetchAndShow(onReturnCallback)
+
+    self:onClose()
+  end)
+end
+
+--- @private
+function LibraryView:openSettings()
+  Trapper:wrap(function()
+    local onReturnCallback = function()
+      self:fetchAndShow()
+    end
+
+    Settings:fetchAndShow(onReturnCallback)
 
     self:onClose()
   end)

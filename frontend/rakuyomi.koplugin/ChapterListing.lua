@@ -225,13 +225,23 @@ end
 --- @private
 function ChapterListing:openChapterOnReader(chapter)
   Trapper:wrap(function()
+    local response = Backend.getSettings()
+    if response.type == 'ERROR' then
+      ErrorDialog:show(response.message)
+
+      return
+    end
+
+    local settings = response.body
+
     local index = self:findChapterIndex(chapter)
     assert(index ~= nil)
 
     local nextChapter = nil
-    if index > 1 then
-      -- Chapters are shown in source order, which means that newer chapters come _first_
+    if settings.chapter_sorting_mode == 'chapter_descending' and index > 1 then
       nextChapter = self.chapters[index - 1]
+    elseif settings.chapter_sorting_mode == 'chapter_ascending' and index < #self.chapters then
+      nextChapter = self.chapters[index + 1]
     end
 
     local onReturnCallback = function()
