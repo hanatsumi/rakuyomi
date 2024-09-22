@@ -7,6 +7,7 @@ use cli::usecases;
 use env_logger::Env;
 use log::{error, info, warn};
 use std::collections::HashMap;
+use std::env::current_exe;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -38,8 +39,6 @@ use model::{
     Chapter, DownloadAllChaptersProgress, Manga, SourceInformation, SourceMangaSearchResults,
 };
 use tokio_util::sync::CancellationToken;
-
-const VERSION: Option<&str> = option_env!("RAKUYOMI_VERSION");
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -79,7 +78,7 @@ async fn main() -> anyhow::Result<()> {
 
     info!(
         "starting rakuyomi, version: {}",
-        VERSION.unwrap_or("unknown")
+        get_version().unwrap_or_else(|| "unknown".into())
     );
 
     let args = Args::parse();
@@ -572,6 +571,12 @@ where
     request_cancellation_handle.abort();
 
     result
+}
+
+fn get_version() -> Option<String> {
+    let version_file_path = current_exe().ok()?.with_file_name("VERSION");
+
+    fs::read_to_string(version_file_path).ok()
 }
 
 // Make our own error that wraps `anyhow::Error`.

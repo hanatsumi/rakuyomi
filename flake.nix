@@ -76,15 +76,13 @@
                 # https://github.com/rust-lang/cargo/issues/4133
                 "-C" "linker=${TARGET_CC}"
               ];
-
-              overrideMain = old: {
-                RAKUYOMI_VERSION = version;
-              };
             };
 
           mkServerPackage = buildBackendRustPackage { packageName = "server"; };
 
           mkCliPackage = buildBackendRustPackage { packageName = "cli"; copyTarget = true; };
+
+          versionFile = pkgs.writeText "VERSION" version;
 
           mkPluginFolder = target:
             let
@@ -98,6 +96,7 @@
                   mkdir $out
                   cp -r $src/rakuyomi.koplugin/* $out/
                   cp ${server}/bin/server $out/server
+                  cp ${versionFile} $out/VERSION
                 '';
               };
           
