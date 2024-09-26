@@ -1,11 +1,12 @@
 local ConfirmBox = require("ui/widget/confirmbox")
-local Menu = require("ui/widget/menu")
 local UIManager = require("ui/uimanager")
 local Screen = require("device").screen
 local Trapper = require("ui/trapper")
 
 local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
+local Icons = require("Icons")
+local Menu = require("widgets/Menu")
 local LoadingDialog = require("LoadingDialog")
 local ChapterListing = require("ChapterListing")
 
@@ -17,6 +18,7 @@ local MangaSearchResults = Menu:extend {
   is_enable_shortcut = false,
   is_popout = false,
   title = "Search results...",
+  with_context_menu = true,
 
   -- list of mangas
   results = nil,
@@ -101,7 +103,7 @@ function MangaSearchResults:searchAndShow(search_text, onReturnCallback)
 end
 
 --- @private
-function MangaSearchResults:onMenuSelect(item)
+function MangaSearchResults:onPrimaryMenuSelect(item)
   Trapper:wrap(function()
     --- @type Manga
     local manga = item.manga
@@ -117,7 +119,7 @@ function MangaSearchResults:onMenuSelect(item)
 end
 
 --- @private
-function MangaSearchResults:onMenuHold(item)
+function MangaSearchResults:onContextMenuSelect(item)
   --- @type Manga
   local manga = item.manga
   UIManager:show(ConfirmBox:new {

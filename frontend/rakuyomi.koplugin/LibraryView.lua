@@ -1,6 +1,5 @@
 -- FIXME make class names have _some_ kind of logic
 local ConfirmBox = require("ui/widget/confirmbox")
-local Menu = require("ui/widget/menu")
 local InputDialog = require("ui/widget/inputdialog")
 local UIManager = require("ui/uimanager")
 local Screen = require("device").screen
@@ -14,6 +13,7 @@ local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
 local ChapterListing = require("ChapterListing")
 local MangaSearchResults = require("MangaSearchResults")
+local Menu = require("widgets/Menu")
 local Settings = require("Settings")
 
 local LibraryView = Menu:extend {
@@ -21,6 +21,7 @@ local LibraryView = Menu:extend {
   is_enable_shortcut = false,
   is_popout = false,
   title = "Library",
+  with_context_menu = true,
 
   -- list of mangas in your library
   mangas = nil,
@@ -97,7 +98,7 @@ function LibraryView:fetchAndShow()
 end
 
 --- @private
-function LibraryView:onMenuSelect(item)
+function LibraryView:onPrimaryMenuSelect(item)
   Trapper:wrap(function()
     --- @type Manga
     local manga = item.manga
@@ -113,7 +114,7 @@ function LibraryView:onMenuSelect(item)
 end
 
 --- @private
-function LibraryView:onMenuHold(item)
+function LibraryView:onContextMenuSelect(item)
   --- @type Manga
   local manga = item.manga
 

@@ -3,6 +3,7 @@ return {
   FA_BOOK = "\u{F02D}",
   FA_CHECK = "\u{F00C}",
   FA_DOWNLOAD = "\u{F019}",
+  FA_ELLIPSIS_VERTICAL  = "\u{F142}",
   FA_GEAR = "\u{F013}",
   FA_MAGNIFYING_GLASS = "\u{F002}",
   FA_PLUG = "\u{F1E6}",
