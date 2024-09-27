@@ -186,7 +186,7 @@ function Backend.removeMangaFromLibrary(source_id, manga_id)
 end
 
 --- Searches manga from the manga sources.
---- @return SuccessfulResponse<SourceMangaSearchResults[]>|ErrorResponse
+--- @return SuccessfulResponse<Manga[]>|ErrorResponse
 function Backend.searchMangas(search_text)
   return requestJson({
     url = "http://localhost:30727/mangas",

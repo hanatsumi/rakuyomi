@@ -1,8 +1,5 @@
-use cli::{
-    model::{
-        Chapter as DomainChapter, MangaInformation, SourceInformation as DomainSourceInformation,
-    },
-    usecases::search_mangas::SourceMangaSearchResults as DomainSourceMangaSearchResults,
+use cli::model::{
+    Chapter as DomainChapter, MangaInformation, SourceInformation as DomainSourceInformation,
 };
 use serde::Serialize;
 
@@ -19,26 +16,6 @@ impl From<DomainSourceInformation> for SourceInformation {
             id: value.id.value().clone(),
             name: value.name,
             version: value.version,
-        }
-    }
-}
-
-#[derive(Serialize)]
-pub struct SourceMangaSearchResults {
-    source_information: SourceInformation,
-    mangas: Vec<Manga>,
-}
-
-impl From<DomainSourceMangaSearchResults> for SourceMangaSearchResults {
-    fn from(value: DomainSourceMangaSearchResults) -> Self {
-        Self {
-            // FIXME mangas already contain the source information, this is kinda redundant rn
-            source_information: value.source_information.clone().into(),
-            mangas: value
-                .mangas
-                .into_iter()
-                .map(|manga| Manga::from((value.source_information.clone(), manga)))
-                .collect(),
         }
     }
 }

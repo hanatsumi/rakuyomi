@@ -13,7 +13,7 @@ pub struct SourceId {
     source_id: String,
 }
 
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct MangaId {
     source_id: SourceId,
     manga_id: String,
@@ -91,14 +91,14 @@ impl ChapterId {
     }
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct SourceInformation {
     pub id: SourceId,
     pub name: String,
     pub version: usize,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MangaInformation {
     pub id: MangaId,
     pub title: Option<String>,

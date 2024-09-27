@@ -35,9 +35,7 @@ use serde::{Deserialize, Serialize};
 use source_extractor::{SourceExtractor, SourceParams};
 use tokio::sync::Mutex;
 
-use model::{
-    Chapter, DownloadAllChaptersProgress, Manga, SourceInformation, SourceMangaSearchResults,
-};
+use model::{Chapter, DownloadAllChaptersProgress, Manga, SourceInformation};
 use tokio_util::sync::CancellationToken;
 
 #[derive(Parser, Debug)]
@@ -206,7 +204,7 @@ async fn get_mangas(
         ..
     }): StateExtractor<State>,
     Query(GetMangasQuery { q }): Query<GetMangasQuery>,
-) -> Result<Json<Vec<SourceMangaSearchResults>>, AppError> {
+) -> Result<Json<Vec<Manga>>, AppError> {
     let source_manager = &*source_manager.lock().await;
     let results = cancel_after(Duration::from_secs(15), |token| {
         usecases::search_mangas(source_manager, &database, token, q)
@@ -214,7 +212,7 @@ async fn get_mangas(
     .await
     .map_err(AppError::from_search_mangas_error)?
     .into_iter()
-    .map(SourceMangaSearchResults::from)
+    .map(Manga::from)
     .collect();
 
     Ok(Json(results))
