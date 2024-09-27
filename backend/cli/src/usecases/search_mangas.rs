@@ -12,7 +12,7 @@ pub async fn search_mangas(
     db: &Database,
     cancellation_token: CancellationToken,
     query: String,
-) -> Result<Vec<SourceMangaSearchResults>, Error> {
+) -> Result<Vec<(SourceInformation, MangaInformation)>, Error> {
     // FIXME this looks awful
     let query = &query;
     let cancellation_token = &cancellation_token;
@@ -54,7 +54,23 @@ pub async fn search_mangas(
         .collect()
         .await;
 
-    Ok(source_results)
+    let mut mangas_with_source_informations: Vec<_> = source_results
+        .into_iter()
+        .flat_map(|results| {
+            let SourceMangaSearchResults {
+                mangas,
+                source_information,
+            } = results;
+
+            mangas
+                .into_iter()
+                .map(move |manga| (source_information.clone(), manga))
+        })
+        .collect();
+
+    mangas_with_source_informations.sort_by_cached_key(|(_, manga)| manga.title.clone());
+
+    Ok(mangas_with_source_informations)
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -63,7 +79,7 @@ pub enum Error {
     SourceError(#[source] anyhow::Error),
 }
 
-pub struct SourceMangaSearchResults {
-    pub source_information: SourceInformation,
-    pub mangas: Vec<MangaInformation>,
+struct SourceMangaSearchResults {
+    source_information: SourceInformation,
+    mangas: Vec<MangaInformation>,
 }

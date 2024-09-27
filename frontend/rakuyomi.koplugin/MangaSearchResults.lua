@@ -5,13 +5,12 @@ local Trapper = require("ui/trapper")
 
 local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
-local Icons = require("Icons")
 local Menu = require("widgets/Menu")
 local LoadingDialog = require("LoadingDialog")
 local ChapterListing = require("ChapterListing")
 
 --- @class MangaSearchResults: { [any]: any }
---- @field results SourceMangaSearchResults[]
+--- @field results Manga[]
 --- @field on_return_callback fun(): nil
 local MangaSearchResults = Menu:extend {
   name = "manga_search_results",
@@ -52,19 +51,15 @@ end
 
 --- Generates the item table for displaying the search results.
 --- @private
---- @param results SourceMangaSearchResults[]
+--- @param results Manga[]
 --- @return table
 function MangaSearchResults:generateItemTableFromSearchResults(results)
   local item_table = {}
-  for _, result in ipairs(results) do
-    local source_information = result.source_information
-
-    for _, manga in ipairs(result.mangas) do
-      table.insert(item_table, {
-        manga = manga,
-        text = manga.title .. " (" .. source_information.name .. ")",
-      })
-    end
+  for _, manga in ipairs(results) do
+    table.insert(item_table, {
+      manga = manga,
+      text = manga.title .. " (" .. manga.source.name .. ")",
+    })
   end
 
   return item_table

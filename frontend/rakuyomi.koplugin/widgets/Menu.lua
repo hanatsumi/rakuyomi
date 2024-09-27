@@ -1,5 +1,4 @@
 local BaseMenu = require("ui/widget/menu")
-local logger = require("logger")
 
 local Icons = require("Icons")
 
