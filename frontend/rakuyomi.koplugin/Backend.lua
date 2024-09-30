@@ -5,6 +5,8 @@ local ffiutil = require("ffi/util")
 local rapidjson = require("rapidjson")
 local util = require("util")
 
+local BASE_URL = 'http://127.0.0.1:30727/'
+
 local Backend = {}
 
 local function replaceRapidJsonNullWithNilRecursively(maybeTable)
@@ -157,13 +159,11 @@ end
 --- @field source_information SourceInformation Information about the source that generated those results.
 --- @field mangas Manga[] Found mangas.
 
--- REFACT Move `http://localhost:30727/` to a constant.
-
 --- Lists mangas added to the user's library.
 --- @return SuccessfulResponse<Manga[]>|ErrorResponse
 function Backend.getMangasInLibrary()
   return requestJson({
-    url = "http://localhost:30727/library",
+    url = BASE_URL .. "library",
   })
 end
 
@@ -171,7 +171,7 @@ end
 --- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.addMangaToLibrary(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/add-to-library",
+    url = BASE_URL .. "mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/add-to-library",
     method = "POST"
   })
 end
@@ -180,7 +180,7 @@ end
 --- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.removeMangaFromLibrary(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/remove-from-library",
+    url = BASE_URL .. "mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/remove-from-library",
     method = "POST"
   })
 end
@@ -189,7 +189,7 @@ end
 --- @return SuccessfulResponse<Manga[]>|ErrorResponse
 function Backend.searchMangas(search_text)
   return requestJson({
-    url = "http://localhost:30727/mangas",
+    url = BASE_URL .. "mangas",
     query_params = {
       q = search_text
     }
@@ -200,7 +200,7 @@ end
 --- @return SuccessfulResponse<Chapter[]>|ErrorResponse
 function Backend.listCachedChapters(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters",
+    url = BASE_URL .. "mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters",
   })
 end
 
@@ -208,7 +208,7 @@ end
 --- @return SuccessfulResponse<{}>|ErrorResponse
 function Backend.refreshChapters(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/refresh-chapters",
+    url = BASE_URL .. "mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/refresh-chapters",
     method = "POST",
   })
 end
@@ -217,7 +217,7 @@ end
 --- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.downloadAllChapters(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/download-all",
+    url = BASE_URL .. "mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/download-all",
     method = "POST",
   })
 end
@@ -228,7 +228,7 @@ end
 --- @return SuccessfulResponse<DownloadAllChaptersProgress>|ErrorResponse
 function Backend.getDownloadAllChaptersProgress(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" ..
+    url = BASE_URL .. "mangas/" ..
         source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/download-all-progress",
   })
 end
@@ -238,7 +238,7 @@ end
 --- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.cancelDownloadAllChapters(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" ..
+    url = BASE_URL .. "mangas/" ..
         source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/cancel-download-all",
     method = "POST",
   })
@@ -248,7 +248,7 @@ end
 --- @return SuccessfulResponse<string>|ErrorResponse
 function Backend.downloadChapter(source_id, manga_id, chapter_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" ..
+    url = BASE_URL .. "mangas/" ..
         source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/" .. util.urlEncode(chapter_id) .. "/download",
     method = "POST",
   })
@@ -258,7 +258,7 @@ end
 --- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.markChapterAsRead(source_id, manga_id, chapter_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" ..
+    url = BASE_URL .. "mangas/" ..
         source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/" .. util.urlEncode(chapter_id) .. "/mark-as-read",
     method = "POST",
   })
@@ -268,7 +268,7 @@ end
 --- @return SuccessfulResponse<SourceInformation[]>|ErrorResponse
 function Backend.listInstalledSources()
   return requestJson({
-    url = "http://localhost:30727/installed-sources",
+    url = BASE_URL .. "installed-sources",
   })
 end
 
@@ -276,7 +276,7 @@ end
 --- @return SuccessfulResponse<SourceInformation[]>|ErrorResponse
 function Backend.listAvailableSources()
   return requestJson({
-    url = "http://localhost:30727/available-sources",
+    url = BASE_URL .. "available-sources",
   })
 end
 
@@ -284,7 +284,7 @@ end
 --- @return SuccessfulResponse<SourceInformation[]>|ErrorResponse
 function Backend.installSource(source_id)
   return requestJson({
-    url = "http://localhost:30727/available-sources/" .. source_id .. "/install",
+    url = BASE_URL .. "available-sources/" .. source_id .. "/install",
     method = "POST",
   })
 end
@@ -300,7 +300,7 @@ end
 --- @return SuccessfulResponse<SettingDefinition[]>|ErrorResponse
 function Backend.getSourceSettingDefinitions(source_id)
   return requestJson({
-    url = "http://localhost:30727/installed-sources/" .. source_id .. "/setting-definitions",
+    url = BASE_URL .. "installed-sources/" .. source_id .. "/setting-definitions",
   })
 end
 
@@ -308,13 +308,13 @@ end
 --- @return SuccessfulResponse<table<string, string|boolean>>|ErrorResponse
 function Backend.getSourceStoredSettings(source_id)
   return requestJson({
-    url = "http://localhost:30727/installed-sources/" .. source_id .. "/stored-settings",
+    url = BASE_URL .. "installed-sources/" .. source_id .. "/stored-settings",
   })
 end
 
 function Backend.setSourceStoredSettings(source_id, stored_settings)
   return requestJson({
-    url = "http://localhost:30727/installed-sources/" .. source_id .. "/stored-settings",
+    url = BASE_URL .. "installed-sources/" .. source_id .. "/stored-settings",
     method = 'POST',
     body = stored_settings,
   })
@@ -327,7 +327,7 @@ end
 --- @return SuccessfulResponse<Settings>|ErrorResponse
 function Backend.getSettings()
   return requestJson({
-    url = "http://localhost:30727/settings"
+    url = BASE_URL .. "settings"
   })
 end
 
@@ -335,7 +335,7 @@ end
 --- @return SuccessfulResponse<Settings>|ErrorResponse
 function Backend.setSettings(settings)
   return requestJson({
-    url = "http://localhost:30727/settings",
+    url = BASE_URL .. "settings",
     method = 'PUT',
     body = settings
   })
