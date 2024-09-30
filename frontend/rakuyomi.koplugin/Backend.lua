@@ -5,7 +5,7 @@ local ffiutil = require("ffi/util")
 local rapidjson = require("rapidjson")
 local util = require("util")
 
-local BASE_URL = 'http://localhost:30727/'
+local BASE_URL = 'http://127.0.0.1:30727/'
 
 local Backend = {}
 
