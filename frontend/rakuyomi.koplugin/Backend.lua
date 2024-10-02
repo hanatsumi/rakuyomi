@@ -1,4 +1,3 @@
-local DataStorage = require("datastorage")
 local logger = require("logger")
 local Device = require("device")
 local C = require("ffi").C
@@ -7,11 +6,15 @@ local ffiutil = require("ffi/util")
 local rapidjson = require("rapidjson")
 local util = require("util")
 
+local Paths = require("Paths")
+
 local SERVER_STARTUP_TIMEOUT_SECONDS = tonumber(os.getenv('RAKUYOMI_SERVER_STARTUP_TIMEOUT') or 5)
 local SERVER_COMMAND_WORKING_DIRECTORY = os.getenv('RAKUYOMI_SERVER_WORKING_DIRECTORY')
 local SERVER_COMMAND_OVERRIDE = os.getenv('RAKUYOMI_SERVER_COMMAND_OVERRIDE')
 
 local Backend = {}
+
+local SOCKET_PATH = '/tmp/rakuyomi.sock'
 
 local function replaceRapidJsonNullWithNilRecursively(maybeTable)
   if type(maybeTable) ~= "table" then
@@ -32,7 +35,7 @@ local function replaceRapidJsonNullWithNilRecursively(maybeTable)
 end
 
 --- @class RequestParameters
---- @field url string The URL of the request
+--- @field path string The path of the request
 --- @field method string? The request method to be used
 --- @field body unknown? The request body to be sent. Must be encodable as JSON.
 --- @field query_params table<string, string|number>? The query parameters to be sent on request.
@@ -48,10 +51,8 @@ end
 --- @return SuccessfulResponse<T>|ErrorResponse # The parsed JSON response or nil, if there was an error.
 local function requestJson(request)
   local url = require("socket.url")
-  local ltn12 = require("ltn12")
-  local http = require("socket.http")
+  local http = require("http")
   local socketutil = require("socketutil")
-  local parsed_url = url.parse(request.url)
 
   -- FIXME naming
   local query_params = request.query_params or {}
@@ -63,15 +64,17 @@ local function requestJson(request)
     built_query_params = built_query_params .. name .. "=" .. url.escape(value)
   end
 
-  parsed_url.query = built_query_params ~= "" and built_query_params or nil
-  local built_url = url.build(parsed_url)
+  local path_and_query = request.path
+  if built_query_params ~= "" then
+    path_and_query = path_and_query .. "?" .. built_query_params
+  end
 
   local headers = {}
   local serialized_body = nil
   if request.body ~= nil then
     serialized_body = rapidjson.encode(request.body)
     headers["Content-Type"] = "application/json"
-    headers["Content-Length"] = serialized_body:len()
+    headers["Content-Length"] = tostring(serialized_body:len())
   end
 
   -- Specify a timeout for the given request
@@ -80,30 +83,32 @@ local function requestJson(request)
     socketutil:set_timeout(timeout, timeout)
   end
 
-  logger.info("Requesting to ", parsed_url, built_query_params)
+  logger.info('Requesting to', path_and_query)
 
-  local sink = {}
-  local _, status_code, response_headers = http.request({
-    url = built_url,
-    method = request.method or "GET",
-    headers = headers,
-    source = serialized_body ~= nil and ltn12.source.string(serialized_body) or nil,
-    sink = ltn12.sink.table(sink)
-  })
+  local response = http.requestUnixSocket(
+    SOCKET_PATH,
+    path_and_query,
+    {
+      method = request.method or "GET",
+      headers = headers,
+      body = serialized_body,
+    }
+  )
 
-  socketutil:reset_timeout()
-
-  local response_body = table.concat(sink)
-  -- Under normal conditions, we should always have a request body, even when the status code
-  -- is not 2xx
-  local parsed_body, err = rapidjson.decode(response_body)
-  if err then
-    error("Expected to be able to decode the response body as JSON: " ..
-      response_body .. "(status code: " .. status_code .. ")")
+  if response.type == 'ERROR' then
+    return response
   end
 
-  if not (status_code and status_code >= 200 and status_code <= 299) then
-    logger.err("Request failed with status code", status_code, "and body", parsed_body)
+  -- Under normal conditions, we should always have a request body, even when the status code
+  -- is not 2xx
+  local parsed_body, err = rapidjson.decode(response.body)
+  if err then
+    error("Expected to be able to decode the response body as JSON: " ..
+      response.body .. "(status code: " .. response.status .. ")")
+  end
+
+  if not (response.status and response.status >= 200 and response.status <= 299) then
+    logger.err("Request failed with status code", response.status, "and body", parsed_body)
     local error_message = parsed_body.message
     assert(error_message ~= nil, "Request failed without error message")
 
@@ -113,20 +118,13 @@ local function requestJson(request)
   return { type = 'SUCCESS', body = replaceRapidJsonNullWithNilRecursively(parsed_body) }
 end
 
-local function getSourceDir()
-  local callerSource = debug.getinfo(2, "S").source
-  if callerSource:find("^@") then
-    return callerSource:gsub("^@(.*)/[^/]*", "%1")
-  end
-end
-
 local function waitUntilHttpServerIsReady()
   local start_time = os.time()
 
   while os.time() - start_time < SERVER_STARTUP_TIMEOUT_SECONDS do
     local ok, response = pcall(function()
       return requestJson({
-        url = 'http://localhost:30727/health-check',
+        path = '/health-check',
         timeout = 1,
       })
     end)
@@ -152,14 +150,11 @@ function Backend.initialize()
   -- spawn subprocess and store the pid
   local pid = C.fork()
   if pid == 0 then
-    local homePath = DataStorage:getDataDir() .. "/rakuyomi"
-    local sourceDir = assert(getSourceDir())
-
     local serverCommand = nil
     if SERVER_COMMAND_OVERRIDE ~= nil then
       serverCommand = util.splitToArray(SERVER_COMMAND_OVERRIDE, ' ')
     else
-      serverCommand = { sourceDir .. "/server" }
+      serverCommand = { Paths.getPluginDirectory() .. "/server" }
     end
 
     if SERVER_COMMAND_WORKING_DIRECTORY ~= nil then
@@ -172,7 +167,7 @@ function Backend.initialize()
 
     local serverCommandWithArgs = {}
     util.arrayAppend(serverCommandWithArgs, serverCommand)
-    util.arrayAppend(serverCommandWithArgs, { homePath })
+    util.arrayAppend(serverCommandWithArgs, { Paths.getHomeDirectory() })
 
     os.exit(C.execl(serverCommandWithArgs[1], unpack(serverCommandWithArgs, 1, #serverCommandWithArgs + 1))) -- Last arg must be a NULL pointer
   end
@@ -207,13 +202,11 @@ end
 --- @field source_information SourceInformation Information about the source that generated those results.
 --- @field mangas Manga[] Found mangas.
 
--- REFACT Move `http://localhost:30727/` to a constant.
-
 --- Lists mangas added to the user's library.
 --- @return SuccessfulResponse<Manga[]>|ErrorResponse
 function Backend.getMangasInLibrary()
   return requestJson({
-    url = "http://localhost:30727/library",
+    path = "/library",
   })
 end
 
@@ -221,7 +214,7 @@ end
 --- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.addMangaToLibrary(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/add-to-library",
+    path = "/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/add-to-library",
     method = "POST"
   })
 end
@@ -230,7 +223,7 @@ end
 --- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.removeMangaFromLibrary(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/remove-from-library",
+    path = "/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/remove-from-library",
     method = "POST"
   })
 end
@@ -239,7 +232,7 @@ end
 --- @return SuccessfulResponse<Manga[]>|ErrorResponse
 function Backend.searchMangas(search_text)
   return requestJson({
-    url = "http://localhost:30727/mangas",
+    path = "/mangas",
     query_params = {
       q = search_text
     }
@@ -250,7 +243,7 @@ end
 --- @return SuccessfulResponse<Chapter[]>|ErrorResponse
 function Backend.listCachedChapters(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters",
+    path = "/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters",
   })
 end
 
@@ -258,7 +251,7 @@ end
 --- @return SuccessfulResponse<{}>|ErrorResponse
 function Backend.refreshChapters(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/refresh-chapters",
+    path = "/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/refresh-chapters",
     method = "POST",
   })
 end
@@ -267,7 +260,7 @@ end
 --- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.downloadAllChapters(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/download-all",
+    path = "/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/download-all",
     method = "POST",
   })
 end
@@ -278,7 +271,7 @@ end
 --- @return SuccessfulResponse<DownloadAllChaptersProgress>|ErrorResponse
 function Backend.getDownloadAllChaptersProgress(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" ..
+    path = "/mangas/" ..
         source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/download-all-progress",
   })
 end
@@ -288,7 +281,7 @@ end
 --- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.cancelDownloadAllChapters(source_id, manga_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" ..
+    path = "/mangas/" ..
         source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/cancel-download-all",
     method = "POST",
   })
@@ -298,7 +291,7 @@ end
 --- @return SuccessfulResponse<string>|ErrorResponse
 function Backend.downloadChapter(source_id, manga_id, chapter_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" ..
+    path = "/mangas/" ..
         source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/" .. util.urlEncode(chapter_id) .. "/download",
     method = "POST",
   })
@@ -308,7 +301,7 @@ end
 --- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.markChapterAsRead(source_id, manga_id, chapter_id)
   return requestJson({
-    url = "http://localhost:30727/mangas/" ..
+    path = "/mangas/" ..
         source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/" .. util.urlEncode(chapter_id) .. "/mark-as-read",
     method = "POST",
   })
@@ -318,7 +311,7 @@ end
 --- @return SuccessfulResponse<SourceInformation[]>|ErrorResponse
 function Backend.listInstalledSources()
   return requestJson({
-    url = "http://localhost:30727/installed-sources",
+    path = "/installed-sources",
   })
 end
 
@@ -326,7 +319,7 @@ end
 --- @return SuccessfulResponse<SourceInformation[]>|ErrorResponse
 function Backend.listAvailableSources()
   return requestJson({
-    url = "http://localhost:30727/available-sources",
+    path = "/available-sources",
   })
 end
 
@@ -334,7 +327,7 @@ end
 --- @return SuccessfulResponse<SourceInformation[]>|ErrorResponse
 function Backend.installSource(source_id)
   return requestJson({
-    url = "http://localhost:30727/available-sources/" .. source_id .. "/install",
+    path = "/available-sources/" .. source_id .. "/install",
     method = "POST",
   })
 end
@@ -343,7 +336,7 @@ end
 --- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.uninstallSource(source_id)
   return requestJson({
-    url = "http://localhost:30727/installed-sources/" .. source_id,
+    path = "/installed-sources/" .. source_id,
     method = "DELETE",
   })
 end
@@ -359,7 +352,7 @@ end
 --- @return SuccessfulResponse<SettingDefinition[]>|ErrorResponse
 function Backend.getSourceSettingDefinitions(source_id)
   return requestJson({
-    url = "http://localhost:30727/installed-sources/" .. source_id .. "/setting-definitions",
+    path = "/installed-sources/" .. source_id .. "/setting-definitions",
   })
 end
 
@@ -367,13 +360,13 @@ end
 --- @return SuccessfulResponse<table<string, string|boolean>>|ErrorResponse
 function Backend.getSourceStoredSettings(source_id)
   return requestJson({
-    url = "http://localhost:30727/installed-sources/" .. source_id .. "/stored-settings",
+    path = "/installed-sources/" .. source_id .. "/stored-settings",
   })
 end
 
 function Backend.setSourceStoredSettings(source_id, stored_settings)
   return requestJson({
-    url = "http://localhost:30727/installed-sources/" .. source_id .. "/stored-settings",
+    path = "/installed-sources/" .. source_id .. "/stored-settings",
     method = 'POST',
     body = stored_settings,
   })
@@ -386,7 +379,7 @@ end
 --- @return SuccessfulResponse<Settings>|ErrorResponse
 function Backend.getSettings()
   return requestJson({
-    url = "http://localhost:30727/settings"
+    path = "/settings"
   })
 end
 
@@ -394,7 +387,7 @@ end
 --- @return SuccessfulResponse<Settings>|ErrorResponse
 function Backend.setSettings(settings)
   return requestJson({
-    url = "http://localhost:30727/settings",
+    path = "/settings",
     method = 'PUT',
     body = settings
   })
@@ -404,7 +397,7 @@ end
 --- @return SuccessfulResponse<string>|ErrorResponse
 function Backend.createDownloadChapterJob(source_id, manga_id, chapter_id)
   return requestJson({
-    url = "http://localhost:30727/jobs/download-chapter",
+    path = "/jobs/download-chapter",
     method = 'POST',
     body = {
       source_id = source_id,
@@ -418,7 +411,7 @@ end
 --- @return SuccessfulResponse<string>|ErrorResponse
 function Backend.createDownloadUnreadChaptersJob(source_id, manga_id, amount)
   return requestJson({
-    url = "http://localhost:30727/jobs/download-unread-chapters",
+    path = "http://localhost:30727/jobs/download-unread-chapters",
     method = 'POST',
     body = {
       source_id = source_id,
@@ -438,7 +431,7 @@ end
 --- @return SuccessfulResponse<DownloadChapterJobDetails>|ErrorResponse
 function Backend.getJobDetails(id)
   return requestJson({
-    url = "http://localhost:30727/jobs/" .. id,
+    path = "/jobs/" .. id,
     method = 'GET'
   })
 end
@@ -447,7 +440,7 @@ end
 --- @return SuccessfulResponse<DownloadChapterJobDetails>|ErrorResponse
 function Backend.requestJobCancellation(id)
   return requestJson({
-    url = "http://localhost:30727/jobs/" .. id,
+    path = "/jobs/" .. id,
     method = 'DELETE'
   })
 end
