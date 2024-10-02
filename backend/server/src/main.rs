@@ -68,6 +68,8 @@ struct State {
     settings_path: PathBuf,
 }
 
+const SOCKET_PATH: &str = "/tmp/rakuyomi.sock";
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let env = Env::default().filter_or("RUST_LOG", "info");
@@ -166,10 +168,10 @@ async fn main() -> anyhow::Result<()> {
         .route("/settings", put(update_settings))
         .with_state(state);
 
-    // run our app with hyper, listening globally on port 30727
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:30727")
-        .await
-        .unwrap();
+    // run our app with hyper, listening on the domain socket
+    let _ = std::fs::remove_file(SOCKET_PATH)
+        .inspect_err(|e| warn!("could not remove existing socket path: {}", e));
+    let listener = tokio::net::UnixListener::bind(SOCKET_PATH).unwrap();
 
     axum::serve(listener, app).await?;
 

@@ -1,23 +1,17 @@
 {
   "nodes": {
-    "fenix": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "rust-analyzer-src": "rust-analyzer-src"
-      },
+    "crane": {
       "locked": {
-        "lastModified": 1712384501,
-        "narHash": "sha256-AZmYmEnc1ZkSlxUJVUtGh9VFAqWPr+xtNIiBqD2eKfc=",
-        "owner": "nix-community",
-        "repo": "fenix",
-        "rev": "99c6241db5ca5363c05c8f4acbdf3a4e8fc42844",
+        "lastModified": 1727316705,
+        "narHash": "sha256-/mumx8AQ5xFuCJqxCIOFCHTVlxHkMT21idpbgbm/TIE=",
+        "owner": "ipetkov",
+        "repo": "crane",
+        "rev": "5b03654ce046b5167e7b0bccbd8244cb56c16f0e",
         "type": "github"
       },
       "original": {
-        "owner": "nix-community",
-        "repo": "fenix",
+        "owner": "ipetkov",
+        "repo": "crane",
         "type": "github"
       }
     },
@@ -39,26 +33,6 @@
         "type": "github"
       }
     },
-    "naersk": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1698420672,
-        "narHash": "sha256-/TdeHMPRjjdJub7p7+w55vyABrsJlt5QkznPYy55vKA=",
-        "owner": "nmattia",
-        "repo": "naersk",
-        "rev": "aeb58d5e8faead8980a807c840232697982d47b9",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nmattia",
-        "repo": "naersk",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1712163089,
@@ -75,43 +49,46 @@
     },
     "nixpkgs-patched-koreader": {
       "locked": {
-        "lastModified": 1712446513,
-        "narHash": "sha256-k7GZ94/km1AuVVD1QGKX8dkJ4v+ApM2EYrFNuWOFibU=",
+        "lastModified": 1727816712,
+        "narHash": "sha256-6sV/zsCc0b0CEymkz3/KVaaV1LQ+mnoU16R5A1mR8AE=",
         "owner": "ekisu",
         "repo": "nixpkgs",
-        "rev": "88b829259ab6cb0ecb0cb6d54ce927551d609921",
+        "rev": "bb797087e6f592cc12994656143b8490090d009a",
         "type": "github"
       },
       "original": {
         "owner": "ekisu",
-        "ref": "koreader-add-openssl-dependency",
+        "ref": "koreader-202407",
         "repo": "nixpkgs",
         "type": "github"
       }
     },
     "root": {
       "inputs": {
-        "fenix": "fenix",
+        "crane": "crane",
         "flake-utils": "flake-utils",
-        "naersk": "naersk",
         "nixpkgs": "nixpkgs",
-        "nixpkgs-patched-koreader": "nixpkgs-patched-koreader"
+        "nixpkgs-patched-koreader": "nixpkgs-patched-koreader",
+        "rust-overlay": "rust-overlay"
       }
     },
-    "rust-analyzer-src": {
-      "flake": false,
+    "rust-overlay": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
       "locked": {
-        "lastModified": 1712156296,
-        "narHash": "sha256-St7ZQrkrr5lmQX9wC1ZJAFxL8W7alswnyZk9d1se3Us=",
-        "owner": "rust-lang",
-        "repo": "rust-analyzer",
-        "rev": "8e581ac348e223488622f4d3003cb2bd412bf27e",
+        "lastModified": 1727749966,
+        "narHash": "sha256-DUS8ehzqB1DQzfZ4bRXVSollJhu+y7cvh1DJ9mbWebE=",
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "rev": "00decf1b4f9886d25030b9ee4aed7bfddccb5f66",
         "type": "github"
       },
       "original": {
-        "owner": "rust-lang",
-        "ref": "nightly",
-        "repo": "rust-analyzer",
+        "owner": "oxalica",
+        "repo": "rust-overlay",
         "type": "github"
       }
     },
