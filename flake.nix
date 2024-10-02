@@ -3,19 +3,16 @@
 
   inputs = {
     nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1.0.tar.gz";
-    nixpkgs-patched-koreader.url = "github:ekisu/nixpkgs/koreader-add-openssl-dependency";
-    naersk = {
-      url = "github:nmattia/naersk";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    fenix = {
-      url = "github:nix-community/fenix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    nixpkgs-patched-koreader.url = "github:ekisu/nixpkgs/koreader-202407";
+    crane.url = "github:ipetkov/crane";
     flake-utils.url  = "github:numtide/flake-utils";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-patched-koreader, naersk, fenix, flake-utils }:
+  outputs = { self, crane, nixpkgs, nixpkgs-patched-koreader, flake-utils, rust-overlay }:
     let
       genericVersion = self.lastModifiedDate + "-" + (self.shortRev or self.dirtyShortRev);
       semanticReleaseVersion = builtins.getEnv "SEMANTIC_RELEASE_VERSION";
@@ -46,39 +43,44 @@
           copyTarget ? false
         }: target:
           let
+            pkgs = import nixpkgs {
+              inherit system;
+              config.allowUnsupportedSystem = true;
+              overlays = [ (import rust-overlay) ];
+            };
+
             pkgsCross = import nixpkgs {
               inherit system;
               config.allowUnsupportedSystem = true;
               crossSystem.config = target;
             };
-            toolchain = with fenix.packages.${system};
-              combine [
-                minimal.rustc
-                minimal.cargo
-                targets.${target}.latest.rust-std
-              ];
-            naersk' = pkgs.callPackage naersk {
-              cargo = toolchain;
-              rustc = toolchain;
-            };
+
+            craneLib = (crane.mkLib pkgs).overrideToolchain (p: p.rust-bin.stable.latest.default.override {
+              targets = [target];
+            });
           in
-            naersk'.buildPackage rec {
-              inherit copyTarget;
+            with pkgs; craneLib.buildPackage rec {
+              doInstallCargoArtifacts = copyTarget;
+              installCargoArtifactsMode = "use-symlink";
 
-              compressTarget = false;
+              doCheck = false;
+
               src = ./backend;
-              cargoBuildOptions = defaultOptions: defaultOptions ++ ["-p" packageName];
+              cargoExtraArgs = "--package=${packageName}";
 
-              CARGO_BUILD_TARGET = target;
-              TARGET_CC = with pkgsCross.stdenv; "${cc}/bin/${cc.targetPrefix}cc";
-              CARGO_BUILD_RUSTFLAGS = [
-                "-C" "target-feature=+crt-static"
-                # https://github.com/rust-lang/cargo/issues/4133
-                "-C" "linker=${TARGET_CC}"
+              nativeBuildInputs = [
+                stdenv.cc
               ];
+
+              TARGET_CC = with pkgsCross.stdenv; "${cc}/bin/${cc.targetPrefix}cc";
+              CARGO_BUILD_TARGET = target;
+              # https://github.com/rust-lang/cargo/issues/4133
+              CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static -C linker=${TARGET_CC}";
             };
 
           mkServerPackage = buildBackendRustPackage { packageName = "server"; };
+
+          mkUdsHttpRequestPackage = buildBackendRustPackage { packageName = "uds_http_request"; };
 
           mkCliPackage = buildBackendRustPackage { packageName = "cli"; copyTarget = true; };
 
@@ -102,6 +104,7 @@
           mkPluginFolderWithServer = target:
             let
               server = mkServerPackage target;
+              udsHttpRequest = mkUdsHttpRequestPackage target;
             in
               with pkgs; stdenv.mkDerivation {
                 name = "rakuyomi-plugin";
@@ -110,6 +113,7 @@
                   mkdir $out
                   cp -r ${pluginFolderWithoutServer}/* $out/
                   cp ${server}/bin/server $out/server
+                  cp ${udsHttpRequest}/bin/uds_http_request $out/uds_http_request
                 '';
               };
           

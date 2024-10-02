@@ -15,8 +15,6 @@ use crate::source::{
     wasm_store::{ObjectValue, Value, ValueMap, ValueRef, WasmStore},
 };
 
-use super::util::timestamp_f64;
-
 enum ObjectType {
     Null = 0,
     Int = 1,
@@ -128,9 +126,8 @@ fn create_date(caller: Caller<'_, WasmStore>, seconds_since_1970: F64) -> i32 {
     let seconds_since_1970 = seconds_since_1970.to_float();
     let full_seconds = seconds_since_1970.floor() as i64;
     let nanos_remainder = ((seconds_since_1970 - full_seconds as f64) * (10f64.powi(9))) as u32;
-    let naive_date_time = NaiveDateTime::from_timestamp_opt(full_seconds, nanos_remainder).unwrap();
     let date_time: DateTime<chrono_tz::Tz> = chrono_tz::UTC
-        .from_local_datetime(&naive_date_time)
+        .timestamp_opt(full_seconds, nanos_remainder)
         .unwrap();
 
     create_value(caller, date_time.into())
@@ -342,7 +339,10 @@ fn read_date_string(
             .and_local_timezone(timezone)
             .single()?;
 
-        Some(timestamp_f64(date_time.naive_local()))
+        let timestamp = date_time.timestamp() as f64
+            + (date_time.timestamp_subsec_nanos() as f64) / (10f64.powi(9));
+
+        Some(timestamp)
     }()
     .unwrap_or(-1f64)
     .into()

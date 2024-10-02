@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use chrono::{DateTime, NaiveDateTime};
+use chrono::DateTime;
 use memory_reader::{read_bytes, read_string};
 use wasmi::{core::ValType, Caller, Extern, Memory, Val};
 
@@ -70,10 +70,8 @@ impl<T> TryFromWasmValues<T> for DateTime<chrono_tz::Tz> {
             .to_float();
         let full_seconds = seconds_since_1970.floor() as i64;
         let nanos_remainder = ((seconds_since_1970 - full_seconds as f64) * (10f64.powi(9))) as u32;
-        let naive_date_time = NaiveDateTime::from_timestamp_opt(full_seconds, nanos_remainder)
-            .ok_or_else(|| anyhow!("could not convert into a naive date time"))?;
         let date_time: DateTime<chrono_tz::Tz> = chrono_tz::UTC
-            .from_local_datetime(&naive_date_time)
+            .timestamp_opt(full_seconds, nanos_remainder)
             .single()
             .ok_or_else(|| {
                 anyhow!("could not convert naive date time into date time with timestamp")
