@@ -8,7 +8,7 @@ use hyper::body::Bytes;
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use hyper_util::client::legacy::{Client, Error as HyperError};
 use hyperlocal::{UnixClientExt, Uri};
-use log::debug;
+use log::{debug, error};
 use serde::{Deserialize, Serialize};
 use tokio::time::timeout;
 use tracing_subscriber::layer::SubscriberExt;
@@ -26,12 +26,18 @@ struct Request {
 }
 
 #[derive(Debug, Serialize)]
+struct ResponseData {
+    status: u16,
+    body: String,
+}
+
+#[derive(Debug, Serialize)]
 #[serde(tag = "type")]
 enum RequestResult {
     #[serde(rename = "ERROR")]
     Error { message: String },
     #[serde(rename = "RESPONSE")]
-    Response { status: u16, body: String },
+    Response(ResponseData),
 }
 
 #[tokio::main]
@@ -53,21 +59,34 @@ async fn main() -> Result<()> {
     std::io::stdin().read_line(&mut request_json)?;
 
     let request: Request = serde_json::from_str(request_json.as_str())?;
+    let request_result = match perform_request(request).await {
+        Ok(data) => RequestResult::Response(data),
+        Err(e) => {
+            error!("error while performing request: {:?}", e);
 
-    let client = Client::unix();
-
-    let timeout_duration = Duration::from_secs_f64(request.timeout_seconds);
-    let response_future = client.request(request.into());
-    let request_result: RequestResult = match timeout(timeout_duration, response_future).await {
-        Ok(request_result) => RequestResult::from_hyper(request_result).await,
-        Err(e) => RequestResult::Error {
-            message: e.to_string(),
-        },
+            RequestResult::Error {
+                message: e.to_string(),
+            }
+        }
     };
 
     println!("{}", serde_json::to_string(&request_result).unwrap());
 
     Ok(())
+}
+
+async fn perform_request(request: Request) -> anyhow::Result<ResponseData> {
+    let client = Client::unix();
+
+    let timeout_duration = Duration::from_secs_f64(request.timeout_seconds);
+    let response_future = client.request(request.into());
+    let response = timeout(timeout_duration, response_future).await??;
+
+    let status = response.status().as_u16();
+    let body_bytes = response.collect().await?.to_bytes().to_vec();
+    let body = String::from_utf8(body_bytes)?;
+
+    Ok(ResponseData { status, body })
 }
 
 impl From<Request> for HyperRequest<Full<Bytes>> {
@@ -82,30 +101,5 @@ impl From<Request> for HyperRequest<Full<Bytes>> {
         }
 
         request_builder.body(Full::from(value.body)).unwrap()
-    }
-}
-
-type HyperRequestResult = Result<HyperResponse<hyper::body::Incoming>, HyperError>;
-
-impl RequestResult {
-    async fn from_hyper(value: HyperRequestResult) -> RequestResult {
-        match value {
-            Err(e) => Self::Error {
-                message: e.to_string(),
-            },
-            Ok(response) => {
-                let status = response.status().as_u16();
-                let body = match response.collect().await {
-                    Ok(body) => String::from_utf8(body.to_bytes().to_vec()).unwrap(),
-                    Err(e) => {
-                        return Self::Error {
-                            message: e.to_string(),
-                        }
-                    }
-                };
-
-                Self::Response { status, body }
-            }
-        }
     }
 }
