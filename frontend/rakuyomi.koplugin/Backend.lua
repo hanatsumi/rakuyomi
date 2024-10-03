@@ -121,6 +121,7 @@ function Backend.initialize()
     local serverPath = Paths.getPluginDirectory() .. "/server"
     local args = table.pack(serverPath, Paths.getHomeDirectory())
 
+    C.setenv('RUST_LOG', 'trace', 1)
     os.exit(C.execl(serverPath, unpack(args, 1, args.n + 1))) -- Last arg must be a NULL pointer
   end
 

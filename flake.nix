@@ -75,7 +75,7 @@
               TARGET_CC = with pkgsCross.stdenv; "${cc}/bin/${cc.targetPrefix}cc";
               CARGO_BUILD_TARGET = target;
               # https://github.com/rust-lang/cargo/issues/4133
-              CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static -C linker=${TARGET_CC}";
+              CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static -C linker=${TARGET_CC} --cfg hyper_unstable_tracing";
             };
 
           mkServerPackage = buildBackendRustPackage { packageName = "server"; };

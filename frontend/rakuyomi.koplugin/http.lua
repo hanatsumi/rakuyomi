@@ -44,7 +44,7 @@ function http.requestUnixSocket(socket_path, path, options)
   requestFile:write(requestJson)
   requestFile:close()
 
-  local output, err = io.popen('cat ' .. requestFilePath .. ' | ' .. executablePath, 'r')
+  local output, err = io.popen('cat ' .. requestFilePath .. ' | RUST_LOG=trace ' .. executablePath, 'r')
   if output == nil then
     os.remove(requestFilePath)
 

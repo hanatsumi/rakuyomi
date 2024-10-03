@@ -1,3 +1,4 @@
+use std::io;
 use std::time::Duration;
 use std::{collections::HashMap, path::PathBuf};
 
@@ -7,8 +8,12 @@ use hyper::body::Bytes;
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use hyper_util::client::legacy::{Client, Error as HyperError};
 use hyperlocal::{UnixClientExt, Uri};
+use log::debug;
 use serde::{Deserialize, Serialize};
 use tokio::time::timeout;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::EnvFilter;
 
 #[derive(Debug, Deserialize)]
 struct Request {
@@ -31,6 +36,19 @@ enum RequestResult {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info");
+    }
+
+    tracing_subscriber::registry()
+        .with(EnvFilter::from_default_env())
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_writer(io::stderr)
+                .with_target(true),
+        )
+        .init();
+
     let mut request_json = String::new();
     std::io::stdin().read_line(&mut request_json)?;
 

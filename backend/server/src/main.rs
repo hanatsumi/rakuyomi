@@ -4,7 +4,6 @@ mod source_extractor;
 use anyhow::Context;
 use cli::source::model::SettingDefinition;
 use cli::usecases;
-use env_logger::Env;
 use log::{error, info, warn};
 use std::collections::HashMap;
 use std::env::current_exe;
@@ -12,6 +11,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 use std::{fs, mem};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::EnvFilter;
 
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
@@ -72,9 +74,14 @@ const SOCKET_PATH: &str = "/tmp/rakuyomi.sock";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let env = Env::default().filter_or("RUST_LOG", "info");
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info");
+    }
 
-    env_logger::init_from_env(env);
+    tracing_subscriber::registry()
+        .with(EnvFilter::from_default_env())
+        .with(tracing_subscriber::fmt::layer())
+        .init();
 
     info!(
         "starting rakuyomi, version: {}",
