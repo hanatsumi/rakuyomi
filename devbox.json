@@ -1,12 +1,12 @@
 {
   "packages": {
-    "koreader":            "latest",
+    "koreader": "latest",
     "lua-language-server": "latest",
-    "rustup":              "latest",
-    "sqlx-cli":            "latest",
-    "cachix":              "latest",
-    "gcc":                 "13.2.0",
-    "cargo-flamegraph":    "latest",
+    "rustup": "latest",
+    "sqlx-cli": "latest",
+    "cachix": "latest",
+    "gcc": "13.2.0",
+    "cargo-flamegraph": "latest",
   },
   "env": {
     "PROJECT_DIR": "$PWD",
@@ -30,7 +30,7 @@
         "sh -c 'cd $PROJECT_DIR/backend && cargo clippy --fix --allow-dirty -- -D warnings'",
       ],
       "dev": [
-        "nix run .#rakuyomi.koreader-with-plugin",
+        ". tools/run-koreader-with-plugin.sh",
       ],
       "prepare-sql-queries": [
         ". tools/prepare-sqlx-queries.sh",

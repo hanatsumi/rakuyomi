@@ -104,6 +104,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let app = Router::new()
+        .route("/health-check", get(health_check))
         .route("/library", get(get_manga_library))
         .route("/mangas", get(get_mangas))
         .route(
@@ -547,6 +548,10 @@ async fn update_settings(
     usecases::update_settings(&mut settings, &settings_path, updateable_settings)?;
 
     Ok(Json(UpdateableSettings::from(&*settings)))
+}
+
+async fn health_check() -> Json<()> {
+    Json(())
 }
 
 async fn cancel_after<F, Fut>(duration: Duration, f: F) -> Fut::Output
