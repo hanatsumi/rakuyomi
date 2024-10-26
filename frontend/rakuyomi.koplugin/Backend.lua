@@ -1,9 +1,14 @@
 local DataStorage = require("datastorage")
 local logger = require("logger")
 local C = require("ffi").C
+local ffi = require("ffi")
 local ffiutil = require("ffi/util")
 local rapidjson = require("rapidjson")
 local util = require("util")
+
+local SERVER_STARTUP_TIMEOUT_SECONDS = tonumber(os.getenv('RAKUYOMI_SERVER_STARTUP_TIMEOUT') or 5)
+local SERVER_COMMAND_WORKING_DIRECTORY = os.getenv('RAKUYOMI_SERVER_WORKING_DIRECTORY')
+local SERVER_COMMAND_OVERRIDE = os.getenv('RAKUYOMI_SERVER_COMMAND_OVERRIDE')
 
 local Backend = {}
 
@@ -114,6 +119,27 @@ local function getSourceDir()
   end
 end
 
+local function waitUntilHttpServerIsReady()
+  local start_time = os.time()
+
+  while os.time() - start_time < SERVER_STARTUP_TIMEOUT_SECONDS do
+    local ok, response = pcall(function()
+      return requestJson({
+        url = 'http://localhost:30727/health-check',
+        timeout = 1,
+      })
+    end)
+
+    if ok and response.type == 'SUCCESS' then
+      return
+    end
+
+    ffiutil.sleep(1)
+  end
+
+  error('server readiness check timed out')
+end
+
 function Backend.initialize()
   assert(Backend.server_pid == nil, "backend was already initialized!")
 
@@ -123,14 +149,34 @@ function Backend.initialize()
     local homePath = DataStorage:getDataDir() .. "/rakuyomi"
     local sourceDir = assert(getSourceDir())
 
-    local serverPath = sourceDir .. "/server"
-    local args = table.pack(serverPath, homePath)
+    local serverCommand = nil
+    if SERVER_COMMAND_OVERRIDE ~= nil then
+      serverCommand = util.splitToArray(SERVER_COMMAND_OVERRIDE, ' ')
+    else
+      serverCommand = { sourceDir .. "/server" }
+    end
 
-    os.exit(C.execl(serverPath, unpack(args, 1, args.n + 1))) -- Last arg must be a NULL pointer
+    if SERVER_COMMAND_WORKING_DIRECTORY ~= nil then
+      ffi.cdef([[
+        int chdir(const char *) __attribute__((nothrow, leaf));
+      ]])
+      logger.info('changing directory to', SERVER_COMMAND_WORKING_DIRECTORY)
+      C.chdir(SERVER_COMMAND_WORKING_DIRECTORY)
+    end
+
+    local serverCommandWithArgs = {}
+    util.arrayAppend(serverCommandWithArgs, serverCommand)
+    util.arrayAppend(serverCommandWithArgs, { homePath })
+
+    logger.info('serverCommandWithArgs', serverCommand, serverCommandWithArgs)
+
+    os.exit(C.execl(serverCommandWithArgs[1], unpack(serverCommandWithArgs, 1, #serverCommandWithArgs + 1))) -- Last arg must be a NULL pointer
   end
 
   logger.info("Spawned HTTP server with PID " .. pid)
   Backend.server_pid = pid
+
+  waitUntilHttpServerIsReady()
 end
 
 --- @class SourceInformation

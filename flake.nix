@@ -84,25 +84,34 @@
 
           versionFile = pkgs.writeText "VERSION" version;
 
-          mkPluginFolder = target:
+          pluginFolderWithoutServer = with pkgs; stdenv.mkDerivation {
+            name = "rakuyomi-plugin-without-server";
+            src = ./frontend;
+            phases = [ "unpackPhase" "installPhase" ];
+            installPhase = ''
+              mkdir $out
+              cp -r $src/rakuyomi.koplugin/* $out/
+              cp ${versionFile} $out/VERSION
+            '';
+          };
+
+          mkPluginFolderWithServer = target:
             let
               server = mkServerPackage target;
             in
               with pkgs; stdenv.mkDerivation {
                 name = "rakuyomi-plugin";
-                src = ./frontend;
-                phases = [ "unpackPhase" "installPhase" ];
+                phases = [ "installPhase" ];
                 installPhase = ''
                   mkdir $out
-                  cp -r $src/rakuyomi.koplugin/* $out/
+                  cp -r ${pluginFolderWithoutServer}/* $out/
                   cp ${server}/bin/server $out/server
-                  cp ${versionFile} $out/VERSION
                 '';
               };
           
-          mkKoreaderWithRakuyomi = target:
+          mkKoreaderWithRakuyomiFrontend = target:
             let
-              plugin = mkPluginFolder target;
+              plugin = mkPluginFolderWithServer target;
             in
               patchedKoreader.overrideAttrs (finalAttrs: previousAttrs: {
                 installPhase = previousAttrs.installPhase + ''
@@ -125,9 +134,9 @@
               };
       in
       {
-        packages.rakuyomi.desktop = mkPluginFolder desktopTarget;
-        packages.rakuyomi.koreader-with-plugin = mkKoreaderWithRakuyomi desktopTarget;
-        packages.rakuyomi.kindle = mkPluginFolder kindleTarget;
+        packages.rakuyomi.desktop = mkPluginFolderWithServer desktopTarget;
+        packages.rakuyomi.koreader-with-plugin = mkKoreaderWithRakuyomiFrontend desktopTarget;
+        packages.rakuyomi.kindle = mkPluginFolderWithServer kindleTarget;
         packages.rakuyomi.cli = mkCliPackage desktopTarget;
         packages.rakuyomi.settings-schema = mkSchemaFile desktopTarget;
       }
