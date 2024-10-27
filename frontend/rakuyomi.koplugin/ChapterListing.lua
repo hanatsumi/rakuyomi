@@ -232,17 +232,7 @@ function ChapterListing:openChapterOnReader(chapter)
       return
     end
 
-    local settings = response.body
-
-    local index = self:findChapterIndex(chapter)
-    assert(index ~= nil)
-
-    local nextChapter = nil
-    if settings.chapter_sorting_mode == 'chapter_descending' and index > 1 then
-      nextChapter = self.chapters[index - 1]
-    elseif settings.chapter_sorting_mode == 'chapter_ascending' and index < #self.chapters then
-      nextChapter = self.chapters[index + 1]
-    end
+    local nextChapter = self:findNextChapter(chapter)
 
     local onReturnCallback = function()
       self:updateItems()
@@ -449,6 +439,49 @@ function ChapterListing:findChapterIndex(needle)
   end
 
   return nil
+end
+
+--- Attempts to find the next chapter from the given chapter.
+--- If multiple candidates are found, we'll attempt to pick a chapter belonging to
+--- the same scanlation group.
+---
+--- @param current_chapter Chapter The current chapter.
+--- @return Chapter|nil chapter The next chapter, if found, or nil.
+--- @private
+function ChapterListing:findNextChapter(current_chapter)
+  --- FIXME This _might_ break if chapters do not have a chapter_num
+  --- (and that seems to be possible). We should be able to handle this, but
+  --- it seems to be a quite rare situation.
+  local best_candidate = nil
+
+  for i, candidate in ipairs(self.chapters) do
+    if candidate.chapter_num <= current_chapter.chapter_num then
+      goto continue
+    end
+
+    if best_candidate == nil then
+      best_candidate = candidate
+    end
+
+    if candidate.chapter_num > best_candidate.chapter_num then
+      goto continue
+    end
+
+    -- Now, we either have a chapter that's our current chapter and our
+    -- current best candidate (open on the left, closed on the right). Check whether
+    -- it's a better candidate:
+    -- - if it's closer to the current chapter number;
+    -- - if it belongs to the same scanlation group.
+    if candidate.chapter_num < best_candidate.chapter_num then
+      best_candidate = candidate
+    elseif candidate.scanlator == current_chapter.scanlator then
+      best_candidate = candidate
+    end
+
+    ::continue::
+  end
+
+  return best_candidate
 end
 
 return ChapterListing
