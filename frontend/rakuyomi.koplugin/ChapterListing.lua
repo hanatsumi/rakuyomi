@@ -7,6 +7,7 @@ local Trapper = require("ui/trapper")
 local Screen = require("device").screen
 local logger = require("logger")
 local LoadingDialog = require("LoadingDialog")
+local util = require("util")
 
 local Backend = require("Backend")
 local Icons = require("Icons")
@@ -16,6 +17,7 @@ local MangaReader = require("MangaReader")
 --- @class ChapterListing : { [any]: any }
 --- @field manga Manga
 --- @field chapters Chapter[]
+--- @field chapter_sorting_mode ChapterSortingMode
 local ChapterListing = Menu:extend {
   name = "chapter_listing",
   is_enable_shortcut = false,
@@ -27,6 +29,7 @@ local ChapterListing = Menu:extend {
   manga = nil,
   -- list of chapters
   chapters = nil,
+  chapter_sorting_mode = nil,
   -- callback to be called when pressing the back button
   on_return_callback = nil,
 }
@@ -82,11 +85,42 @@ function ChapterListing:generateEmptyViewItemTable()
   }
 end
 
+--- Compares whether chapter `a` is before `b`. Expects the `index` of the chapter in the
+--- chapter array to be present inside the chapter object.
+---
+--- @param a Chapter|{ index: number }
+--- @param b Chapter|{ index: number }
+--- @return boolean `true` if chapter `a` should be displayed before `b`, otherwise `false`.
+local function isBeforeChapter(a, b)
+  if a.volume_num ~= nil and b.volume_num ~= nil and a.volume_num ~= b.volume_num then
+    return a.volume_num < b.volume_num
+  end
+
+  if a.chapter_num ~= nil and b.chapter_num ~= nil and a.chapter_num ~= b.chapter_num then
+    return a.chapter_num < b.chapter_num
+  end
+
+  return a.index < b.index
+end
+
 --- @private
 function ChapterListing:generateItemTableFromChapters(chapters)
+  --- @type table
+  --- @diagnostic disable-next-line: assign-type-mismatch
+  local sorted_chapters_with_index = util.tableDeepCopy(chapters)
+  for index, chapter in ipairs(sorted_chapters_with_index) do
+    chapter.index = index
+  end
+
+  if self.chapter_sorting_mode == 'chapter_ascending' then
+    table.sort(sorted_chapters_with_index, isBeforeChapter)
+  else
+    table.sort(sorted_chapters_with_index, function(a, b) return not isBeforeChapter(a, b) end)
+  end
+
   local item_table = {}
 
-  for _, chapter in ipairs(chapters) do
+  for _, chapter in ipairs(sorted_chapters_with_index) do
     local text = ""
     if chapter.volume_num ~= nil then
       -- FIXME we assume there's a chapter number if there's a volume number
@@ -164,9 +198,19 @@ function ChapterListing:fetchAndShow(manga, onReturnCallback, accept_cached_resu
 
   local chapters = response.body
 
+  local response = Backend.getSettings()
+  if response.type == 'ERROR' then
+    ErrorDialog:show(response.message)
+
+    return
+  end
+
+  local settings = response.body
+
   UIManager:show(ChapterListing:new {
     manga = manga,
     chapters = chapters,
+    chapter_sorting_mode = settings.chapter_sorting_mode,
     on_return_callback = onReturnCallback,
     covers_fullscreen = true, -- hint for UIManager:_repaint()
   })
@@ -225,13 +269,6 @@ end
 --- @private
 function ChapterListing:openChapterOnReader(chapter)
   Trapper:wrap(function()
-    local response = Backend.getSettings()
-    if response.type == 'ERROR' then
-      ErrorDialog:show(response.message)
-
-      return
-    end
-
     local nextChapter = self:findNextChapter(chapter)
 
     local onReturnCallback = function()
@@ -242,10 +279,15 @@ function ChapterListing:openChapterOnReader(chapter)
 
     local onEndOfBookCallback = function()
       Backend.markChapterAsRead(chapter.source_id, chapter.manga_id, chapter.id)
-      -- `chapter` here is one of the elements of the `self.chapters` array, so mutating it
-      -- here will also change the one inside of the array, and therefore the display will
-      -- get updated when we call `updateItems` below
-      chapter.read = true
+      local response = Backend.listCachedChapters(self.manga.source.id, self.manga.id)
+
+      if response.type == 'ERROR' then
+        ErrorDialog:show(response.message)
+
+        return
+      end
+
+      self.chapters = response.body
 
       if nextChapter ~= nil then
         logger.info("opening next chapter", nextChapter)
