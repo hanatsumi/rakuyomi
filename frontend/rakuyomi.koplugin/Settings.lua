@@ -62,8 +62,6 @@ function Settings:init()
   }
 
   for key, definition in pairs(setting_value_definitions) do
-    logger.info(key, self.settings)
-
     table.insert(vertical_group, SettingItem:new {
       show_parent = self,
       width = self.item_width,
