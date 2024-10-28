@@ -259,20 +259,14 @@ async fn get_cached_manga_chapters(
     StateExtractor(State {
         database,
         chapter_storage,
-        settings,
         ..
     }): StateExtractor<State>,
     SourceExtractor(_source): SourceExtractor,
     Path(params): Path<MangaChaptersPathParams>,
 ) -> Result<Json<Vec<Chapter>>, AppError> {
     let manga_id = MangaId::from(params);
-    let chapters = usecases::get_cached_manga_chapters(
-        &database,
-        &chapter_storage,
-        manga_id,
-        settings.lock().await.chapter_sorting_mode,
-    )
-    .await?;
+    let chapters =
+        usecases::get_cached_manga_chapters(&database, &chapter_storage, manga_id).await?;
 
     let chapters = chapters.into_iter().map(Chapter::from).collect();
 
