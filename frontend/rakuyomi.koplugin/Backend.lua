@@ -168,8 +168,6 @@ function Backend.initialize()
     util.arrayAppend(serverCommandWithArgs, serverCommand)
     util.arrayAppend(serverCommandWithArgs, { homePath })
 
-    logger.info('serverCommandWithArgs', serverCommand, serverCommandWithArgs)
-
     os.exit(C.execl(serverCommandWithArgs[1], unpack(serverCommandWithArgs, 1, #serverCommandWithArgs + 1))) -- Last arg must be a NULL pointer
   end
 
