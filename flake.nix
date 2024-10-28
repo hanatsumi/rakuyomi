@@ -109,15 +109,11 @@
                 '';
               };
           
-          mkKoreaderWithRakuyomiFrontend = target:
-            let
-              plugin = mkPluginFolderWithServer target;
-            in
-              patchedKoreader.overrideAttrs (finalAttrs: previousAttrs: {
-                installPhase = previousAttrs.installPhase + ''
-                  ln -sf ${plugin} $out/lib/koreader/plugins/rakuyomi.koplugin
-                '';
-              });
+          koreaderWithRakuyomiFrontend = patchedKoreader.overrideAttrs (finalAttrs: previousAttrs: {
+            installPhase = previousAttrs.installPhase + ''
+              ln -sf ${pluginFolderWithoutServer} $out/lib/koreader/plugins/rakuyomi.koplugin
+            '';
+          });
           
           # FIXME this is really bad and relies on `mkCliPackage` copying the _entire_
           # target folder to the nix store (which is really bad too)
@@ -135,7 +131,7 @@
       in
       {
         packages.rakuyomi.desktop = mkPluginFolderWithServer desktopTarget;
-        packages.rakuyomi.koreader-with-plugin = mkKoreaderWithRakuyomiFrontend desktopTarget;
+        packages.rakuyomi.koreader-with-plugin = koreaderWithRakuyomiFrontend;
         packages.rakuyomi.kindle = mkPluginFolderWithServer kindleTarget;
         packages.rakuyomi.cli = mkCliPackage desktopTarget;
         packages.rakuyomi.settings-schema = mkSchemaFile desktopTarget;
