@@ -100,7 +100,9 @@ local function isBeforeChapter(a, b)
     return a.chapter_num < b.chapter_num
   end
 
-  return a.index < b.index
+  -- This is _very_ flaky, but we assume that source order is _always_ from newer chapters -> older chapters.
+  -- Unfortunately we need to make some kind of assumptions here to handle edgecases (e.g. chapters without a chapter number)
+  return a.index > b.index
 end
 
 --- @private
@@ -483,20 +485,23 @@ function ChapterListing:findChapterIndex(needle)
   return nil
 end
 
---- Attempts to find the next chapter from the given chapter.
+--- Attempts to find the next chapter from the given chapter, comparing by chapter number.
 --- If multiple candidates are found, we'll attempt to pick a chapter belonging to
 --- the same scanlation group.
+--- If no candidate is found, a next chapter will be determined from the source order,
+--- the chapter right after the current one.
 ---
 --- @param current_chapter Chapter The current chapter.
 --- @return Chapter|nil chapter The next chapter, if found, or nil.
 --- @private
 function ChapterListing:findNextChapter(current_chapter)
-  --- FIXME This _might_ break if chapters do not have a chapter_num
-  --- (and that seems to be possible). We should be able to handle this, but
-  --- it seems to be a quite rare situation.
   local best_candidate = nil
 
   for i, candidate in ipairs(self.chapters) do
+    if candidate.chapter_num == nil or current_chapter.chapter_num == nil then
+      goto continue
+    end
+
     if candidate.chapter_num <= current_chapter.chapter_num then
       goto continue
     end
@@ -516,14 +521,27 @@ function ChapterListing:findNextChapter(current_chapter)
     -- - if it belongs to the same scanlation group.
     if candidate.chapter_num < best_candidate.chapter_num then
       best_candidate = candidate
-    elseif candidate.scanlator == current_chapter.scanlator then
+    elseif current_chapter.scanlator ~= nil and candidate.scanlator == current_chapter.scanlator then
       best_candidate = candidate
     end
 
     ::continue::
   end
 
-  return best_candidate
+  if best_candidate ~= nil then
+    return best_candidate
+  end
+
+  -- If finding by the chapter number fails, try to find the chapter next to this one.
+  local index = self:findChapterIndex(current_chapter)
+  assert(index ~= nil)
+
+  if index < #self.chapters then
+    return self.chapters[index + 1]
+  end
+
+  -- Everything failed. We have no next chapter 🤷.
+  return nil
 end
 
 return ChapterListing
