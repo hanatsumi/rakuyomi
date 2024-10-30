@@ -14,3 +14,5 @@ jobs:
       run: devbox run check-format
     - name: Check lint
       run: devbox run check-lint
+    - name: Run frontend unittests
+      run: devbox run test-frontend
