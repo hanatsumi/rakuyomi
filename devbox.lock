@@ -123,6 +123,54 @@
         }
       }
     },
+    "luajitPackages.busted@latest": {
+      "last_modified": "2024-10-13T23:44:06Z",
+      "resolved": "github:NixOS/nixpkgs/d4f247e89f6e10120f911e2e2d2254a050d0f732#luajitPackages.busted",
+      "source": "devbox-search",
+      "version": "2.2.0-1",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/zpjq29906938ys03dcanb8qg2jhs7f6r-luajit2.1-busted-2.2.0-1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/zpjq29906938ys03dcanb8qg2jhs7f6r-luajit2.1-busted-2.2.0-1"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/yg8h6lxja4r3mmk3lr2p3rbhcx743nrc-luajit2.1-busted-2.2.0-1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/yg8h6lxja4r3mmk3lr2p3rbhcx743nrc-luajit2.1-busted-2.2.0-1"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/cwcbkmkd2ifyd3ijf3vlahvp2vk49466-luajit2.1-busted-2.2.0-1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/cwcbkmkd2ifyd3ijf3vlahvp2vk49466-luajit2.1-busted-2.2.0-1"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/6ag4dkx6q9p2bbgkv49yfcc4375lzhdd-luajit2.1-busted-2.2.0-1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/6ag4dkx6q9p2bbgkv49yfcc4375lzhdd-luajit2.1-busted-2.2.0-1"
+        }
+      }
+    },
     "rustup@latest": {
       "last_modified": "2024-09-12T11:58:09Z",
       "plugin_version": "0.0.1",

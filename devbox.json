@@ -7,6 +7,7 @@
     "cachix": "latest",
     "gcc": "13.2.0",
     "cargo-flamegraph": "latest",
+    "luajitPackages.busted": "latest",
   },
   "env": {
     "PROJECT_DIR": "$PWD",
@@ -38,6 +39,9 @@
       "remote-install": [
         "python3 tools/install-into-remote-koreader.py",
       ],
+      "test-frontend": [
+        "busted -C frontend/rakuyomi.koplugin .",
+      ]
     },
   },
   "nixpkgs": {
