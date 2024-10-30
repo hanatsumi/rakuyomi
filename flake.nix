@@ -86,7 +86,11 @@
 
           pluginFolderWithoutServer = with pkgs; stdenv.mkDerivation {
             name = "rakuyomi-plugin-without-server";
-            src = ./frontend;
+            # Filter out unittests (*_spec.lua) files.
+            src = lib.fileset.toSource {
+              root = ./frontend;
+              fileset = (lib.fileset.fileFilter (file: !(lib.strings.hasSuffix "_spec.lua" file.name)) ./frontend);
+            };
             phases = [ "unpackPhase" "installPhase" ];
             installPhase = ''
               mkdir $out
