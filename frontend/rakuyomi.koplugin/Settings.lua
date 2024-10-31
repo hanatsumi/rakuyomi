@@ -45,14 +45,27 @@ function Settings:init()
 
   self.item_width = self.inner_dimen.w - 2 * padding
 
-  --- @type table<string, ValueDefinition>
+  --- @type [string, ValueDefinition][]
   local setting_value_definitions = {
-    chapter_sorting_mode = {
-      type = 'enum',
-      title = 'Chapter sorting mode',
-      options = {
-        { label = 'By chapter ascending',  value = 'chapter_ascending' },
-        { label = 'By chapter descending', value = 'chapter_descending' },
+    {
+      'chapter_sorting_mode',
+      {
+        type = 'enum',
+        title = 'Chapter sorting mode',
+        options = {
+          { label = 'By chapter ascending',  value = 'chapter_ascending' },
+          { label = 'By chapter descending', value = 'chapter_descending' },
+        }
+      }
+    },
+    {
+      'storage_size_limit_mb',
+      {
+        type = 'integer',
+        title = 'Storage size limit',
+        min_value = 1,
+        max_value = 10240,
+        unit = 'MB'
       }
     }
   }
@@ -61,7 +74,10 @@ function Settings:init()
     align = "left",
   }
 
-  for key, definition in pairs(setting_value_definitions) do
+  for _, tuple in ipairs(setting_value_definitions) do
+    local key = tuple[1]
+    local definition = tuple[2]
+
     table.insert(vertical_group, SettingItem:new {
       show_parent = self,
       width = self.item_width,

@@ -4,6 +4,7 @@ mod source_extractor;
 use anyhow::Context;
 use cli::source::model::SettingDefinition;
 use cli::usecases;
+use cli::usecases::update_settings::UpdateableSettings;
 use env_logger::Env;
 use log::{error, info, warn};
 use std::collections::HashMap;
@@ -22,7 +23,7 @@ use clap::Parser;
 use cli::chapter_storage::ChapterStorage;
 use cli::database::Database;
 use cli::model::{ChapterId, MangaId, SourceId};
-use cli::settings::{Settings, SourceSettingValue, UpdateableSettings};
+use cli::settings::{Settings, SourceSettingValue};
 use cli::source_manager::SourceManager;
 use cli::usecases::fetch_all_manga_chapters::ProgressReport;
 use cli::usecases::{

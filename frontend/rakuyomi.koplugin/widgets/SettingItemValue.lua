@@ -4,6 +4,7 @@ local Font = require("ui/font")
 local InputContainer = require("ui/widget/container/inputcontainer")
 local InputDialog = require("ui/widget/inputdialog")
 local RadioButtonWidget = require("ui/widget/radiobuttonwidget")
+local SpinWidget = require("ui/widget/spinwidget")
 local TextWidget = require("ui/widget/textwidget")
 local UIManager = require("ui/uimanager")
 
@@ -14,9 +15,10 @@ local SETTING_ITEM_FONT_SIZE = 18
 --- @class BooleanValueDefinition: { type: 'boolean' }
 --- @class EnumValueDefinitionOption: { label: string, value: string }
 --- @class EnumValueDefinition: { type: 'enum', title: string, options: EnumValueDefinitionOption[] }
+--- @class IntegerValueDefinition: { type: 'integer', title: string, min_value: number, max_value: number, unit?: string }
 --- @class StringValueDefinition: { type: 'string', title: string, placeholder: string }
 
---- @alias ValueDefinition BooleanValueDefinition|EnumValueDefinition|StringValueDefinition
+--- @alias ValueDefinition BooleanValueDefinition|EnumValueDefinition|IntegerValueDefinition|StringValueDefinition
 
 --- @class SettingItemValue: { [any]: any }
 --- @field value_definition ValueDefinition
@@ -71,6 +73,13 @@ function SettingItemValue:createValueWidget()
       checked = self:getCurrentValue(),
       face = Font:getFace("smallinfofont", SETTING_ITEM_FONT_SIZE),
     }
+  elseif self.value_definition.type == "integer" then
+    return TextWidget:new {
+      text = self:getCurrentValue() .. (self.value_definition.unit and (' ' .. self.value_definition.unit) or '') .. ' ' .. Icons.UNICODE_ARROW_RIGHT,
+      editable = true,
+      face = Font:getFace("cfont", SETTING_ITEM_FONT_SIZE),
+      max_width = self.max_width,
+    }
   elseif self.value_definition.type == "string" then
     return TextWidget:new {
       text = self:getCurrentValue(),
@@ -111,6 +120,18 @@ function SettingItemValue:onTap()
     UIManager:show(dialog)
   elseif self.value_definition.type == "boolean" then
     self:updateCurrentValue(not self:getCurrentValue())
+  elseif self.value_definition.type == "integer" then
+    local dialog = SpinWidget:new {
+      title_text = self.value_definition.title,
+      value = self:getCurrentValue(),
+      value_min = self.value_definition.min_value,
+      value_max = self.value_definition.max_value,
+      callback = function(spin)
+        self:updateCurrentValue(spin.value)
+      end,
+    }
+
+    UIManager:show(dialog)
   elseif self.value_definition.type == "string" then
     local dialog
     dialog = InputDialog:new {
