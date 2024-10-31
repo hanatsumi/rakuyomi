@@ -6,7 +6,7 @@ use serde::{
     de::{Unexpected, Visitor},
     Deserialize, Serialize,
 };
-use size::Size;
+use size::{Base, Size};
 use url::Url;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -58,7 +58,7 @@ pub struct Settings {
 }
 
 fn default_storage_size_limit() -> StorageSizeLimit {
-    StorageSizeLimit(Size::from_megabytes(2048))
+    StorageSizeLimit(Size::from_megabytes(2000))
 }
 
 fn is_default_storage_size_limit(size: &StorageSizeLimit) -> bool {
@@ -76,7 +76,7 @@ impl Serialize for StorageSizeLimit {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str(&self.0.to_string())
+        serializer.serialize_str(&self.0.format().with_base(Base::Base10).to_string())
     }
 }
 
@@ -148,24 +148,5 @@ impl JsonSchema for StorageSizeLimit {
         schema_object.string().pattern = Some(STORAGE_SIZE_LIMIT_REGEX.to_owned());
 
         schema_object.into()
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct UpdateableSettings {
-    chapter_sorting_mode: ChapterSortingMode,
-}
-
-impl UpdateableSettings {
-    pub fn apply_updates(&self, settings: &mut Settings) {
-        settings.chapter_sorting_mode = self.chapter_sorting_mode
-    }
-}
-
-impl From<&Settings> for UpdateableSettings {
-    fn from(value: &Settings) -> Self {
-        Self {
-            chapter_sorting_mode: value.chapter_sorting_mode,
-        }
     }
 }
