@@ -1,5 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
+use axum_macros::FromRef;
 use cli::usecases::fetch_all_manga_chapters::Error as FetchAllMangaChaptersError;
 use cli::{
     chapter_storage::ChapterStorage, database::Database, settings::Settings,
@@ -7,6 +8,8 @@ use cli::{
 };
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
+
+use crate::job::State as JobState;
 
 #[derive(Default)]
 pub enum DownloadAllChaptersState {
@@ -23,7 +26,7 @@ pub enum DownloadAllChaptersState {
     Errored(FetchAllMangaChaptersError),
 }
 
-#[derive(Clone)]
+#[derive(Clone, FromRef)]
 pub struct State {
     pub source_manager: Arc<Mutex<SourceManager>>,
     pub database: Arc<Database>,
@@ -31,4 +34,5 @@ pub struct State {
     pub download_all_chapters_state: Arc<Mutex<DownloadAllChaptersState>>,
     pub settings: Arc<Mutex<Settings>>,
     pub settings_path: PathBuf,
+    pub job_state: JobState,
 }

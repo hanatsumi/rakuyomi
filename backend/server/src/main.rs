@@ -1,3 +1,4 @@
+mod job;
 mod manga;
 mod model;
 mod settings;
@@ -69,11 +70,13 @@ async fn main() -> anyhow::Result<()> {
         settings: Arc::new(Mutex::new(settings)),
         settings_path,
         download_all_chapters_state: Default::default(),
+        job_state: Default::default(),
     };
 
     let app = Router::new()
         .route("/health-check", get(health_check))
         .merge(manga::routes())
+        .merge(job::routes())
         .merge(settings::routes())
         .merge(source::routes())
         .with_state(state);
@@ -133,24 +136,39 @@ impl AppError {
     }
 }
 
-// Tell axum how to convert `AppError` into a response.
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        let status_code = match &self {
-            Self::SourceNotFound | Self::DownloadAllChaptersProgressNotFound => {
+impl From<&AppError> for StatusCode {
+    fn from(value: &AppError) -> Self {
+        match &value {
+            AppError::SourceNotFound | AppError::DownloadAllChaptersProgressNotFound => {
                 StatusCode::NOT_FOUND
             }
             _ => StatusCode::INTERNAL_SERVER_ERROR,
-        };
+        }
+    }
+}
 
-        let message = match self {
-            Self::SourceNotFound => "Source was not found".to_string(),
-            Self::DownloadAllChaptersProgressNotFound => "No download is in progress.".to_string(),
-            Self::NetworkFailure(_) => {
+impl From<&AppError> for ErrorResponse {
+    fn from(value: &AppError) -> Self {
+        let message = match value {
+            AppError::SourceNotFound => "Source was not found".to_string(),
+            AppError::DownloadAllChaptersProgressNotFound => {
+                "No download is in progress.".to_string()
+            }
+            AppError::NetworkFailure(_) => {
                 "There was a network error. Check your connection and try again.".to_string()
             }
-            Self::Other(ref e) => format!("Something went wrong: {}", e),
+            AppError::Other(ref e) => format!("Something went wrong: {}", e),
         };
+
+        Self { message }
+    }
+}
+
+// Tell axum how to convert `AppError` into a response.
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        let status_code = StatusCode::from(&self);
+        let error_response = ErrorResponse::from(&self);
 
         let inner_exception = match self {
             Self::NetworkFailure(ref e) => Some(e),
@@ -162,7 +180,7 @@ impl IntoResponse for AppError {
             error!("Error caused by: {:?}", e);
         }
 
-        (status_code, Json(ErrorResponse { message })).into_response()
+        (status_code, Json(error_response)).into_response()
     }
 }
 

@@ -391,6 +391,35 @@ function Backend.setSettings(settings)
   })
 end
 
+--- Creates a new download chapter job. Returns the job's UUID.
+--- @return SuccessfulResponse<string>|ErrorResponse
+function Backend.createDownloadChapterJob(source_id, manga_id, chapter_id)
+  return requestJson({
+    url = "http://localhost:30727/jobs/download-chapter",
+    method = 'POST',
+    body = {
+      source_id = source_id,
+      manga_id = manga_id,
+      chapter_id = chapter_id
+    }
+  })
+end
+
+--- @class PendingJob: { type: 'PENDING' }
+--- @class CompletedJob<T>: { type: 'COMPLETED', data: T }
+--- @class ErroredJob: { type: 'ERROR', data: ErrorResponse }
+
+--- @alias DownloadChapterJobDetails PendingJob|CompletedJob<string>|ErroredJob
+
+--- Gets details about a download chapter job.
+--- @return SuccessfulResponse<DownloadChapterJobDetails>|ErrorResponse
+function Backend.getDownloadChapterJobDetails(id)
+  return requestJson({
+    url = "http://localhost:30727/jobs/download-chapter/" .. id,
+    method = 'GET'
+  })
+end
+
 function Backend.cleanup()
   logger.info("Terminating subprocess with PID " .. Backend.server_pid)
   -- send SIGTERM to the backend
