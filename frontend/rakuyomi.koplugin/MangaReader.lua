@@ -76,14 +76,20 @@ function MangaReader:downloadAndShow(options)
   self.on_return_callback = options.on_return_callback
   self.on_end_of_book_callback = options.on_end_of_book_callback
 
-  local time = require("ui/time")
-  local start_time = time.now()
-  local response = LoadingDialog:showAndRun(
-    "Downloading chapter...",
-    function()
-      return options.download_job:runUntilCompletion()
-    end
-  )
+  local response = options.download_job:poll()
+
+  if response == nil then
+    local time = require("ui/time")
+    local start_time = time.now()
+    response = LoadingDialog:showAndRun(
+      "Downloading chapter...",
+      function()
+        return options.download_job:runUntilCompletion()
+      end
+    )
+
+    logger.info("Waited ", time.to_ms(time.since(start_time)), "ms for download job to finish.")
+  end
 
   if response.type == 'ERROR' then
     ErrorDialog:show(response.message)
@@ -91,14 +97,14 @@ function MangaReader:downloadAndShow(options)
     return
   end
 
-  logger.info("Waited ", time.to_ms(time.since(start_time)), "ms for download job to finish.")
-
   options.on_download_job_finished()
 
   local manga_path = response.body
   if self.is_showing then
     -- if we're showing, just switch the document
+    logger.info('switching to new document', manga_path)
     ReaderUI.instance:switchDocument(manga_path)
+    logger.info('switched!', manga_path)
   else
     -- took this from opds reader
     local Event = require("ui/event")
