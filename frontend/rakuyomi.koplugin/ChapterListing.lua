@@ -10,6 +10,7 @@ local LoadingDialog = require("LoadingDialog")
 local util = require("util")
 
 local Backend = require("Backend")
+local DownloadChapter = require("jobs/DownloadChapter")
 local Icons = require("Icons")
 local ErrorDialog = require("ErrorDialog")
 local MangaReader = require("MangaReader")
@@ -271,9 +272,19 @@ function ChapterListing:refreshChapters()
 end
 
 --- @private
-function ChapterListing:openChapterOnReader(chapter)
+function ChapterListing:openChapterOnReader(chapter, downloadJob)
   Trapper:wrap(function()
     local nextChapter = findNextChapter(self.chapters, chapter)
+    local nextChapterDownloadJob = nil
+
+    local onDownloadJobFinished = function()
+      -- FIXME Mutating here _still_ sucks, we gotta think of a better way.
+      chapter.downloaded = true
+
+      if nextChapter ~= nil then
+        nextChapterDownloadJob = DownloadChapter:new(nextChapter.source_id, nextChapter.manga_id, nextChapter.id)
+      end
+    end
 
     local onReturnCallback = function()
       self:updateItems()
@@ -295,7 +306,7 @@ function ChapterListing:openChapterOnReader(chapter)
 
       if nextChapter ~= nil then
         logger.info("opening next chapter", nextChapter)
-        self:openChapterOnReader(nextChapter)
+        self:openChapterOnReader(nextChapter, nextChapterDownloadJob)
       else
         MangaReader:closeReaderUi(function()
           self:updateItems()
@@ -305,7 +316,12 @@ function ChapterListing:openChapterOnReader(chapter)
       end
     end
 
-    MangaReader:downloadAndShow(chapter, onReturnCallback, onEndOfBookCallback)
+    MangaReader:downloadAndShow({
+      download_job = downloadJob or DownloadChapter:new(chapter.source_id, chapter.manga_id, chapter.id),
+      on_download_job_finished = onDownloadJobFinished,
+      on_end_of_book_callback = onEndOfBookCallback,
+      on_return_callback = onReturnCallback,
+    })
 
     self:onClose()
   end)

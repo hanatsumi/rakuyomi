@@ -64,20 +64,24 @@ function MangaReader:onReaderUiCloseWidget()
   self.is_showing = false
 end
 
+--- @class DownloadAndShowOptions
+--- @field download_job DownloadChapter
+--- @field on_return_callback fun(): nil
+--- @field on_end_of_book_callback fun(): nil
+--- @field on_download_job_finished fun(): nil
+
 --- Downloads the given chapter and opens the reader. Must be called from a function wrapped with `Trapper:wrap()`
---- @param chapter Chapter The chapter to be downloaded.
---- @param onReturnCallback fun(): nil
---- @param onEndOfBookCallback fun(): nil
-function MangaReader:downloadAndShow(chapter, onReturnCallback, onEndOfBookCallback)
-  self.on_return_callback = onReturnCallback
-  self.on_end_of_book_callback = onEndOfBookCallback
+--- @param options DownloadAndShowOptions
+function MangaReader:downloadAndShow(options)
+  self.on_return_callback = options.on_return_callback
+  self.on_end_of_book_callback = options.on_end_of_book_callback
 
   local time = require("ui/time")
   local start_time = time.now()
   local response = LoadingDialog:showAndRun(
     "Downloading chapter...",
     function()
-      return Backend.downloadChapter(chapter.source_id, chapter.manga_id, chapter.id)
+      return options.download_job:runUntilCompletion()
     end
   )
 
@@ -87,13 +91,11 @@ function MangaReader:downloadAndShow(chapter, onReturnCallback, onEndOfBookCallb
     return
   end
 
-  -- FIXME mutating here sucks, maybe a callback?
-  chapter.downloaded = true
+  logger.info("Waited ", time.to_ms(time.since(start_time)), "ms for download job to finish.")
+
+  options.on_download_job_finished()
 
   local manga_path = response.body
-
-  logger.info("Downloaded chapter in ", time.to_ms(time.since(start_time)), "ms")
-
   if self.is_showing then
     -- if we're showing, just switch the document
     ReaderUI.instance:switchDocument(manga_path)

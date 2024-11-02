@@ -16,6 +16,7 @@ function LoadingDialog:showAndRun(message, runnable)
 
   local message_dialog = InfoMessage:new {
     text = message,
+    dismissable = false,
   }
 
   UIManager:show(message_dialog)
