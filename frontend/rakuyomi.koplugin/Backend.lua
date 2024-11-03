@@ -339,6 +339,15 @@ function Backend.installSource(source_id)
   })
 end
 
+--- Uninstalls a source.
+--- @return SuccessfulResponse<nil>|ErrorResponse
+function Backend.uninstallSource(source_id)
+  return requestJson({
+    url = "http://localhost:30727/installed-sources/" .. source_id,
+    method = "DELETE",
+  })
+end
+
 --- @class GroupSettingDefinition: { type: 'group', title: string|nil, items: SettingDefinition[], footer: string|nil }
 --- @class SwitchSettingDefinition: { type: 'switch', title: string, key: string, default: boolean }
 --- @class SelectSettingDefinition: { type: 'select', title: string, key: string, values: string[], titles: string[], default: string  }

@@ -30,13 +30,22 @@ impl SourceManager {
     }
 
     pub fn install_source(&mut self, id: &SourceId, contents: impl AsRef<[u8]>) -> Result<()> {
-        let target_path = self.sources_folder.join(format!("{}.aix", id.value()));
+        let target_path = self.source_path(id);
         fs::write(&target_path, contents)?;
 
         self.sources_by_id.insert(
             id.clone(),
             Source::from_aix_file(&target_path, self.settings.clone())?,
         );
+
+        Ok(())
+    }
+
+    pub fn uninstall_source(&mut self, id: &SourceId) -> Result<()> {
+        let source_path = self.source_path(id);
+        fs::remove_file(&source_path)?;
+
+        self.sources_by_id.remove(&id.clone());
 
         Ok(())
     }
@@ -71,6 +80,10 @@ impl SourceManager {
             .collect();
 
         Ok(sources_by_id)
+    }
+
+    fn source_path(&self, id: &SourceId) -> PathBuf {
+        self.sources_folder.join(format!("{}.aix", id.value()))
     }
 }
 

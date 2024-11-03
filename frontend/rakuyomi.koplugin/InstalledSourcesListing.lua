@@ -1,10 +1,11 @@
-local Menu = require("ui/widget/menu")
 local UIManager = require("ui/uimanager")
+local ConfirmBox = require("ui/widget/confirmbox")
 local Screen = require("device").screen
 local Trapper = require("ui/trapper")
-local AvailableSourcesListing = require("AvailableSourcesListing")
 
+local AvailableSourcesListing = require("AvailableSourcesListing")
 local Backend = require("Backend")
+local Menu = require("widgets/Menu")
 local ErrorDialog = require("ErrorDialog")
 local SourceSettings = require("SourceSettings")
 
@@ -16,6 +17,7 @@ local InstalledSourcesListing = Menu:extend {
   is_enable_shortcut = false,
   is_popout = false,
   title = "Installed sources",
+  with_context_menu = true,
 
   installed_sources = nil,
   -- callback to be called when pressing the back button
@@ -88,7 +90,8 @@ function InstalledSourcesListing:generateEmptyViewItemTable()
 end
 
 --- @private
-function InstalledSourcesListing:onMenuChoice(item)
+function InstalledSourcesListing:onPrimaryMenuSelect(item)
+  --- @type SourceInformation
   local source_information = item.source_information
 
   local on_return_callback = function()
@@ -98,6 +101,38 @@ function InstalledSourcesListing:onMenuChoice(item)
   SourceSettings:fetchAndShow(source_information.id, on_return_callback)
 
   UIManager:close(self)
+end
+
+--- @private
+function InstalledSourcesListing:onContextMenuSelect(item)
+  --- @type SourceInformation
+  local source_information = item.source_information
+
+  UIManager:show(ConfirmBox:new {
+    text = "Do you want to remove the \"" .. source_information.name .. "\" source?",
+    ok_text = "Remove",
+    ok_callback = function()
+      local response = Backend.uninstallSource(source_information.id)
+
+      if response.type == 'ERROR' then
+        ErrorDialog:show(response.message)
+
+        return
+      end
+
+      local response = Backend.listInstalledSources()
+
+      if response.type == 'ERROR' then
+        ErrorDialog:show(response.message)
+
+        return
+      end
+
+      self.installed_sources = response.body
+
+      self:updateItems()
+    end
+  })
 end
 
 --- @private

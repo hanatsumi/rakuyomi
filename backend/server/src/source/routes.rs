@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use axum::extract::{Path, State as StateExtractor};
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use cli::model::SourceId;
 use cli::settings::SourceSettingValue;
@@ -22,6 +22,7 @@ pub fn routes() -> Router<State> {
             post(install_source),
         )
         .route("/installed-sources", get(list_installed_sources))
+        .route("/installed-sources/:source_id", delete(uninstall_source))
         .route(
             "/installed-sources/:source_id/setting-definitions",
             get(get_source_setting_definitions),
@@ -81,6 +82,15 @@ async fn list_installed_sources(
         .collect();
 
     Json(installed_sources)
+}
+
+async fn uninstall_source(
+    StateExtractor(State { source_manager, .. }): StateExtractor<State>,
+    Path(SourceParams { source_id }): Path<SourceParams>,
+) -> Result<Json<()>, AppError> {
+    usecases::uninstall_source(&mut *source_manager.lock().await, SourceId::new(source_id))?;
+
+    Ok(Json(()))
 }
 
 async fn get_source_setting_definitions(
