@@ -1,3 +1,4 @@
+mod download_chapter;
 mod dto;
 mod routes;
 mod state;

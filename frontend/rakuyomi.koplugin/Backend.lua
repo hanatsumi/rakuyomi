@@ -420,11 +420,11 @@ end
 
 --- @alias DownloadChapterJobDetails PendingJob|CompletedJob<string>|ErroredJob
 
---- Gets details about a download chapter job.
+--- Gets details about a job.
 --- @return SuccessfulResponse<DownloadChapterJobDetails>|ErrorResponse
-function Backend.getDownloadChapterJobDetails(id)
+function Backend.getJobDetails(id)
   return requestJson({
-    url = "http://localhost:30727/jobs/download-chapter/" .. id,
+    url = "http://localhost:30727/jobs/" .. id,
     method = 'GET'
   })
 end

@@ -1,5 +1,3 @@
-use std::{path::PathBuf, sync::Arc};
-
 use crate::{job::State, AppError};
 use anyhow::anyhow;
 use axum::{
@@ -7,22 +5,20 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use cli::{
-    chapter_storage::ChapterStorage, model::ChapterId, source_collection::SourceCollection,
-    source_manager::SourceManager, usecases,
-};
+use cli::model::ChapterId;
 use serde::Deserialize;
-use tokio::sync::Mutex;
 use uuid::Uuid;
 
 use crate::job::dto::JobDetail;
-use crate::job::state::Job;
+use crate::job::state::RunningJob;
 use crate::state::State as AppState;
+
+use super::download_chapter::DownloadChapterJob;
 
 pub fn routes() -> Router<AppState> {
     Router::<AppState>::new()
         .route("/jobs/download-chapter", post(create_download_chapter_job))
-        .route("/jobs/download-chapter/:id", get(get_download_chapter_job))
+        .route("/jobs/:id", get(get_job))
 }
 
 #[derive(Deserialize)]
@@ -48,38 +44,24 @@ async fn create_download_chapter_job(
     Json(body): Json<CreateDownloadChapterJobBody>,
 ) -> Result<Json<Uuid>, AppError> {
     let id = Uuid::new_v4();
-    let job = tokio::spawn(download_chapter_job(
-        source_manager,
-        chapter_storage,
-        body.into(),
-    ));
+    let job = DownloadChapterJob::spawn_new(source_manager, chapter_storage, body.into());
 
-    job_registry.lock().await.insert(id, Job::FetchChapter(job));
+    job_registry
+        .lock()
+        .await
+        .insert(id, RunningJob::DownloadChapter(job));
 
     Ok(Json(id))
 }
 
-async fn download_chapter_job(
-    source_manager: Arc<Mutex<SourceManager>>,
-    chapter_storage: ChapterStorage,
-    chapter_id: ChapterId,
-) -> Result<PathBuf, AppError> {
-    let source_manager = source_manager.lock().await;
-    let source = source_manager
-        .get_by_id(chapter_id.source_id())
-        .ok_or(AppError::SourceNotFound)?;
-
-    Ok(usecases::fetch_manga_chapter(source, &chapter_storage, &chapter_id).await?)
-}
-
 #[derive(Deserialize)]
-struct GetDownloadChapterJobParams {
+struct GetJobParams {
     id: Uuid,
 }
 
-async fn get_download_chapter_job(
+async fn get_job(
     StateExtractor(State { job_registry }): StateExtractor<State>,
-    Path(GetDownloadChapterJobParams { id }): Path<GetDownloadChapterJobParams>,
+    Path(GetJobParams { id }): Path<GetJobParams>,
 ) -> Result<Json<JobDetail>, AppError> {
     let job = job_registry
         .lock()
