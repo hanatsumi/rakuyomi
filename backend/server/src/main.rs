@@ -109,8 +109,8 @@ pub enum AppError {
     Other(anyhow::Error),
 }
 
-#[derive(Serialize)]
-struct ErrorResponse {
+#[derive(Serialize, Clone)]
+pub struct ErrorResponse {
     message: String,
 }
 
@@ -161,6 +161,12 @@ impl From<&AppError> for ErrorResponse {
         };
 
         Self { message }
+    }
+}
+
+impl From<AppError> for ErrorResponse {
+    fn from(value: AppError) -> Self {
+        Self::from(&value)
     }
 }
 

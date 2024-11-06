@@ -55,7 +55,7 @@ end
 --- @return SuccessfulResponse<string>|ErrorResponse
 function DownloadChapter:runUntilCompletion()
   while true do
-    local response = Backend.getDownloadChapterJobDetails(self.job_id)
+    local response = Backend.getJobDetails(self.job_id)
     if response.type == 'ERROR' then
       return response
     end

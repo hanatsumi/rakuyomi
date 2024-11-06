@@ -1,37 +1,36 @@
-use std::path::PathBuf;
-
 use serde::Serialize;
+use serde_json::Value;
 
-use crate::ErrorResponse;
-
-use super::state::Job;
-
-#[derive(Serialize)]
-#[serde(untagged)]
-pub enum CompletedJobResult {
-    FetchChapter(PathBuf),
-}
+use super::{
+    download_chapter::DownloadChapterJob,
+    state::{Job, JobState, RunningJob},
+};
 
 #[derive(Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "type", content = "data")]
 pub enum JobDetail {
-    Pending,
-    Completed(CompletedJobResult),
-    Error(ErrorResponse),
+    Pending(Value),
+    Completed(Value),
+    Error(Value),
 }
 
 impl JobDetail {
-    pub async fn from_job(job: Job) -> (Self, Option<Job>) {
-        let Job::FetchChapter(handle) = job;
-        if !handle.is_finished() {
-            return (JobDetail::Pending, Some(Job::FetchChapter(handle)));
+    pub async fn from_job(job: RunningJob) -> (Self, Option<RunningJob>) {
+        match job {
+            RunningJob::DownloadChapter(job) => Self::from_download_chapter_job(job).await,
         }
+    }
 
-        let detail = match handle.await.unwrap() {
-            Ok(path) => JobDetail::Completed(CompletedJobResult::FetchChapter(path)),
-            Err(e) => JobDetail::Error(ErrorResponse::from(&e)),
-        };
-
-        (detail, None)
+    async fn from_download_chapter_job(job: DownloadChapterJob) -> (Self, Option<RunningJob>) {
+        match job.poll().await {
+            JobState::InProgress(v) => (
+                JobDetail::Pending(serde_json::to_value(v).unwrap()),
+                Some(RunningJob::DownloadChapter(job)),
+            ),
+            JobState::Completed(v) => {
+                (JobDetail::Completed(serde_json::to_value(v).unwrap()), None)
+            }
+            JobState::Errored(v) => (JobDetail::Error(serde_json::to_value(v).unwrap()), None),
+        }
     }
 }
