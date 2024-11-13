@@ -25,7 +25,6 @@ use cli::database::Database;
 use cli::settings::Settings;
 use cli::source_manager::SourceManager;
 use cli::usecases::{
-    fetch_all_manga_chapters::Error as FetchAllMangaChaptersError,
     fetch_manga_chapter::Error as FetchMangaChaptersError,
     search_mangas::Error as SearchMangasError,
 };
@@ -69,7 +68,6 @@ async fn main() -> anyhow::Result<()> {
         chapter_storage,
         settings: Arc::new(Mutex::new(settings)),
         settings_path,
-        download_all_chapters_state: Default::default(),
         job_state: Default::default(),
     };
 
@@ -118,13 +116,6 @@ impl AppError {
     fn from_search_mangas_error(value: SearchMangasError) -> Self {
         match value {
             SearchMangasError::SourceError(e) => Self::NetworkFailure(e),
-        }
-    }
-
-    fn from_fetch_all_manga_chapters_error(value: FetchAllMangaChaptersError) -> Self {
-        match value {
-            FetchAllMangaChaptersError::DownloadError(e) => Self::NetworkFailure(e),
-            FetchAllMangaChaptersError::Other(e) => Self::Other(e),
         }
     }
 

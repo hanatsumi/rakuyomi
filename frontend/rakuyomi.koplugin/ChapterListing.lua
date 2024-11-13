@@ -2,6 +2,7 @@ local BD = require("ui/bidi")
 local ButtonDialog = require("ui/widget/buttondialog")
 local Menu = require("ui/widget/menu")
 local InfoMessage = require("ui/widget/infomessage")
+local InputDialog = require("ui/widget/inputdialog")
 local UIManager = require("ui/uimanager")
 local Trapper = require("ui/trapper")
 local Screen = require("device").screen
@@ -11,6 +12,8 @@ local util = require("util")
 
 local Backend = require("Backend")
 local DownloadChapter = require("jobs/DownloadChapter")
+local DownloadUnreadChapters = require("jobs/DownloadUnreadChapters")
+local DownloadUnreadChaptersJobDialog = require("DownloadUnreadChaptersJobDialog")
 local Icons = require("Icons")
 local ErrorDialog = require("ErrorDialog")
 local MangaReader = require("MangaReader")
@@ -31,14 +34,13 @@ local ChapterListing = Menu:extend {
   -- the manga we're listing
   manga = nil,
   -- list of chapters
-  chapters = nil,
+  chapters = {},
   chapter_sorting_mode = nil,
   -- callback to be called when pressing the back button
   on_return_callback = nil,
 }
 
 function ChapterListing:init()
-  self.chapters = self.chapters or {}
   self.title_bar_left_icon = "appbar.menu"
   self.onLeftButtonTap = function()
     self:openMenu()
@@ -46,6 +48,9 @@ function ChapterListing:init()
 
   self.width = Screen:getWidth()
   self.height = Screen:getHeight()
+
+  -- FIXME `Menu` calls `updateItems()` during init, but we haven't fetched any items yet, as
+  -- we do it in `updateChapterList`. Not sure if there's any downside to it, but here's a notice.
   Menu.init(self)
 
   -- we need to fill this with *something* in order to Koreader actually recognize
@@ -57,7 +62,24 @@ function ChapterListing:init()
   }
   -- idk might make some gc shenanigans actually work
   self.on_return_callback = nil
+
   -- we need to do this after updating
+  self:updateChapterList()
+end
+
+--- Fetches the cached chapter list from the backend and updates the menu items.
+function ChapterListing:updateChapterList()
+  local response = Backend.listCachedChapters(self.manga.source.id, self.manga.id)
+
+  if response.type == 'ERROR' then
+    ErrorDialog:show(response.message)
+
+    return
+  end
+
+  local chapter_results = response.body
+  self.chapters = chapter_results
+
   self:updateItems()
 end
 
@@ -193,17 +215,8 @@ function ChapterListing:fetchAndShow(manga, onReturnCallback, accept_cached_resu
     return
   end
 
-  local response = Backend.listCachedChapters(manga.source.id, manga.id)
-
-  if response.type == 'ERROR' then
-    ErrorDialog:show(response.message)
-
-    return
-  end
-
-  local chapters = response.body
-
   local response = Backend.getSettings()
+
   if response.type == 'ERROR' then
     ErrorDialog:show(response.message)
 
@@ -214,7 +227,6 @@ function ChapterListing:fetchAndShow(manga, onReturnCallback, accept_cached_resu
 
   UIManager:show(ChapterListing:new {
     manga = manga,
-    chapters = chapters,
     chapter_sorting_mode = settings.chapter_sorting_mode,
     on_return_callback = onReturnCallback,
     covers_fullscreen = true, -- hint for UIManager:_repaint()
@@ -256,18 +268,7 @@ function ChapterListing:refreshChapters()
       return
     end
 
-    local response = Backend.listCachedChapters(self.manga.source.id, self.manga.id)
-
-    if response.type == 'ERROR' then
-      ErrorDialog:show(response.message)
-
-      return
-    end
-
-    local chapter_results = response.body
-    self.chapters = chapter_results
-
-    self:updateItems()
+    self:updateChapterList()
   end)
 end
 
@@ -294,23 +295,14 @@ function ChapterListing:openChapterOnReader(chapter, downloadJob)
 
     local onEndOfBookCallback = function()
       Backend.markChapterAsRead(chapter.source_id, chapter.manga_id, chapter.id)
-      local response = Backend.listCachedChapters(self.manga.source.id, self.manga.id)
 
-      if response.type == 'ERROR' then
-        ErrorDialog:show(response.message)
-
-        return
-      end
-
-      self.chapters = response.body
+      self:updateChapterList()
 
       if nextChapter ~= nil then
         logger.info("opening next chapter", nextChapter)
         self:openChapterOnReader(nextChapter, nextChapterDownloadJob)
       else
         MangaReader:closeReaderUi(function()
-          self:updateItems()
-
           UIManager:show(self)
         end)
       end
@@ -334,11 +326,11 @@ function ChapterListing:openMenu()
   local buttons = {
     {
       {
-        text = Icons.FA_DOWNLOAD .. " Download all chapters",
+        text = Icons.FA_DOWNLOAD .. " Download unread chapters…",
         callback = function()
           UIManager:close(dialog)
 
-          self:onDownloadAllChapters()
+          self:onDownloadUnreadChapters()
         end
       }
     }
@@ -351,9 +343,58 @@ function ChapterListing:openMenu()
   UIManager:show(dialog)
 end
 
--- FIXME this is growing a bit too large
--- maybe a component like `DownloadingAllChaptersDialog` or something would be good here?
---- @private
+function ChapterListing:onDownloadUnreadChapters()
+  local input_dialog
+  input_dialog = InputDialog:new {
+    title = "Download unread chapters...",
+    input_type = "number",
+    input_hint = "Amount of unread chapters (default: all)",
+    description = "Specify the amount of unread chapters to download, or leave empty to download all of them.",
+    buttons = {
+      {
+        {
+          text = "Cancel",
+          id = "close",
+          callback = function()
+            UIManager:close(input_dialog)
+          end,
+        },
+        {
+          text = "Download",
+          is_enter_default = true,
+          callback = function()
+            UIManager:close(input_dialog)
+
+            local amount = nil
+            if input_dialog:getInputText() ~= '' then
+              amount = tonumber(input_dialog:getInputText())
+
+              if amount == nil then
+                ErrorDialog:show('Invalid amount of chapters!')
+
+                return
+              end
+            end
+
+            local job = DownloadUnreadChapters:new(self.manga.source.id, self.manga.id, amount)
+            local dialog = DownloadUnreadChaptersJobDialog:new({
+              show_parent = self,
+              job = job,
+              dismiss_callback = function()
+                self:updateChapterList()
+              end
+            })
+
+            dialog:show()
+          end,
+        },
+      }
+    }
+  }
+
+  UIManager:show(input_dialog)
+end
+
 function ChapterListing:onDownloadAllChapters()
   local downloadingMessage = InfoMessage:new {
     text = "Downloading all chapters, this will take a while…",

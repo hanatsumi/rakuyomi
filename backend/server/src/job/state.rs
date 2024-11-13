@@ -5,7 +5,9 @@ use uuid::Uuid;
 
 use crate::AppError;
 
-use super::download_chapter::DownloadChapterJob;
+use super::{
+    download_chapter::DownloadChapterJob, download_unread_chapters::DownloadUnreadChaptersJob,
+};
 
 pub enum JobState<Progress, Output, Error> {
     InProgress(Progress),
@@ -18,13 +20,13 @@ pub trait Job {
     type Output;
     type Error;
 
-    fn is_cancellable(&self) -> bool;
     async fn cancel(&self) -> Result<(), AppError>;
     async fn poll(&self) -> JobState<Self::Progress, Self::Output, Self::Error>;
 }
 
 pub enum RunningJob {
     DownloadChapter(DownloadChapterJob),
+    DownloadUnreadChapters(DownloadUnreadChaptersJob),
 }
 
 #[derive(Default, Clone)]

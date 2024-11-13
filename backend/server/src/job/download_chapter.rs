@@ -53,10 +53,6 @@ impl Job for DownloadChapterJob {
     type Output = PathBuf;
     type Error = ErrorResponse;
 
-    fn is_cancellable(&self) -> bool {
-        false
-    }
-
     async fn cancel(&self) -> Result<(), AppError> {
         todo!()
     }

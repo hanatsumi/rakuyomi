@@ -1,13 +1,15 @@
 {
   "packages": {
-    "koreader": "latest",
-    "lua-language-server": "latest",
-    "rustup": "latest",
-    "sqlx-cli": "latest",
-    "cachix": "latest",
-    "gcc": "13.2.0",
-    "cargo-flamegraph": "latest",
+    "koreader":              "latest",
+    "lua-language-server":   "latest",
+    "rustup":                "latest",
+    "sqlx-cli":              "latest",
+    "cachix":                "latest",
+    "gcc":                   "13.2.0",
+    "cargo-flamegraph":      "latest",
     "luajitPackages.busted": "latest",
+    "mold-wrapped":          "latest",
+    "clang":                 "latest",
   },
   "env": {
     "PROJECT_DIR": "$PWD",
@@ -41,7 +43,7 @@
       ],
       "test-frontend": [
         "busted -C frontend/rakuyomi.koplugin .",
-      ]
+      ],
     },
   },
   "nixpkgs": {

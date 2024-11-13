@@ -19,7 +19,7 @@ pub struct MangaId {
     manga_id: String,
 }
 
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ChapterId {
     manga_id: MangaId,
     chapter_id: String,
@@ -107,7 +107,7 @@ pub struct MangaInformation {
     pub cover_url: Option<Url>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ChapterInformation {
     pub id: ChapterId,
     pub title: Option<String>,
