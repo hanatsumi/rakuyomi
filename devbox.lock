@@ -69,6 +69,34 @@
         }
       }
     },
+    "clang@latest": {
+      "last_modified": "2024-11-03T14:18:04Z",
+      "resolved": "github:NixOS/nixpkgs/4ae2e647537bcdbb82265469442713d066675275#clang",
+      "source": "devbox-search",
+      "version": "18.1.8",
+      "systems": {
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/0wvjh9f0yamfs8yckkhskazy5sxwc48d-clang-wrapper-18.1.8",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/0wvjh9f0yamfs8yckkhskazy5sxwc48d-clang-wrapper-18.1.8"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/qajfjv5lnfys2ykm0ggkr4lnnkvgs10r-clang-wrapper-18.1.8",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/qajfjv5lnfys2ykm0ggkr4lnnkvgs10r-clang-wrapper-18.1.8"
+        }
+      }
+    },
     "gcc@13.2.0": {
       "last_modified": "2024-04-19T21:36:04Z",
       "resolved": "github:NixOS/nixpkgs/92d295f588631b0db2da509f381b4fb1e74173c5#gcc",
@@ -168,6 +196,54 @@
             }
           ],
           "store_path": "/nix/store/6ag4dkx6q9p2bbgkv49yfcc4375lzhdd-luajit2.1-busted-2.2.0-1"
+        }
+      }
+    },
+    "mold-wrapped@latest": {
+      "last_modified": "2024-11-03T14:18:04Z",
+      "resolved": "github:NixOS/nixpkgs/4ae2e647537bcdbb82265469442713d066675275#mold-wrapped",
+      "source": "devbox-search",
+      "version": "2.34.1",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/gyxfhrlmjflsz6db7qp1hqzcwbh0p355-mold-wrapper-2.34.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/gyxfhrlmjflsz6db7qp1hqzcwbh0p355-mold-wrapper-2.34.1"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/za4lbmb8g9ih8g6xv9xy24y0da604q24-mold-wrapper-2.34.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/za4lbmb8g9ih8g6xv9xy24y0da604q24-mold-wrapper-2.34.1"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/x9y37c36bbkvy3zr9z8dcqdhsdyhr1nm-mold-wrapper-2.34.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/x9y37c36bbkvy3zr9z8dcqdhsdyhr1nm-mold-wrapper-2.34.1"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/gypxl682n5sl3hnx2qki2lxzcf3gvv2v-mold-wrapper-2.34.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/gypxl682n5sl3hnx2qki2lxzcf3gvv2v-mold-wrapper-2.34.1"
         }
       }
     },

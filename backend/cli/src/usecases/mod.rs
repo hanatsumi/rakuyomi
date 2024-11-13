@@ -1,6 +1,6 @@
 pub mod add_manga_to_library;
-pub mod fetch_all_manga_chapters;
 pub mod fetch_manga_chapter;
+pub mod fetch_manga_chapters_in_batch;
 pub mod get_cached_manga_chapters;
 pub mod get_manga_library;
 pub mod get_source_setting_definitions;
@@ -17,8 +17,8 @@ pub mod uninstall_source;
 pub mod update_settings;
 
 pub use add_manga_to_library::add_manga_to_library;
-pub use fetch_all_manga_chapters::fetch_all_manga_chapters;
 pub use fetch_manga_chapter::fetch_manga_chapter;
+pub use fetch_manga_chapters_in_batch::fetch_manga_chapters_in_batch;
 pub use get_cached_manga_chapters::get_cached_manga_chapters;
 pub use get_manga_library::get_manga_library;
 pub use get_source_setting_definitions::get_source_setting_definitions;

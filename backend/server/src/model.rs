@@ -81,12 +81,3 @@ impl From<DomainChapter> for Chapter {
         }
     }
 }
-
-#[derive(Serialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "type")]
-pub enum DownloadAllChaptersProgress {
-    Initializing,
-    Progressing { downloaded: usize, total: usize },
-    Finished,
-    Cancelled,
-}

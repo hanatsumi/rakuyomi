@@ -414,11 +414,25 @@ function Backend.createDownloadChapterJob(source_id, manga_id, chapter_id)
   })
 end
 
---- @class PendingJob: { type: 'PENDING' }
+--- Creates a new download unread chapters job. Returns the job's UUID.
+--- @return SuccessfulResponse<string>|ErrorResponse
+function Backend.createDownloadUnreadChaptersJob(source_id, manga_id, amount)
+  return requestJson({
+    url = "http://localhost:30727/jobs/download-unread-chapters",
+    method = 'POST',
+    body = {
+      source_id = source_id,
+      manga_id = manga_id,
+      amount = amount
+    }
+  })
+end
+
+--- @class PendingJob<T>: { type: 'PENDING', data: T }
 --- @class CompletedJob<T>: { type: 'COMPLETED', data: T }
 --- @class ErroredJob: { type: 'ERROR', data: ErrorResponse }
 
---- @alias DownloadChapterJobDetails PendingJob|CompletedJob<string>|ErroredJob
+--- @alias DownloadChapterJobDetails PendingJob<nil>|CompletedJob<string>|ErroredJob
 
 --- Gets details about a job.
 --- @return SuccessfulResponse<DownloadChapterJobDetails>|ErrorResponse
@@ -426,6 +440,15 @@ function Backend.getJobDetails(id)
   return requestJson({
     url = "http://localhost:30727/jobs/" .. id,
     method = 'GET'
+  })
+end
+
+--- Requests for a job to be cancelled.
+--- @return SuccessfulResponse<DownloadChapterJobDetails>|ErrorResponse
+function Backend.requestJobCancellation(id)
+  return requestJson({
+    url = "http://localhost:30727/jobs/" .. id,
+    method = 'DELETE'
   })
 end
 
