@@ -1,23 +1,80 @@
 local ReaderUI = require("apps/reader/readerui")
 local UIManager = require("ui/uimanager")
+local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local logger = require("logger")
-local _ = require("gettext")
-
-local Backend = require("Backend")
-local ErrorDialog = require("ErrorDialog")
-local LoadingDialog = require("LoadingDialog")
 
 --- @class MangaReader
+--- This is a singleton that contains a simpler interface with ReaderUI.
 local MangaReader = {
   on_return_callback = nil,
   on_end_of_book_callback = nil,
   is_showing = false,
 }
 
--- Used to add the "Go back to Rakuyomi" menu item
+--- @class MangaReaderOptions
+--- @field path string Path to the file to be displayed.
+--- @field on_return_callback fun(): nil Function to be called when the user selects "Go back to Rakuyomi".
+--- @field on_end_of_book_callback fun(): nil Function to be called when the user reaches the end of the file.
+
+--- Displays the file located in `path` in the KOReader's reader.
+--- If a file is already being displayed, it will be replaced.
+---
+--- @param options MangaReaderOptions
+function MangaReader:show(options)
+  self.on_return_callback = options.on_return_callback
+  self.on_end_of_book_callback = options.on_end_of_book_callback
+
+  if self.is_showing then
+    -- if we're showing, just switch the document
+    ReaderUI.instance:switchDocument(options.path)
+  else
+    -- took this from opds reader
+    local Event = require("ui/event")
+    UIManager:broadcastEvent(Event:new("SetupShowReader"))
+
+    ReaderUI:showReader(options.path)
+  end
+
+  self.is_showing = true
+end
+
+--- @param ui unknown The `ReaderUI` instance we're being called from.
+function MangaReader:initializeFromReaderUI(ui)
+  if self.is_showing then
+    ui.menu:registerToMainMenu(MangaReader)
+  end
+
+  ui:registerPostInitCallback(function()
+    self:hookWithPriorityOntoReaderUiEvents(ui)
+  end)
+end
+
+--- @private
+--- @param ui unknown The currently active `ReaderUI` instance.
+function MangaReader:hookWithPriorityOntoReaderUiEvents(ui)
+  -- We need to reorder the `ReaderUI` children such that we are the first children,
+  -- in order to receive events before all other widgets
+  assert(ui.name == "ReaderUI", "expected to be inside ReaderUI")
+
+  local eventListener = WidgetContainer:new({})
+  eventListener.onEndOfBook = function()
+    -- FIXME this makes `self:onEndOfBook()` get called twice if it does not
+    -- return true in the first invocation...
+    return self:onEndOfBook()
+  end
+  eventListener.onCloseWidget = function()
+    self:onReaderUiCloseWidget()
+  end
+
+  table.insert(ui, 2, eventListener)
+end
+
+--- Used to add the "Go back to Rakuyomi" menu item. Is called from `ReaderUI`, via the
+--- `registerToMainMenu` call done in `initializeFromReaderUI`.
+--- @private
 function MangaReader:addToMainMenu(menu_items)
   menu_items.go_back_to_rakuyomi = {
-    text = _("Go back to Rakuyomi..."),
+    text = "Go back to Rakuyomi...",
     sorting_hint = "main",
     callback = function()
       self:onReturn()
@@ -53,65 +110,19 @@ function MangaReader:closeReaderUi(done_callback)
   end)
 end
 
+--- To be called when the last page of the manga is read.
 function MangaReader:onEndOfBook()
-  logger.info("Got end of book")
+  if self.is_showing then
+    logger.info("Got end of book")
 
-  -- ReaderUI.instance:reloadDocument()
-  self.on_end_of_book_callback()
+    self.on_end_of_book_callback()
+    return true
+  end
 end
 
+--- @private
 function MangaReader:onReaderUiCloseWidget()
   self.is_showing = false
-end
-
---- @class DownloadAndShowOptions
---- @field download_job DownloadChapter
---- @field on_return_callback fun(): nil
---- @field on_end_of_book_callback fun(): nil
---- @field on_download_job_finished fun(): nil
-
---- Downloads the given chapter and opens the reader. Must be called from a function wrapped with `Trapper:wrap()`
---- @param options DownloadAndShowOptions
-function MangaReader:downloadAndShow(options)
-  self.on_return_callback = options.on_return_callback
-  self.on_end_of_book_callback = options.on_end_of_book_callback
-
-  local time = require("ui/time")
-  local start_time = time.now()
-  local response = LoadingDialog:showAndRun(
-    "Downloading chapter...",
-    function()
-      return options.download_job:runUntilCompletion()
-    end
-  )
-
-  if response.type == 'ERROR' then
-    ErrorDialog:show(response.message)
-
-    return
-  end
-
-  logger.info("Waited ", time.to_ms(time.since(start_time)), "ms for download job to finish.")
-
-  options.on_download_job_finished()
-
-  local manga_path = response.body
-  if self.is_showing then
-    -- if we're showing, just switch the document
-    ReaderUI.instance:switchDocument(manga_path)
-  else
-    -- took this from opds reader
-    local Event = require("ui/event")
-    UIManager:broadcastEvent(Event:new("SetupShowReader"))
-
-    ReaderUI:showReader(manga_path)
-  end
-
-  self.is_showing = true
-end
-
-function MangaReader:isShowing()
-  return self.is_showing
 end
 
 return MangaReader
