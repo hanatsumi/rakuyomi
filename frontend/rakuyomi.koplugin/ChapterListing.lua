@@ -273,18 +273,48 @@ function ChapterListing:refreshChapters()
 end
 
 --- @private
-function ChapterListing:openChapterOnReader(chapter, downloadJob)
+--- @param download_job DownloadChapter|nil
+function ChapterListing:openChapterOnReader(chapter, download_job)
   Trapper:wrap(function()
+    -- If the download job we have is already invalid (internet problems, for example),
+    -- spawn a new job before proceeding.
+    if download_job == nil or download_job:poll().type == 'ERROR' then
+      download_job = DownloadChapter:new(chapter.source_id, chapter.manga_id, chapter.id)
+    end
+
+    if download_job == nil then
+      ErrorDialog:show('Could not download chapter.')
+
+      return
+    end
+
+    local time = require("ui/time")
+    local start_time = time.now()
+    local response = LoadingDialog:showAndRun(
+      "Downloading chapter...",
+      function()
+        return download_job:runUntilCompletion()
+      end
+    )
+
+    if response.type == 'ERROR' then
+      ErrorDialog:show(response.message)
+
+      return
+    end
+
+    -- FIXME Mutating here _still_ sucks, we gotta think of a better way.
+    chapter.downloaded = true
+
+    local manga_path = response.body
+
+    logger.info("Waited ", time.to_ms(time.since(start_time)), "ms for download job to finish.")
+
     local nextChapter = findNextChapter(self.chapters, chapter)
     local nextChapterDownloadJob = nil
 
-    local onDownloadJobFinished = function()
-      -- FIXME Mutating here _still_ sucks, we gotta think of a better way.
-      chapter.downloaded = true
-
-      if nextChapter ~= nil then
-        nextChapterDownloadJob = DownloadChapter:new(nextChapter.source_id, nextChapter.manga_id, nextChapter.id)
-      end
+    if nextChapter ~= nil then
+      nextChapterDownloadJob = DownloadChapter:new(nextChapter.source_id, nextChapter.manga_id, nextChapter.id)
     end
 
     local onReturnCallback = function()
@@ -308,9 +338,8 @@ function ChapterListing:openChapterOnReader(chapter, downloadJob)
       end
     end
 
-    MangaReader:downloadAndShow({
-      download_job = downloadJob or DownloadChapter:new(chapter.source_id, chapter.manga_id, chapter.id),
-      on_download_job_finished = onDownloadJobFinished,
+    MangaReader:show({
+      path = manga_path,
       on_end_of_book_callback = onEndOfBookCallback,
       on_return_callback = onReturnCallback,
     })
