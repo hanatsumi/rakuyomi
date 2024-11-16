@@ -580,6 +580,7 @@ dependencies = [
  "scraper",
  "serde",
  "serde_json",
+ "serde_json_lenient",
  "size",
  "sqlx",
  "surge-ping",
@@ -2825,6 +2826,18 @@ name = "serde_json"
 version = "1.0.132"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d726bfaff4b320266d395898905d0eba0345aae23b54aee3a737e260fd46db03"
+dependencies = [
+ "itoa",
+ "memchr",
+ "ryu",
+ "serde",
+]
+
+[[package]]
+name = "serde_json_lenient"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2bf0c7e21364d0e199dd2f6c339ca18d6fca75b69458a247e8b27ff1c92f5b86"
 dependencies = [
  "itoa",
  "memchr",

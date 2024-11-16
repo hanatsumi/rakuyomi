@@ -51,6 +51,7 @@ regex = "1.10.4"
 schemars = { version = "0.8.16", features = ["url"] }
 pared = { git = "https://github.com/hanatsumi/pared.git", branch = "feat/unwrap-or-clone" }
 sanitize-filename = "0.5.0"
+serde_json_lenient = "0.2.3"
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["async_tokio"] }
