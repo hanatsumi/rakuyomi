@@ -39,4 +39,4 @@ For a better manga reading experience, you might also look into KOReader's [read
 
 ## Usage
 
-To open the library view, go to the "Search" menu and tap on the "Rakuyomi" entry. Tap the menu button on the top left to open the main menu.
+In KOReader's file manager, go to the "Search" menu and tap on the "Rakuyomi" entry to open the library view. Tap the menu button on the top left to open the main menu.
