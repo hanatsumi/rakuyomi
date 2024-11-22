@@ -16,7 +16,7 @@ end
 
 function Menu:updateItems(select_number)
   for _, item in ipairs(self.item_table) do
-    if self.with_context_menu then
+    if self.with_context_menu and item.select_enabled ~= false then
       item.mandatory = (item.mandatory or "") .. Icons.FA_ELLIPSIS_VERTICAL
     end
   end
@@ -25,23 +25,27 @@ function Menu:updateItems(select_number)
 end
 
 function Menu:onMenuSelect(entry, pos)
+  if entry.select_enabled == false then
+    return true
+  end
+
   local selected_context_menu = pos ~= nil and pos.x > 0.8
 
   if selected_context_menu then
-    self:onContextMenuSelect(entry, pos)
+    self:onContextMenuChoice(entry, pos)
   else
-    self:onPrimaryMenuSelect(entry, pos)
+    self:onPrimaryMenuChoice(entry, pos)
   end
 end
 
 function Menu:onMenuHold(entry, pos)
-  self:onContextMenuSelect(entry, pos)
+  self:onContextMenuChoice(entry, pos)
 end
 
-function Menu:onPrimaryMenuSelect(entry, pos)
+function Menu:onPrimaryMenuChoice(entry, pos)
 end
 
-function Menu:onContextMenuSelect(entry, pos)
+function Menu:onContextMenuChoice(entry, pos)
 end
 
 return Menu

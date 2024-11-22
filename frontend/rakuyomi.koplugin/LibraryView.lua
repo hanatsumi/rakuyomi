@@ -98,7 +98,7 @@ function LibraryView:fetchAndShow()
 end
 
 --- @private
-function LibraryView:onPrimaryMenuSelect(item)
+function LibraryView:onPrimaryMenuChoice(item)
   Trapper:wrap(function()
     --- @type Manga
     local manga = item.manga
@@ -114,7 +114,7 @@ function LibraryView:onPrimaryMenuSelect(item)
 end
 
 --- @private
-function LibraryView:onContextMenuSelect(item)
+function LibraryView:onContextMenuChoice(item)
   --- @type Manga
   local manga = item.manga
 
