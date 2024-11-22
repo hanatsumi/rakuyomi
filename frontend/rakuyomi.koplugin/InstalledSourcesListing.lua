@@ -90,7 +90,7 @@ function InstalledSourcesListing:generateEmptyViewItemTable()
 end
 
 --- @private
-function InstalledSourcesListing:onPrimaryMenuSelect(item)
+function InstalledSourcesListing:onPrimaryMenuChoice(item)
   --- @type SourceInformation
   local source_information = item.source_information
 
@@ -104,7 +104,7 @@ function InstalledSourcesListing:onPrimaryMenuSelect(item)
 end
 
 --- @private
-function InstalledSourcesListing:onContextMenuSelect(item)
+function InstalledSourcesListing:onContextMenuChoice(item)
   --- @type SourceInformation
   local source_information = item.source_information
 
