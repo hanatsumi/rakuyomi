@@ -98,7 +98,7 @@ function MangaSearchResults:searchAndShow(search_text, onReturnCallback)
 end
 
 --- @private
-function MangaSearchResults:onPrimaryMenuSelect(item)
+function MangaSearchResults:onPrimaryMenuChoice(item)
   Trapper:wrap(function()
     --- @type Manga
     local manga = item.manga
@@ -114,7 +114,7 @@ function MangaSearchResults:onPrimaryMenuSelect(item)
 end
 
 --- @private
-function MangaSearchResults:onContextMenuSelect(item)
+function MangaSearchResults:onContextMenuChoice(item)
   --- @type Manga
   local manga = item.manga
   UIManager:show(ConfirmBox:new {
