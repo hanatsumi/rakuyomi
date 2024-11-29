@@ -1,4 +1,5 @@
 mod job;
+mod library;
 mod manga;
 mod model;
 mod settings;
@@ -82,6 +83,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/health-check", get(health_check))
+        .merge(library::routes())
         .merge(manga::routes())
         .merge(job::routes())
         .merge(settings::routes())

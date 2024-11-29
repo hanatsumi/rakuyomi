@@ -214,7 +214,7 @@ end
 --- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.addMangaToLibrary(source_id, manga_id)
   return requestJson({
-    path = "/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/add-to-library",
+    path = "/library/" .. source_id .. "/" .. util.urlEncode(manga_id),
     method = "POST"
   })
 end
@@ -223,8 +223,8 @@ end
 --- @return SuccessfulResponse<nil>|ErrorResponse
 function Backend.removeMangaFromLibrary(source_id, manga_id)
   return requestJson({
-    path = "/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/remove-from-library",
-    method = "POST"
+    path = "/library/" .. source_id .. "/" .. util.urlEncode(manga_id),
+    method = "DELETE"
   })
 end
 

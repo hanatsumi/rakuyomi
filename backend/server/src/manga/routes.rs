@@ -17,16 +17,7 @@ use crate::AppError;
 
 pub fn routes() -> Router<State> {
     Router::new()
-        .route("/library", get(get_manga_library))
         .route("/mangas", get(get_mangas))
-        .route(
-            "/mangas/:source_id/:manga_id/add-to-library",
-            post(add_manga_to_library),
-        )
-        .route(
-            "/mangas/:source_id/:manga_id/remove-from-library",
-            post(remove_manga_from_library),
-        )
         .route(
             "/mangas/:source_id/:manga_id/chapters",
             get(get_cached_manga_chapters),
@@ -45,22 +36,6 @@ pub fn routes() -> Router<State> {
             "/mangas/:source_id/:manga_id/chapters/:chapter_id/mark-as-read",
             post(mark_chapter_as_read),
         )
-}
-
-async fn get_manga_library(
-    StateExtractor(State {
-        database,
-        source_manager,
-        ..
-    }): StateExtractor<State>,
-) -> Result<Json<Vec<Manga>>, AppError> {
-    let mangas = usecases::get_manga_library(&database, &*source_manager.lock().await)
-        .await?
-        .into_iter()
-        .map(Manga::from)
-        .collect();
-
-    Ok(Json(mangas))
 }
 
 #[derive(Deserialize)]
@@ -99,30 +74,6 @@ impl From<MangaChaptersPathParams> for MangaId {
     fn from(value: MangaChaptersPathParams) -> Self {
         MangaId::from_strings(value.source_id, value.manga_id)
     }
-}
-
-async fn add_manga_to_library(
-    StateExtractor(State { database, .. }): StateExtractor<State>,
-    SourceExtractor(_source): SourceExtractor,
-    Path(params): Path<MangaChaptersPathParams>,
-) -> Result<Json<()>, AppError> {
-    let manga_id = MangaId::from(params);
-
-    usecases::add_manga_to_library(&database, manga_id).await?;
-
-    Ok(Json(()))
-}
-
-async fn remove_manga_from_library(
-    StateExtractor(State { database, .. }): StateExtractor<State>,
-    SourceExtractor(_source): SourceExtractor,
-    Path(params): Path<MangaChaptersPathParams>,
-) -> Result<Json<()>, AppError> {
-    let manga_id = MangaId::from(params);
-
-    usecases::remove_manga_from_library(&database, manga_id).await?;
-
-    Ok(Json(()))
 }
 
 async fn get_cached_manga_chapters(
