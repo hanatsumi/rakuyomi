@@ -411,7 +411,7 @@ end
 --- @return SuccessfulResponse<string>|ErrorResponse
 function Backend.createDownloadUnreadChaptersJob(source_id, manga_id, amount)
   return requestJson({
-    path = "http://localhost:30727/jobs/download-unread-chapters",
+    path = "/jobs/download-unread-chapters",
     method = 'POST',
     body = {
       source_id = source_id,
