@@ -10,7 +10,7 @@
 
 ## Installation
 
-Download the latest release for your device from the [releases page](https://github.com/hanatsumi/rakuyomi/releases). Currently, only Kindle devices are supported (the Kindle build should work with Kobo devices, but it's untested).
+Download the latest release for your device from the [releases page](https://github.com/hanatsumi/rakuyomi/releases). The Kindle build has been reported to work with Kindle, Kobo and PocketBook devices; and it might work with other ARM-based e-reader devices. Feel free to open an issue if your e-reader is unsupported!
 
 Place the `rakuyomi.koplugin` folder inside KOReader's `plugins` folder.
 
