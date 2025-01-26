@@ -129,6 +129,11 @@ pub struct Chapter {
     pub downloaded: bool,
 }
 
+pub struct LibraryEntry {
+    pub information: MangaInfmormation,
+    pub unread_count: usize,
+}
+
 impl From<SourceManifest> for SourceInformation {
     fn from(value: SourceManifest) -> Self {
         Self {

@@ -1,0 +1,1350 @@
+---------------------------------------------
+                launching...
+  _  _____  ____                _
+ | |/ / _ \|  _ \ ___  __ _  __| | ___ _ __
+ | ' / | | | |_) / _ \/ _` |/ _` |/ _ \ '__|
+ | . \ |_| |  _ <  __/ (_| | (_| |  __/ |
+ |_|\_\___/|_| \_\___|\__,_|\__,_|\___|_|
+
+ It's a scroll... It's a codex... It's KOReader!
+
+ [*] Current time: 01/25/25-13:07:18
+ [*] Version: v2024.07
+
+ffi.load: libs/libutf8proc.so.3
+ffi.load: blitbuffer
+ffi.load (assisted searchpath): ./libs/libblitbuffer.so
+ffi.load: SDL2
+ffi.load: SDL2
+Starting SDL in /nix/store/7r347pbj46h8xqv8vsr2q3i3f6d7vi19-luajit-2.1.1693350652/bin/
+ffi.load: libs/liblodepng.so
+01/25/25-13:07:22 INFO  initializing for device Linux 
+01/25/25-13:07:22 INFO  framebuffer resolution: {
+  h = 959,
+  w = 773
+} --[[table: 0x7fa4a82ee930]] 
+ffi.load: libs/libwrap-mupdf.so
+ffi.load: sqlite3
+ffi.load (assisted searchpath): ./libs/libsqlite3.so
+ffi.load: libs/libfreetype.so.6
+ffi.load: libs/libharfbuzz.so.0
+ffi.load: libs/libzstd.so.1
+01/25/25-13:07:23 INFO  Loading plugins from directory: plugins 
+01/25/25-13:07:23 INFO  setting up __gc proxy 
+01/25/25-13:07:23 INFO  Loading Rakuyomi plugin... 
+01/25/25-13:07:23 INFO  Spawned HTTP server with PID 150381 
+01/25/25-13:07:23 INFO  Requesting to /health-check 
+01/25/25-13:07:23 INFO  changing directory to /mnt/data3/rakuyomi 
+01/25/25-13:07:24 INFO  Requesting to /health-check 
+[2m2025-01-25T16:07:26.024902Z[0m [32m INFO[0m [2mserver[0m[2m:[0m starting rakuyomi, version: unknown    
+01/25/25-13:07:27 INFO  Requesting to /health-check 
+01/25/25-13:07:27 INFO  Loading plugins from directory: /home/eki/.config/koreader/plugins/ 
+01/25/25-13:07:28 INFO  Requesting to /library 
+01/25/25-13:07:29 DEBUG {
+  {
+    widget = {
+      {
+        {
+          {
+            {
+              {
+                {
+                  width = 8
+                } --[[table: 0x7fa46988a328]],
+                {
+                  _baseline_h = 33,
+                  _face_adjusted = true,
+                  _height = 43,
+                  _is_empty = false,
+                  _is_truncated = false,
+                  _length = 111,
+                  _shape_end = 7,
+                  _shape_start = 1,
+                  _updated = true,
+                  _xshaping = {
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    nb_can_extend = 0,
+                    nb_can_extend_fallback = 0,
+                    width = 111
+                  } --[[table: 0x7fa469b30588]],
+                  _xtext = "userdata: 0x7fa469894f40",
+                  bold = true,
+                  face = {
+                    _hb_font_data = "userdata: 0x7fa46b569228",
+                    embolden_half_strength = "30LL",
+                    fallbacks = {} --[[maxlvl]],
+                    ftsize = "cdata<struct FT_SizeRec_ *>: 0x0202a4d0",
+                    getFallbackFont = function() --[[..skipped..]] end --[[function: 0x7fa46b6c7b70]],
+                    hash = "NotoSans-Bold.ttf31",
+                    hb_features = {} --[[maxlvl]],
+                    is_real_bold = true,
+                    orig_font = "smalltfont",
+                    orig_size = 24,
+                    realname = "NotoSans-Bold.ttf",
+                    size = 31
+                  } --[[table: 0x7fa46b6c7b28]],
+                  max_width = 655,
+                  padding = 0,
+                  text = "Library"
+                } --[[table: 0x7fa46988a2a8]],
+                _offsets = {
+                  {
+                    x = 0,
+                    y = 0
+                  } --[[table: 0x7fa469894e38]],
+                  {
+                    x = 111,
+                    y = 8
+                  } --[[table: 0x7fa46987ef98]]
+                } --[[table: 0x7fa469894da8]],
+                _size = {
+                  h = 51,
+                  w = 111
+                } --[[table: 0x7fa469894cf8]],
+                align = "center",
+                overlap_align = "center"
+              } --[[table: 0x7fa469894f50]],
+              {
+                {
+                  {
+                    width = 15
+                  } --[[table: 0x7fa4699fc768]],
+                  {
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    _offsets = {} --[[maxlvl]],
+                    _size = {} --[[maxlvl]]
+                  } --[[table: 0x7fa4699fc628]],
+                  {
+                    width = 31
+                  } --[[table: 0x7fa4699fc7b0]],
+                  _offsets = {
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469896ed8]],
+                  _size = {
+                    h = 77,
+                    w = 108
+                  } --[[table: 0x7fa469896e58]]
+                } --[[table: 0x7fa4699fc720]],
+                _ordered_touch_zones = {} --[[table: 0x7fa4699fc2e0]],
+                _zones = {} --[[table: 0x7fa46987f2f0]],
+                allow_flash = true,
+                button = nil --[[ref]],
+                callback = function() --[[..skipped..]] end --[[function: 0x7fa46988a7c8]],
+                dimen = "108x77+2+2",
+                ges_events = {
+                  HoldIconButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469a25278]],
+                  HoldReleaseIconButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469a25358]],
+                  TapIconButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa4699fc5c8]]
+                } --[[table: 0x7fa4699fc450]],
+                height = 31,
+                hold_callback = function() --[[..skipped..]] end --[[function: 0x7fa46988a838]],
+                horizontal_group = nil --[[ref]],
+                icon = "appbar.menu",
+                icon_rotation_angle = 0,
+                image = {
+                  _bb = "cdata<struct BlitBufferRGB32>: 0x7fa46987f168",
+                  _bb_disposable = false,
+                  _bb_h = 31,
+                  _bb_w = 31,
+                  _img_h = 31,
+                  _img_w = 31,
+                  _offset_x = 0,
+                  _offset_y = 0,
+                  dimen = "31x31+17+17",
+                  file = "resources/icons/mdlight/appbar.menu.svg",
+                  height = 31,
+                  icon = "appbar.menu",
+                  rotation_angle = 0,
+                  width = 31
+                } --[[table: 0x7fa4699fc4b0]],
+                key_events = {} --[[table: 0x7fa46987f260]],
+                overlap_align = "left",
+                padding = 15,
+                padding_bottom = 31,
+                padding_left = 15,
+                padding_right = 62,
+                padding_top = 15,
+                show_parent = nil --[[ref]],
+                width = 31
+              } --[[table: 0x7fa46987f090]],
+              {
+                {
+                  {
+                    width = 15
+                  } --[[table: 0x7fa469a20cc8]],
+                  {
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    _offsets = {} --[[maxlvl]],
+                    _size = {} --[[maxlvl]]
+                  } --[[table: 0x7fa469a25548]],
+                  {
+                    width = 31
+                  } --[[table: 0x7fa469a20d30]],
+                  _offsets = {
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469946ee8]],
+                  _size = {
+                    h = 77,
+                    w = 108
+                  } --[[table: 0x7fa469946e68]]
+                } --[[table: 0x7fa469a257b8]],
+                _ordered_touch_zones = {} --[[table: 0x7fa469a256e0]],
+                _zones = {} --[[table: 0x7fa469a25698]],
+                allow_flash = false,
+                button = nil --[[ref]],
+                callback = function() --[[..skipped..]] end --[[function: 0x7fa46988a270]],
+                dimen = "108x77+667+2",
+                ges_events = {
+                  HoldIconButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469a1aeb8]],
+                  HoldReleaseIconButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469a1af98]],
+                  TapIconButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469a1add8]]
+                } --[[table: 0x7fa469a1ad28]],
+                height = 31,
+                hold_callback = function() --[[..skipped..]] end --[[function: 0x7fa46b6c7c78]],
+                horizontal_group = nil --[[ref]],
+                icon = "close",
+                icon_rotation_angle = 0,
+                image = {
+                  _bb = "cdata<struct BlitBufferRGB32>: 0x7fa46b5240a0",
+                  _bb_disposable = false,
+                  _bb_h = 31,
+                  _bb_w = 31,
+                  _img_h = 31,
+                  _img_w = 31,
+                  _offset_x = 0,
+                  _offset_y = 0,
+                  dimen = "31x31+729+17",
+                  file = "resources/icons/mdlight/close.svg",
+                  height = 31,
+                  icon = "close",
+                  rotation_angle = 0,
+                  width = 31
+                } --[[table: 0x7fa469a25728]],
+                key_events = {} --[[table: 0x7fa469a25608]],
+                overlap_align = "right",
+                padding = 15,
+                padding_bottom = 31,
+                padding_left = 62,
+                padding_right = 15,
+                padding_top = 15,
+                show_parent = nil --[[ref]],
+                width = 31
+              } --[[table: 0x7fa469a25438]],
+              _offsets = {
+                x = 1/0 --[[math.huge]],
+                y = 1/0 --[[math.huge]]
+              } --[[table: 0x7fa469a1b128]],
+              _size = {
+                h = 64,
+                w = 773
+              } --[[table: 0x7fa469a1b0a8]],
+              align = "center",
+              bottom_v_padding = 13,
+              close_callback = nil --[[ref]],
+              dimen = "773x64+2+2",
+              fullscreen = "true",
+              has_left_icon = true,
+              has_right_icon = true,
+              left_button = nil --[[ref]],
+              left_icon = "appbar.menu",
+              left_icon_hold_callback = nil --[[ref]],
+              left_icon_tap_callback = nil --[[ref]],
+              right_button = nil --[[ref]],
+              right_icon = "close",
+              right_icon_allow_flash = false,
+              right_icon_tap_callback = nil --[[ref]],
+              show_parent = nil --[[ref]],
+              title = "Library",
+              title_group = nil --[[ref]],
+              title_widget = nil --[[ref]],
+              titlebar_height = 64,
+              width = 773
+            } --[[table: 0x7fa46988a780]],
+            {
+              {
+                {
+                  {
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    _offsets = {} --[[maxlvl]],
+                    _size = {} --[[maxlvl]],
+                    align = "center"
+                  } --[[table: 0x7fa4698109d0]],
+                  _padding_bottom = 0,
+                  _padding_left = 0,
+                  _padding_right = 0,
+                  _padding_top = 0,
+                  bordersize = 0,
+                  dimen = "769x60+2+66",
+                  invert = false,
+                  padding = 0
+                } --[[table: 0x7fa469810b90]],
+                _ordered_touch_zones = {} --[[table: 0x7fa4699135e0]],
+                _underline_container = {
+                  {
+                    {} --[[maxlvl]],
+                    _offsets = {} --[[maxlvl]],
+                    _size = {} --[[maxlvl]],
+                    align = "center"
+                  } --[[table: 0x7fa46b56ba58]],
+                  color = "Color8(136)",
+                  dimen = "729x58+22+66",
+                  linesize = 2,
+                  padding = 0,
+                  vertical_align = "center"
+                } --[[table: 0x7fa46b56b888]],
+                _zones = {} --[[table: 0x7fa469913598]],
+                align_baselines = true,
+                bold = false,
+                content_width = 729,
+                dimen = "769x58+2+66",
+                entry = {
+                  idx = 1,
+                  mandatory = "",
+                  manga = {
+                    id = "cade38b7-64c4-4a29-8e3c-8c283291d6c6",
+                    source = {} --[[maxlvl]],
+                    title = "Land of the Lustrous"
+                  } --[[table: 0x7fa46a14d6c0]],
+                  text = "Land of the Lustrous (MangaDex)"
+                } --[[table: 0x7fa469a58318]],
+                face = {
+                  _hb_font_data = "userdata: 0x7fa46b500d10",
+                  embolden_half_strength = "24LL",
+                  fallbacks = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa46b500d40]],
+                  ftsize = "cdata<struct FT_SizeRec_ *>: 0x0215e360",
+                  getFallbackFont = function() --[[..skipped..]] end --[[function: 0x7fa46b5000d0]],
+                  hash = "NotoSans-Regular.ttf25",
+                  hb_features = {
+                    "+kern",
+                    "+liga"
+                  } --[[table: 0x7fa46b500148]],
+                  is_real_bold = false,
+                  orig_font = "smallinfofont",
+                  orig_size = 19,
+                  realname = "NotoSans-Regular.ttf",
+                  size = 25
+                } --[[table: 0x7fa46b500088]],
+                font_size = 19,
+                ges_events = {
+                  HoldSelect = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469933d40]],
+                  TapSelect = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa4699136a8]]
+                } --[[table: 0x7fa469913628]],
+                info_face = {
+                  _hb_font_data = "userdata: 0x7fa46b4fe480",
+                  embolden_half_strength = "19LL",
+                  fallbacks = {
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa46b4fe4b0]],
+                  ftsize = "cdata<struct FT_SizeRec_ *>: 0x020afae0",
+                  getFallbackFont = function() --[[..skipped..]] end --[[function: 0x7fa46b5006a0]],
+                  hash = "DroidSansMono.ttf20",
+                  hb_features = {
+                    "+kern",
+                    "+liga"
+                  } --[[table: 0x7fa46b500718]],
+                  is_real_bold = false,
+                  orig_font = "infont",
+                  orig_size = 15,
+                  realname = "DroidSansMono.ttf",
+                  size = 20
+                } --[[table: 0x7fa46b5004d0]],
+                infont_size = 15,
+                key_events = {} --[[table: 0x7fa469913508]],
+                line_color = nil --[[ref]],
+                linesize = 2,
+                mandatory = "",
+                menu = nil --[[ref]],
+                multilines_show_more_text = false,
+                show_parent = nil --[[ref]],
+                single_line = true,
+                text = "Land of the Lustrous (MangaDex)"
+              } --[[table: 0x7fa469913108]],
+              _offsets = {
+                {
+                  x = 769,
+                  y = 0
+                } --[[table: 0x7fa469b30468]]
+              } --[[table: 0x7fa469b30420]],
+              _size = {
+                h = 58,
+                w = 769
+              } --[[table: 0x7fa469b303a0]]
+            } --[[table: 0x7fa469a1b258]],
+            _offsets = {
+              {
+                x = 773,
+                y = 0
+              } --[[table: 0x7fa469b30300]],
+              {
+                x = 769,
+                y = 64
+              } --[[table: 0x7fa469b30508]]
+            } --[[table: 0x7fa469b302b8]],
+            _size = {
+              h = 122,
+              w = 773
+            } --[[table: 0x7fa469b30238]],
+            align = "left"
+          } --[[table: 0x7fa469f26e60]],
+          {
+            {
+              {
+                {
+                  width = 7
+                } --[[table: 0x7fa46988a618]],
+                {
+                  {
+                    {} --[[maxlvl]],
+                    _padding_bottom = 3,
+                    _padding_left = 3,
+                    _padding_right = 3,
+                    _padding_top = 3,
+                    bordersize = 0,
+                    dimen = "58x58+7+899",
+                    margin = 0,
+                    orig_background = "Color8(255)",
+                    padding_bottom = 3,
+                    padding_left = 3,
+                    padding_right = 3,
+                    padding_top = 3,
+                    show_parent = nil --[[ref]]
+                  } --[[table: 0x7fa469b80870]],
+                  _min_needed_width = 58,
+                  _ordered_touch_zones = {} --[[table: 0x7fa469b80938]],
+                  _zones = {} --[[table: 0x7fa469b808f0]],
+                  bordersize = 0,
+                  callback = function() --[[..skipped..]] end --[[function: 0x7fa469b80728]],
+                  dimen = "58x58+7+899",
+                  enabled = false,
+                  frame = nil --[[ref]],
+                  ges_events = {
+                    HoldReleaseSelectButton = {} --[[maxlvl]],
+                    HoldSelectButton = {} --[[maxlvl]],
+                    TapSelectButton = {} --[[maxlvl]]
+                  } --[[table: 0x7fa469beba28]],
+                  hidden = true,
+                  hold_callback = function() --[[..skipped..]] end --[[function: 0x7fa469b80760]],
+                  icon = "back.top",
+                  key_events = {} --[[table: 0x7fa469b80798]],
+                  label_container = {
+                    {} --[[maxlvl]],
+                    dimen = "52x52+0+0"
+                  } --[[table: 0x7fa469b80660]],
+                  label_widget = {
+                    _bb = "cdata<struct BlitBufferRGB32>: 0x7fa46b52e188",
+                    _bb_disposable = false,
+                    _bb_h = 52,
+                    _bb_w = 52,
+                    _img_h = 52,
+                    _img_w = 52,
+                    _offset_x = 0,
+                    _offset_y = 0,
+                    dim = true,
+                    file = "resources/icons/mdlight/back.top.svg",
+                    height = 52,
+                    hide = true,
+                    icon = "back.top",
+                    rotation_angle = 0,
+                    width = 52
+                  } --[[table: 0x7fa469b80980]],
+                  padding_h = 3,
+                  padding_v = 3,
+                  show_parent = nil --[[ref]]
+                } --[[table: 0x7fa469b80618]],
+                _offsets = {
+                  {
+                    x = 0,
+                    y = 0
+                  } --[[table: 0x7fa469a248a8]],
+                  {
+                    x = 7,
+                    y = 58
+                  } --[[table: 0x7fa469a24948]]
+                } --[[table: 0x7fa469a24860]],
+                _size = {
+                  h = 58,
+                  w = 65
+                } --[[table: 0x7fa469a247e0]]
+              } --[[table: 0x7fa46988a5b8]],
+              dimen = "773x58+0+0"
+            } --[[table: 0x7fa469f26ae8]],
+            dimen = "769x955+0+0"
+          } --[[table: 0x7fa469f2cef8]],
+          {
+            {
+              {
+                {
+                  {
+                    {} --[[maxlvl]],
+                    dimen = "52x52+0+0"
+                  } --[[table: 0x7fa469b4e2e8]],
+                  _padding_bottom = 3,
+                  _padding_left = 3,
+                  _padding_right = 3,
+                  _padding_top = 3,
+                  background = nil --[[ref]],
+                  bordersize = 0,
+                  dimen = "58x58+114+899",
+                  margin = 0,
+                  orig_background = nil --[[ref]],
+                  padding_bottom = 3,
+                  padding_left = 3,
+                  padding_right = 3,
+                  padding_top = 3,
+                  show_parent = nil --[[ref]]
+                } --[[table: 0x7fa469b44310]],
+                _min_needed_width = 58,
+                _ordered_touch_zones = {} --[[table: 0x7fa469b4e190]],
+                _zones = {} --[[table: 0x7fa469b4e148]],
+                bordersize = 0,
+                callback = function() --[[..skipped..]] end --[[function: 0x7fa469b4dfb8]],
+                dimen = "58x58+114+899",
+                enabled = false,
+                frame = nil --[[ref]],
+                ges_events = {
+                  HoldReleaseSelectButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469b62a60]],
+                  HoldSelectButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469b62980]],
+                  TapSelectButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469b628a0]]
+                } --[[table: 0x7fa469b44528]],
+                hidden = false,
+                icon = "chevron.first",
+                key_events = {} --[[table: 0x7fa469b4dff0]],
+                label_container = nil --[[ref]],
+                label_widget = {
+                  _bb = "cdata<struct BlitBufferRGB32>: 0x7fa46b528988",
+                  _bb_disposable = false,
+                  _bb_h = 52,
+                  _bb_w = 52,
+                  _img_h = 52,
+                  _img_w = 52,
+                  _offset_x = 0,
+                  _offset_y = 0,
+                  dim = true,
+                  dimen = "52x52+117+902",
+                  file = "resources/icons/mdlight/chevron.first.svg",
+                  height = 52,
+                  hide = false,
+                  icon = "chevron.first",
+                  rotation_angle = 0,
+                  width = 52
+                } --[[table: 0x7fa469b4e1d8]],
+                padding_h = 3,
+                padding_v = 3,
+                show_parent = nil --[[ref]]
+              } --[[table: 0x7fa469b4df08]],
+              {
+                width = 42
+              } --[[table: 0x7fa469b85f60]],
+              {
+                {
+                  {
+                    {} --[[maxlvl]],
+                    dimen = "52x52+0+0"
+                  } --[[table: 0x7fa469a58560]],
+                  _padding_bottom = 3,
+                  _padding_left = 3,
+                  _padding_right = 3,
+                  _padding_top = 3,
+                  background = nil --[[ref]],
+                  bordersize = 0,
+                  dimen = "58x58+214+899",
+                  margin = 0,
+                  orig_background = nil --[[ref]],
+                  padding_bottom = 3,
+                  padding_left = 3,
+                  padding_right = 3,
+                  padding_top = 3,
+                  show_parent = nil --[[ref]]
+                } --[[table: 0x7fa469a58670]],
+                _min_needed_width = 58,
+                _ordered_touch_zones = {} --[[table: 0x7fa469a48230]],
+                _zones = {} --[[table: 0x7fa469a481e8]],
+                bordersize = 0,
+                callback = function() --[[..skipped..]] end --[[function: 0x7fa469a48058]],
+                dimen = "58x58+214+899",
+                enabled = false,
+                frame = nil --[[ref]],
+                ges_events = {
+                  HoldReleaseSelectButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469a011e8]],
+                  HoldSelectButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469a48120]],
+                  TapSelectButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469894a20]]
+                } --[[table: 0x7fa469a48278]],
+                hidden = false,
+                icon = "chevron.left",
+                key_events = {} --[[table: 0x7fa469a48090]],
+                label_container = nil --[[ref]],
+                label_widget = {
+                  _bb = "cdata<struct BlitBufferRGB32>: 0x7fa46b525700",
+                  _bb_disposable = false,
+                  _bb_h = 52,
+                  _bb_w = 52,
+                  _img_h = 52,
+                  _img_w = 52,
+                  _offset_x = 0,
+                  _offset_y = 0,
+                  dim = true,
+                  dimen = "52x52+217+902",
+                  file = "resources/icons/mdlight/chevron.left.svg",
+                  height = 52,
+                  hide = false,
+                  icon = "chevron.left",
+                  rotation_angle = 0,
+                  width = 52
+                } --[[table: 0x7fa469894c08]],
+                padding_h = 3,
+                padding_v = 3,
+                show_parent = nil --[[ref]]
+              } --[[table: 0x7fa469a1b2a0]],
+              nil --[[ref]],
+              {
+                {
+                  {
+                    {} --[[maxlvl]],
+                    dimen = "138x42+0+0"
+                  } --[[table: 0x7fa46a1c3c00]],
+                  _padding_bottom = 3,
+                  _padding_left = 3,
+                  _padding_right = 3,
+                  _padding_top = 3,
+                  background = nil --[[ref]],
+                  bordersize = 0,
+                  dimen = "144x48+314+904",
+                  margin = 0,
+                  padding_bottom = 3,
+                  padding_left = 3,
+                  padding_right = 3,
+                  padding_top = 3
+                } --[[table: 0x7fa46a1c3690]],
+                _min_needed_width = 144,
+                _ordered_touch_zones = {} --[[table: 0x7fa469bad148]],
+                _zones = {} --[[table: 0x7fa469bad350]],
+                bordersize = 0,
+                call_hold_input_on_tap = true,
+                did_truncation_tweaks = false,
+                dimen = "144x48+314+904",
+                enabled = false,
+                frame = nil --[[ref]],
+                ges_events = {
+                  HoldReleaseSelectButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa4a8379828]],
+                  HoldSelectButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa4a8379748]],
+                  TapSelectButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa4a83796b0]]
+                } --[[table: 0x7fa46b5e66b0]],
+                hold_input = {
+                  buttons = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469b85fe0]],
+                  hint_func = function() --[[..skipped..]] end --[[function: 0x7fa469bad0c8]],
+                  input_type = "number",
+                  title = "Enter page number"
+                } --[[table: 0x7fa469bad210]],
+                key_events = {} --[[table: 0x7fa469bad2c0]],
+                label_container = nil --[[ref]],
+                label_widget = {
+                  _baseline_h = 31,
+                  _face_adjusted = true,
+                  _height = 42,
+                  _is_empty = false,
+                  _is_truncated = false,
+                  _length = 138,
+                  _shape_end = 11,
+                  _shape_start = 1,
+                  _updated = true,
+                  _xshaping = {
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    {} --[[maxlvl]],
+                    nb_can_extend = 3,
+                    nb_can_extend_fallback = 3,
+                    width = 138
+                  } --[[table: 0x7fa469b2c858]],
+                  _xtext = "userdata: 0x7fa46a1c3910",
+                  bold = false,
+                  face = {
+                    _hb_font_data = "userdata: 0x7fa46b472c18",
+                    embolden_half_strength = "25LL",
+                    fallbacks = {} --[[maxlvl]],
+                    ftsize = "cdata<struct FT_SizeRec_ *>: 0x0350cec0",
+                    getFallbackFont = function() --[[..skipped..]] end --[[function: 0x7fa46bfccac0]],
+                    hash = "NotoSans-Regular.ttf26",
+                    hb_features = {} --[[maxlvl]],
+                    is_real_bold = false,
+                    orig_font = "x_smallinfofont",
+                    orig_size = 20,
+                    realname = "NotoSans-Regular.ttf",
+                    size = 26
+                  } --[[table: 0x7fa46bfcc8e8]],
+                  fgcolor = "Color8(0)",
+                  text = "Page 1 of 1"
+                } --[[table: 0x7fa46b5e6630]],
+                padding_h = 3,
+                padding_v = 3,
+                tap_input = nil --[[ref]],
+                text = "Page 1 of 1",
+                text_font_bold = false
+              } --[[table: 0x7fa469bad100]],
+              nil --[[ref]],
+              {
+                {
+                  {
+                    {} --[[maxlvl]],
+                    dimen = "52x52+0+0"
+                  } --[[table: 0x7fa469a01430]],
+                  _padding_bottom = 3,
+                  _padding_left = 3,
+                  _padding_right = 3,
+                  _padding_top = 3,
+                  background = nil --[[ref]],
+                  bordersize = 0,
+                  dimen = "58x58+500+899",
+                  margin = 0,
+                  orig_background = nil --[[ref]],
+                  padding_bottom = 3,
+                  padding_left = 3,
+                  padding_right = 3,
+                  padding_top = 3,
+                  show_parent = nil --[[ref]]
+                } --[[table: 0x7fa469b217b0]],
+                _min_needed_width = 58,
+                _ordered_touch_zones = {} --[[table: 0x7fa469a01550]],
+                _zones = {} --[[table: 0x7fa469a01508]],
+                bordersize = 0,
+                callback = function() --[[..skipped..]] end --[[function: 0x7fa469a01378]],
+                dimen = "58x58+500+899",
+                enabled = false,
+                frame = nil --[[ref]],
+                ges_events = {
+                  HoldReleaseSelectButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469b4de28]],
+                  HoldSelectButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469b4dd48]],
+                  TapSelectButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469b21ac0]]
+                } --[[table: 0x7fa469b21a10]],
+                hidden = false,
+                icon = "chevron.right",
+                key_events = {} --[[table: 0x7fa469a013b0]],
+                label_container = nil --[[ref]],
+                label_widget = {
+                  _bb = "cdata<struct BlitBufferRGB32>: 0x7fa46b526ff0",
+                  _bb_disposable = false,
+                  _bb_h = 52,
+                  _bb_w = 52,
+                  _img_h = 52,
+                  _img_w = 52,
+                  _offset_x = 0,
+                  _offset_y = 0,
+                  dim = true,
+                  dimen = "52x52+503+902",
+                  file = "resources/icons/mdlight/chevron.right.svg",
+                  height = 52,
+                  hide = false,
+                  icon = "chevron.right",
+                  rotation_angle = 0,
+                  width = 52
+                } --[[table: 0x7fa469a01598]],
+                padding_h = 3,
+                padding_v = 3,
+                show_parent = nil --[[ref]]
+              } --[[table: 0x7fa469a012c8]],
+              nil --[[ref]],
+              {
+                {
+                  {
+                    {} --[[maxlvl]],
+                    dimen = "52x52+0+0"
+                  } --[[table: 0x7fa469b67458]],
+                  _padding_bottom = 3,
+                  _padding_left = 3,
+                  _padding_right = 3,
+                  _padding_top = 3,
+                  background = nil --[[ref]],
+                  bordersize = 0,
+                  dimen = "58x58+600+899",
+                  margin = 0,
+                  orig_background = nil --[[ref]],
+                  padding_bottom = 3,
+                  padding_left = 3,
+                  padding_right = 3,
+                  padding_top = 3,
+                  show_parent = nil --[[ref]]
+                } --[[table: 0x7fa469b62e10]],
+                _min_needed_width = 58,
+                _ordered_touch_zones = {} --[[table: 0x7fa469b62dc8]],
+                _zones = {} --[[table: 0x7fa469b62d80]],
+                bordersize = 0,
+                callback = function() --[[..skipped..]] end --[[function: 0x7fa469b62bf0]],
+                dimen = "58x58+600+899",
+                enabled = false,
+                frame = nil --[[ref]],
+                ges_events = {
+                  HoldReleaseSelectButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469b85e80]],
+                  HoldSelectButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469b85da0]],
+                  TapSelectButton = {
+                    {} --[[maxlvl]]
+                  } --[[table: 0x7fa469b62cd8]]
+                } --[[table: 0x7fa469b66f98]],
+                hidden = false,
+                icon = "chevron.last",
+                key_events = {} --[[table: 0x7fa469b62c28]],
+                label_container = nil --[[ref]],
+                label_widget = {
+                  _bb = "cdata<struct BlitBufferRGB32>: 0x7fa46b52a138",
+                  _bb_disposable = false,
+                  _bb_h = 52,
+                  _bb_w = 52,
+                  _img_h = 52,
+                  _img_w = 52,
+                  _offset_x = 0,
+                  _offset_y = 0,
+                  dim = true,
+                  dimen = "52x52+603+902",
+                  file = "resources/icons/mdlight/chevron.last.svg",
+                  height = 52,
+                  hide = false,
+                  icon = "chevron.last",
+                  rotation_angle = 0,
+                  width = 52
+                } --[[table: 0x7fa469b671a0]],
+                padding_h = 3,
+                padding_v = 3,
+                show_parent = nil --[[ref]]
+              } --[[table: 0x7fa469b62b40]],
+              _offsets = {
+                {
+                  x = 0,
+                  y = 58
+                } --[[table: 0x7fa469a24c70]],
+                {
+                  x = 58,
+                  y = 0
+                } --[[table: 0x7fa469a24d10]],
+                {
+                  x = 100,
+                  y = 58
+                } --[[table: 0x7fa469a46450]],
+                {
+                  x = 158,
+                  y = 0
+                } --[[table: 0x7fa469a46500]],
+                {
+                  x = 200,
+                  y = 48
+                } --[[table: 0x7fa469a46600]],
+                {
+                  x = 344,
+                  y = 0
+                } --[[table: 0x7fa469a466d0]],
+                {
+                  x = 386,
+                  y = 58
+                } --[[table: 0x7fa469a467d0]],
+                {
+                  x = 444,
+                  y = 0
+                } --[[table: 0x7fa469a46850]],
+                {
+                  x = 486,
+                  y = 58
+                } --[[table: 0x7fa469a46950]]
+              } --[[table: 0x7fa469a24c28]],
+              _size = {
+                h = 58,
+                w = 544
+              } --[[table: 0x7fa469a24ba8]]
+            } --[[table: 0x7fa469b80580]],
+            dimen = "769x955+0+0"
+          } --[[table: 0x7fa46988a698]],
+          _offsets = {
+            x = 1/0 --[[math.huge]],
+            y = 1/0 --[[math.huge]]
+          } --[[table: 0x7fa46990f718]],
+          _size = {
+            h = 955,
+            w = 769
+          } --[[table: 0x7fa46990f630]],
+          allow_mirroring = false,
+          dimen = "769x955+0+0"
+        } --[[table: 0x7fa46990f4e0]],
+        _padding_bottom = 0,
+        _padding_left = 0,
+        _padding_right = 0,
+        _padding_top = 0,
+        background = nil --[[ref]],
+        bordersize = 2,
+        dimen = "773x959+0+0",
+        margin = 0,
+        padding = 0,
+        radius = 0
+      } --[[table: 0x7fa4698d56b0]],
+      _ordered_touch_zones = {} --[[table: 0x7fa46a14dbf0]],
+      _zones = {} --[[table: 0x7fa46a14dba8]],
+      align_baselines = true,
+      available_height = 820,
+      border_size = 2,
+      builtin_key_events = {
+        FocusDown = {
+          {
+            "Down"
+          } --[[table: 0x7fa4a836b158]],
+          args = {
+            0,
+            1
+          } --[[table: 0x7fa4a7e10158]],
+          event = "FocusMove"
+        } --[[table: 0x7fa4a831a720]],
+        FocusLeft = {
+          {
+            "Left"
+          } --[[table: 0x7fa4a7e42300]],
+          args = {
+            -1,
+            0
+          } --[[table: 0x7fa4a7e42358]],
+          event = "FocusMove"
+        } --[[table: 0x7fa4a8360a58]],
+        FocusNext = {
+          {
+            "Tab"
+          } --[[table: 0x7fa4a7e5bf68]],
+          event = "FocusNext"
+        } --[[table: 0x7fa46bfbf570]],
+        FocusPrevious = {
+          {
+            "Shift",
+            "Tab"
+          } --[[table: 0x7fa480ed2760]],
+          event = "FocusPrevious"
+        } --[[table: 0x7fa4a7e5c020]],
+        FocusRight = {
+          {
+            "Right"
+          } --[[table: 0x7fa4a831a668]],
+          args = {
+            1,
+            0
+          } --[[table: 0x7fa4a831a6c0]],
+          event = "FocusMove"
+        } --[[table: 0x7fa4a7e2f118]],
+        FocusUp = {
+          {
+            "Up"
+          } --[[table: 0x7fa4a8382bb8]],
+          args = {
+            0,
+            -1
+          } --[[table: 0x7fa4a8382c10]],
+          event = "FocusMove"
+        } --[[table: 0x7fa4a8305738]],
+        HalfFocusDown = {
+          {
+            "Alt",
+            "Down"
+          } --[[table: 0x7fa480ef61b8]],
+          args = {
+            "down"
+          } --[[table: 0x7fa480ef6218]],
+          event = "FocusHalfMove"
+        } --[[table: 0x7fa480f07d90]],
+        HalfFocusLeft = {
+          {
+            "Alt",
+            "Left"
+          } --[[table: 0x7fa480f04200]],
+          args = {
+            "left"
+          } --[[table: 0x7fa46bfbf4b8]],
+          event = "FocusHalfMove"
+        } --[[table: 0x7fa480ef6270]],
+        HalfFocusRight = {
+          {
+            "Alt",
+            "Right"
+          } --[[table: 0x7fa4a836c070]],
+          args = {
+            "right"
+          } --[[table: 0x7fa480f07cd8]],
+          event = "FocusHalfMove"
+        } --[[table: 0x7fa4a7e3caa8]],
+        HalfFocusUp = {
+          {
+            "Alt",
+            "Up"
+          } --[[table: 0x7fa4a7e3c9f0]],
+          args = {
+            "up"
+          } --[[table: 0x7fa4a7e3ca50]],
+          event = "FocusHalfMove"
+        } --[[table: 0x7fa4a83f6ca0]],
+        HoldContext = {
+          {
+            "ContextMenu"
+          } --[[table: 0x7fa480ef2930]],
+          event = "Hold"
+        } --[[table: 0x7fa4a7e423b8]],
+        HoldScreenKB = {
+          {
+            "ScreenKB",
+            "Press"
+          } --[[table: 0x7fa480effdd8]],
+          event = "Hold"
+        } --[[table: 0x7fa480effd48]],
+        HoldShift = {
+          {
+            "Shift",
+            "Press"
+          } --[[table: 0x7fa480f23c58]],
+          event = "Hold"
+        } --[[table: 0x7fa480ef4d70]],
+        HoldSymAA = {
+          {
+            "Sym",
+            "AA"
+          } --[[table: 0x7fa480edb110]],
+          event = "Hold"
+        } --[[table: 0x7fa4a83025e8]],
+        Press = {
+          {
+            "Press"
+          } --[[table: 0x7fa4a8382f18]],
+          event = "Press"
+        } --[[table: 0x7fa4a8382e88]]
+      } --[[table: 0x7fa4a7e38da0]],
+      content_group = nil --[[ref]],
+      covers_fullscreen = true,
+      dimen = "773x959+0+0",
+      extra_key_events = {} --[[table: 0x7fa4a7e38de8]],
+      font_size = 19,
+      ges_events = {
+        MultiSwipe = {
+          {
+            ges = "multiswipe",
+            range = nil --[[ref]]
+          } --[[table: 0x7fa4698d5948]]
+        } --[[table: 0x7fa4698d58e8]],
+        Pan = {
+          {
+            ges = "pan",
+            range = nil --[[ref]]
+          } --[[table: 0x7fa4698d5a28]]
+        } --[[table: 0x7fa4698d59c8]],
+        Swipe = {
+          {
+            ges = "swipe",
+            range = nil --[[ref]]
+          } --[[table: 0x7fa4698d5830]]
+        } --[[table: 0x7fa4698d57d0]]
+      } --[[table: 0x7fa46a14da98]],
+      height = 959,
+      inner_dimen = "769x955+0+0",
+      item_dimen = "769x58+0+0",
+      item_group = nil --[[ref]],
+      item_table = {
+        nil --[[ref]]
+      } --[[table: 0x7fa469a582d0]],
+      item_table_stack = {} --[[table: 0x7fa46a1ee4f0]],
+      key_events = {
+        Close = {
+          {
+            {
+              "Back"
+            } --[[table: 0x7fa4a83ff458]]
+          } --[[table: 0x7fa4698d5b70]]
+        } --[[table: 0x7fa4698d5b10]],
+        FirstPage = {
+          {
+            "Shift",
+            {
+              "LPgBack",
+              "RPgBack"
+            } --[[table: 0x7fa46a1ee598]]
+          } --[[table: 0x7fa469a70f48]]
+        } --[[table: 0x7fa469a70ee8]],
+        FocusDown = {
+          {
+            "Down"
+          } --[[table: 0x7fa46a1e9cc0]],
+          args = {
+            0,
+            1
+          } --[[table: 0x7fa46a1e9d90]],
+          event = "FocusMove"
+        } --[[table: 0x7fa46a1e9c78]],
+        FocusLeft = {
+          {
+            "Left"
+          } --[[table: 0x7fa46a1e9f40]],
+          args = {
+            -1,
+            0
+          } --[[table: 0x7fa46a1ea000]],
+          event = "FocusMove"
+        } --[[table: 0x7fa46a1e9e30]],
+        FocusNext = {
+          {
+            "Tab"
+          } --[[table: 0x7fa4698488b0]],
+          event = "FocusNext"
+        } --[[table: 0x7fa469848868]],
+        FocusPrevious = {
+          {
+            "Shift",
+            "Tab"
+          } --[[table: 0x7fa46a1ea1b8]],
+          event = "FocusPrevious"
+        } --[[table: 0x7fa46a1ea170]],
+        FocusRight = {
+          {
+            "Right"
+          } --[[table: 0x7fa46a1ee310]],
+          args = {
+            1,
+            0
+          } --[[table: 0x7fa46a1ee3d0]],
+          event = "FocusMove"
+        } --[[table: 0x7fa46a1ee2c8]],
+        FocusUp = {
+          {
+            "Up"
+          } --[[table: 0x7fa469848580]],
+          args = {
+            0,
+            -1
+          } --[[table: 0x7fa469848640]],
+          event = "FocusMove"
+        } --[[table: 0x7fa469848538]],
+        HalfFocusDown = {
+          {
+            "Alt",
+            "Down"
+          } --[[table: 0x7fa469848410]],
+          args = {
+            "down"
+          } --[[table: 0x7fa4698484d0]],
+          event = "FocusHalfMove"
+        } --[[table: 0x7fa4698483c8]],
+        HalfFocusLeft = {
+          {
+            "Alt",
+            "Left"
+          } --[[table: 0x7fa46a14aee0]],
+          args = {
+            "left"
+          } --[[table: 0x7fa46a14afa0]],
+          event = "FocusHalfMove"
+        } --[[table: 0x7fa46a14ae98]],
+        HalfFocusRight = {
+          {
+            "Alt",
+            "Right"
+          } --[[table: 0x7fa46a1ee7c0]],
+          args = {
+            "right"
+          } --[[table: 0x7fa469848360]],
+          event = "FocusHalfMove"
+        } --[[table: 0x7fa46a1ee778]],
+        HalfFocusUp = {
+          {
+            "Alt",
+            "Up"
+          } --[[table: 0x7fa46a14b3e0]],
+          args = {
+            "up"
+          } --[[table: 0x7fa46a1e9d08]],
+          event = "FocusHalfMove"
+        } --[[table: 0x7fa46a14b398]],
+        HoldContext = {
+          {
+            "ContextMenu"
+          } --[[table: 0x7fa46a1ea0b0]],
+          event = "Hold"
+        } --[[table: 0x7fa46a1ea068]],
+        HoldScreenKB = {
+          {
+            "ScreenKB",
+            "Press"
+          } --[[table: 0x7fa46a14b1d0]],
+          event = "Hold"
+        } --[[table: 0x7fa46a14b188]],
+        HoldShift = {
+          {
+            "Shift",
+            "Press"
+          } --[[table: 0x7fa46a14b020]],
+          event = "Hold"
+        } --[[table: 0x7fa46a1e9ed0]],
+        HoldSymAA = {
+          {
+            "Sym",
+            "AA"
+          } --[[table: 0x7fa46a14b2d8]],
+          event = "Hold"
+        } --[[table: 0x7fa46a14b290]],
+        LastPage = {
+          {
+            "Shift",
+            {
+              "LPgFwd",
+              "RPgFwd"
+            } --[[table: 0x7fa46a1ee6b8]]
+          } --[[table: 0x7fa46a1ee658]]
+        } --[[table: 0x7fa46a1ee5f8]],
+        LeftButtonTap = {
+          {
+            "Menu"
+          } --[[table: 0x7fa469a70a08]]
+        } --[[table: 0x7fa4698d5bd0]],
+        NextPage = {
+          {
+            {
+              "RPgFwd",
+              "LPgFwd"
+            } --[[table: 0x7fa4a832fca0]]
+          } --[[table: 0x7fa469a70dc8]]
+        } --[[table: 0x7fa469a70d68]],
+        Press = {
+          {
+            "Press"
+          } --[[table: 0x7fa46a14b108]],
+          event = "Press"
+        } --[[table: 0x7fa46a14b0c0]],
+        PrevPage = {
+          {
+            {
+              "RPgBack",
+              "LPgBack"
+            } --[[table: 0x7fa4a832fd00]]
+          } --[[table: 0x7fa469a70e88]]
+        } --[[table: 0x7fa469a70e28]],
+        ShowGotoDialog = {
+          {
+            "Shift",
+            "Down"
+          } --[[table: 0x7fa46993eb38]]
+        } --[[table: 0x7fa46993ead8]]
+      } --[[table: 0x7fa46a1e9bf8]],
+      layout = {
+        {
+          nil --[[ref]]
+        } --[[table: 0x7fa469810df8]],
+        {
+          nil --[[ref]]
+        } --[[table: 0x7fa469810e58]],
+        {
+          nil --[[ref]]
+        } --[[table: 0x7fa469810be8]]
+      } --[[table: 0x7fa469b442a0]],
+      mangas = {
+        nil --[[ref]]
+      } --[[table: 0x7fa46a14d678]],
+      multilines_show_more_text = false,
+      onLeftButtonTap = function() --[[..skipped..]] end --[[function: 0x7fa46a1ee438]],
+      page = 1,
+      page_info = nil --[[ref]],
+      page_info_first_chev = nil --[[ref]],
+      page_info_last_chev = nil --[[ref]],
+      page_info_left_chev = nil --[[ref]],
+      page_info_right_chev = nil --[[ref]],
+      page_info_spacer = nil --[[ref]],
+      page_info_text = nil --[[ref]],
+      page_num = 1,
+      page_return_arrow = nil --[[ref]],
+      paths = {} --[[table: 0x7fa46988a738]],
+      perpage = 14,
+      return_button = nil --[[ref]],
+      screen_h = 959,
+      screen_w = 773,
+      selected = {
+        x = 1,
+        y = 3
+      } --[[table: 0x7fa46a14dc38]],
+      show_parent = nil --[[ref]],
+      title_bar = nil --[[ref]],
+      title_bar_left_icon = "appbar.menu",
+      width = 773
+    } --[[table: 0x7fa46a14d968]],
+    x = 0,
+    y = 0
+  } --[[table: 0x7fa4699281a0]]
+} --[[table: 0x7fa469a664d8]] --[[incomplete output with shared/self-references skipped]] 
+01/25/25-13:07:29 INFO  Requesting to /mangas/multi.mangadex/cade38b7-64c4-4a29-8e3c-8c283291d6c6/refresh-chapters 
+01/25/25-13:07:30 INFO  Requesting to /settings 
+01/25/25-13:07:30 INFO  Requesting to /mangas/multi.mangadex/cade38b7-64c4-4a29-8e3c-8c283291d6c6/chapters 
+01/25/25-13:44:21 INFO  Requesting to /library 
+01/25/25-15:11:05 INFO  Preparing to quit UIManager 
+01/25/25-15:11:05 INFO  UIManager: No dialogs left to show 
+01/25/25-15:11:05 INFO  Tearing down UIManager with exit code: 0 
+01/25/25-15:11:05 INFO  Terminating subprocess with PID 150381 
+01/25/25-15:11:05 INFO  Subprocess is done: true 
