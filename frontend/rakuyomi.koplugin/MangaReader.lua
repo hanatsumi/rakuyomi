@@ -3,6 +3,8 @@ local UIManager = require("ui/uimanager")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local logger = require("logger")
 
+local Testing = require('testing')
+
 --- @class MangaReader
 --- This is a singleton that contains a simpler interface with ReaderUI.
 local MangaReader = {
@@ -36,6 +38,7 @@ function MangaReader:show(options)
   end
 
   self.is_showing = true
+  Testing:emitEvent('manga_reader_shown')
 end
 
 --- @param ui unknown The `ReaderUI` instance we're being called from.

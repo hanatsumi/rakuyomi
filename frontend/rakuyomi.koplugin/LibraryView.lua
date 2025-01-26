@@ -15,6 +15,7 @@ local ChapterListing = require("ChapterListing")
 local MangaSearchResults = require("MangaSearchResults")
 local Menu = require("widgets/Menu")
 local Settings = require("Settings")
+local Testing = require("testing")
 
 local LibraryView = Menu:extend {
   name = "library_view",
@@ -95,6 +96,8 @@ function LibraryView:fetchAndShow()
     mangas = mangas,
     covers_fullscreen = true, -- hint for UIManager:_repaint()
   })
+
+  Testing:emitEvent('library_view_shown')
 end
 
 --- @private

@@ -8,6 +8,7 @@ local Backend = require("Backend")
 local Menu = require("widgets/Menu")
 local ErrorDialog = require("ErrorDialog")
 local SourceSettings = require("SourceSettings")
+local Testing = require("testing")
 
 --- @class InstalledSourcesListing: { [any]: any }
 --- @field installed_sources SourceInformation[]
@@ -173,6 +174,8 @@ function InstalledSourcesListing:fetchAndShow(onReturnCallback)
     on_return_callback = onReturnCallback,
     covers_fullscreen = true, -- hint for UIManager:_repaint()
   })
+
+  Testing:emitEvent("installed_sources_listing_shown")
 end
 
 return InstalledSourcesListing
