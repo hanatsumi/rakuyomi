@@ -25,18 +25,11 @@
 
         pkgs = import nixpkgs {
           inherit system;
-        };
 
-        pkgs-openssl-patched-koreader = import nixpkgs-patched-koreader {
-          inherit system;
           config = {
             permittedInsecurePackages = [ "openssl-1.1.1w" ];
           };
         };
-
-        patchedKoreader = pkgs-openssl-patched-koreader.koreader.overrideAttrs (oldAttrs: {
-          patches = [./patches/fontlist-use-bitser.patch];
-        });
 
         buildBackendRustPackage = {
           packageName,
@@ -116,12 +109,12 @@
                   cp ${udsHttpRequest}/bin/uds_http_request $out/uds_http_request
                 '';
               };
+
+          koreader = pkgs.callPackage ./packages/koreader.nix {};
           
-          koreaderWithRakuyomiFrontend = patchedKoreader.overrideAttrs (finalAttrs: previousAttrs: {
-            installPhase = previousAttrs.installPhase + ''
-              ln -sf ${pluginFolderWithoutServer} $out/lib/koreader/plugins/rakuyomi.koplugin
-            '';
-          });
+          koreaderWithRakuyomiFrontend = pkgs.callPackage ./packages/koreader.nix {
+            plugins = [ pluginFolderWithoutServer ];
+          };
           
           # FIXME this is really bad and relies on `mkCliPackage` copying the _entire_
           # target folder to the nix store (which is really bad too)
@@ -138,6 +131,7 @@
               };
       in
       {
+        packages.koreader = koreader;
         packages.rakuyomi.desktop = mkPluginFolderWithServer desktopTarget;
         packages.rakuyomi.koreader-with-plugin = koreaderWithRakuyomiFrontend;
         packages.rakuyomi.kindle = mkPluginFolderWithServer kindleTarget;
