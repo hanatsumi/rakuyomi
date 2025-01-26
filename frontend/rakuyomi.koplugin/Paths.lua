@@ -1,10 +1,16 @@
 local DataStorage = require("datastorage")
 local ffiutil = require("ffi/util")
 
+local Testing = require("testing")
+
 local Paths = {}
 
 --- @return string -- The directory in which Rakuyomi's home folder is located.
 function Paths.getHomeDirectory()
+  if Testing:getHomeDirectory() ~= nil then
+    return Testing:getHomeDirectory()
+  end
+
   return DataStorage:getDataDir() .. "/rakuyomi"
 end
 

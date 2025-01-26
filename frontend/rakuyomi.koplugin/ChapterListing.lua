@@ -17,6 +17,7 @@ local DownloadUnreadChaptersJobDialog = require("DownloadUnreadChaptersJobDialog
 local Icons = require("Icons")
 local ErrorDialog = require("ErrorDialog")
 local MangaReader = require("MangaReader")
+local Testing = require("testing")
 
 local findNextChapter = require("chapters/findNextChapter")
 
@@ -231,6 +232,8 @@ function ChapterListing:fetchAndShow(manga, onReturnCallback, accept_cached_resu
     on_return_callback = onReturnCallback,
     covers_fullscreen = true, -- hint for UIManager:_repaint()
   })
+
+  Testing:emitEvent("chapter_listing_shown")
 end
 
 --- @private

@@ -1,24 +1,40 @@
 {
   "packages": {
-    ".#koreader":            "",
-    "lua-language-server":   "latest",
-    "rustup":                "latest",
-    "sqlx-cli":              "latest",
-    "cachix":                "latest",
-    "gcc":                   "13.2.0",
-    "cargo-flamegraph":      "latest",
+    ".#koreader": "",
+    "lua-language-server": "latest",
+    "rustup": "latest",
+    "sqlx-cli": "latest",
+    "cachix": "latest",
+    "gcc": "13.2.0",
+    "cargo-flamegraph": "latest",
     "luajitPackages.busted": "latest",
     "mold-wrapped": {
-      "version":            "latest",
-      "excluded_platforms": ["x86_64-darwin", "aarch64-darwin"],
+      "version": "latest",
+      "excluded_platforms": [
+        "x86_64-darwin",
+        "aarch64-darwin"
+      ],
     },
     "clang": "latest",
     "libiconv": {
-      "version":            "latest",
-      "excluded_platforms": ["x86_64-linux"],
+      "version": "latest",
+      "excluded_platforms": [
+        "x86_64-linux"
+      ],
     },
     "darwin.apple_sdk.frameworks.SystemConfiguration": {
-      "platforms": ["x86_64-darwin", "aarch64-darwin"],
+      "platforms": [
+        "x86_64-darwin",
+        "aarch64-darwin"
+      ],
+    },
+    "poetry": {
+      "version": "latest",
+      "disable_plugin": true,
+    },
+    "python313Full": {
+      "version": "latest",
+      "disable_plugin": true,
     },
   },
   "env": {

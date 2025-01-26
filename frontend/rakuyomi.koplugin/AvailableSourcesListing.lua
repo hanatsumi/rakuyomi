@@ -8,6 +8,7 @@ local Icons = require("Icons")
 local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
 local LoadingDialog = require("LoadingDialog")
+local Testing = require("testing")
 
 --- @class AvailableSourcesListing: { [any]: any }
 --- @field installed_sources SourceInformation[]
@@ -150,6 +151,10 @@ function AvailableSourcesListing:installSource(source_information)
 
     self.installed_sources = installed_sources_response.body
 
+    Testing:emitEvent("source_installed", {
+      source = source_information
+    })
+
     self:updateItems()
   end)
 end
@@ -184,6 +189,8 @@ function AvailableSourcesListing:fetchAndShow(onReturnCallback)
     on_return_callback = onReturnCallback,
     covers_fullscreen = true, -- hint for UIManager:_repaint()
   })
+
+  Testing:emitEvent("available_sources_listing_shown")
 end
 
 return AvailableSourcesListing

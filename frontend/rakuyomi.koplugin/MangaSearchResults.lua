@@ -8,6 +8,7 @@ local ErrorDialog = require("ErrorDialog")
 local Menu = require("widgets/Menu")
 local LoadingDialog = require("LoadingDialog")
 local ChapterListing = require("ChapterListing")
+local Testing = require("testing")
 
 --- @class MangaSearchResults: { [any]: any }
 --- @field results Manga[]
@@ -95,6 +96,8 @@ function MangaSearchResults:searchAndShow(search_text, onReturnCallback)
     on_return_callback = onReturnCallback,
     covers_fullscreen = true, -- hint for UIManager:_repaint()
   })
+
+  Testing:emitEvent("manga_search_results_shown")
 end
 
 --- @private
