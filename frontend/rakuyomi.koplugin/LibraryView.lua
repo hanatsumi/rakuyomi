@@ -190,6 +190,8 @@ function LibraryView:openMenu()
   }
 
   UIManager:show(dialog)
+
+  Testing:emitEvent('library_view_menu_opened')
 end
 
 --- @private

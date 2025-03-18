@@ -61,6 +61,8 @@ stdenv.mkDerivation rec {
   dontConfigure = true;
   dontBuild = true;
 
+  patches = lib.optionals stdenv.isLinux [ ./patches/datastorage-isolate-storage.patch ];
+
   installPhase = let
     copyFiles = if stdenv.isLinux then ''
       cp -R usr/* $out/
@@ -77,7 +79,7 @@ stdenv.mkDerivation rec {
     
     wrapBinary = lib.optionalString stdenv.isLinux ''
       wrapProgram $out/bin/koreader --prefix LD_LIBRARY_PATH : ${
-        lib.makeLibraryPath [ gtk3-x11 SDL2 glib openssl_1_1 ]
+        lib.makeLibraryPath [ gtk3-x11 SDL2 glib openssl_1_1 stdenv.cc.cc ]
       }
     '';
 

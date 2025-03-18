@@ -1,0 +1,25 @@
+From 76837c66a7a0b9e5c179f00e95f4c0dc2b9693b2 Mon Sep 17 00:00:00 2001
+From: Benoit Pierre <benoit.pierre@gmail.com>
+Date: Sun, 24 Nov 2024 23:05:33 +0100
+Subject: [PATCH] datastorage: add support for isolating data
+
+Use the `KO_HOME` environment variable if set to determine the data directory location.
+---
+ datastorage.lua | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git ./usr/lib/koreader/datastorage.lua ./usr/lib/koreader/datastorage.lua
+index 511ccf73079c..f06b5d49213b 100644
+--- ./usr/lib/koreader/datastorage.lua
++++ ./usr/lib/koreader/datastorage.lua
+@@ -10,7 +10,9 @@ local full_data_dir
+ function DataStorage:getDataDir()
+     if data_dir then return data_dir end
+ 
+-    if isAndroid then
++    if os.getenv("KO_HOME") then
++        data_dir = os.getenv("KO_HOME")
++    elseif isAndroid then
+         data_dir = android.getExternalStoragePath() .. "/koreader"
+     elseif os.getenv("UBUNTU_APPLICATION_ISOLATION") then
+         local app_id = os.getenv("APP_ID")

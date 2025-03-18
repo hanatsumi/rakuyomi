@@ -34,7 +34,7 @@ async def test_open_chapter(koreader_driver: KOReaderDriver):
     # Click on the menu button
     menu_button = await queries.locate_button(koreader_driver, "menu")
     koreader_driver.click_element(menu_button)
-    time.sleep(0.1)
+    await koreader_driver.wait_for_event('library_view_menu_opened')
 
     # Click on the "Manage Sources" button
     manage_sources_button = await queries.locate_button(koreader_driver, "Manage Sources")
@@ -103,33 +103,18 @@ async def test_open_chapter(koreader_driver: KOReaderDriver):
         LocateButtonResponse
     )
     koreader_driver.click_element(location)
-    await koreader_driver.wait_for_event('manga_reader_shown', timeout=30)
+    await koreader_driver.wait_for_event('manga_reader_shown', timeout=60)
+
+    # After the reader is shown, KOReader inhibits input handling for a while.
+    # Wait until input handling is restored.
+    time.sleep(10)
     
     # Verify we're in reader view
     response = await koreader_driver.query(
         "Is the reader visible? If so, what is the current file being displayed?",
-        ReaderResponse
+        ReaderResponse,
+        timeout=45
     )
 
     assert response.type == 'reader_visible'
     assert response.current_file is not None
-
-if __name__ == '__main__':
-    import asyncio
-
-    async def main():
-        from .agent import Agent
-
-        import logging
-        from pathlib import Path
-        import tempfile
-
-        logging.basicConfig(level=logging.DEBUG)
-
-        agent = Agent()
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            async with KOReaderDriver(agent, Path(temp_dir)) as driver:
-                await test_open_chapter(driver)
-    
-    asyncio.run(main())
