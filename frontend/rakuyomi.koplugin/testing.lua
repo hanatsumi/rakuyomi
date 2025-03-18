@@ -6,9 +6,6 @@ local logger = require("logger")
 
 local NullTesting = {
   init = function() end,
-  getHomeDirectory = function()
-    return nil
-  end,
   dumpVisibleUI = function() end,
   emitEvent = function(name, params) end
 }
@@ -70,13 +67,14 @@ local function describeCurrentUI()
 end
 
 function Testing:init()
+  if self.initialized then
+    return
+  end
+
   self:hookOntoKeyPresses()
 
+  self.initialized = true
   logger.info("Testing hooks initialized!")
-end
-
-function Testing:getHomeDirectory()
-  return os.getenv('RAKUYOMI_TEST_HOME_DIRECTORY')
 end
 
 function Testing:dumpVisibleUI()

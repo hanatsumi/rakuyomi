@@ -1,8 +1,10 @@
 import curlify
 from datetime import datetime
+import hashlib
 import inspect
 import logging
 import os
+from pathlib import Path
 import time
 from typing import Any, overload
 from pydantic import BaseModel, TypeAdapter
@@ -51,6 +53,8 @@ The performed actions should be described as clicks and keyboard events that sho
 - click on X and Y coordinates
 - write "XYZ"
 
+When clicking or attempting to find the area of a button, consider the associated element's padding as non-clickable.
+
 Your replies should be in a valid JSON format.
 '''
 
@@ -76,6 +80,13 @@ class Agent:
         self.session = requests.Session()
         self.session.auth = OpenAIAuth(os.environ['OPENAI_API_KEY'])
         self.session.headers.update({'Content-Type': 'application/json'})
+        retries = Retry(
+            total=3,
+            backoff_factor=1,
+            status_forcelist=[500, 502, 503, 504],
+            allowed_methods=["POST"]
+        )
+        self.session.mount('https://', HTTPAdapter(max_retries=retries))
         
         self.base_url = os.environ['OPENAI_BASE_URL']
         self.model = os.environ['OPENAI_MODEL']
@@ -118,6 +129,14 @@ class Agent:
 
         response.raise_for_status()
         response_json = response.json()
+
+        screenshot_folder = Path('screenshots')
+        screenshot_folder.mkdir(parents=True, exist_ok=True)
+
+        screenshot_path = screenshot_folder / f'{hashlib.sha256(ui_contents.encode()).hexdigest()}.txt'
+        with open(screenshot_path, 'wb') as f:
+            f.write(ui_contents.encode())
+            logger.info(f'UI contents saved to {screenshot_path}')
 
         logger.info(f'Performed query in {duration.total_seconds()}, response: {response.text}')
 

@@ -18,6 +18,8 @@ dependencies = [
     "pytest-asyncio (>=0.25.3,<0.26.0)",
     "jsonformatter (>=0.3.4,<0.4.0)",
     "curlify (>=2.2.1,<3.0.0)",
+    "pillow (>=11.1.0,<12.0.0)",
+    "pyscreeze (>=1.0.1,<2.0.0)",
 ]
 
 
