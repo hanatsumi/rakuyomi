@@ -1,8 +1,9 @@
 [workspace]
 resolver = "2"
 members = [
-    "cli",
-    "server", "uds_http_request",
+    "shared",
+    "server",
+    "uds_http_request",
     "wasm_macros",
     "wasm_shared"
 ]

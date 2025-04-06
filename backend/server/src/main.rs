@@ -22,15 +22,15 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::{Json, Router};
 use clap::Parser;
-use cli::chapter_storage::ChapterStorage;
-use cli::database::Database;
-use cli::settings::Settings;
-use cli::source_manager::SourceManager;
-use cli::usecases::{
+use serde::Serialize;
+use shared::chapter_storage::ChapterStorage;
+use shared::database::Database;
+use shared::settings::Settings;
+use shared::source_manager::SourceManager;
+use shared::usecases::{
     fetch_manga_chapter::Error as FetchMangaChaptersError,
     search_mangas::Error as SearchMangasError,
 };
-use serde::Serialize;
 use tokio::sync::Mutex;
 
 #[derive(Parser, Debug)]

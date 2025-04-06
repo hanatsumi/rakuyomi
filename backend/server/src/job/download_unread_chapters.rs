@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::anyhow;
-use cli::{
+use shared::{
     chapter_storage::ChapterStorage,
     database::Database,
     model::MangaId,

@@ -8,7 +8,7 @@ anyhow = "1.0.71"
 axum = { git = "https://github.com/tokio-rs/axum.git", branch = "jplatte/generic-serve" }
 axum-macros = "0.4.0"
 clap = { version = "4.4.12", features = ["derive"] }
-cli = { path = "../cli" }
+shared = { path = "../shared" }
 env_logger = "0.11.3"
 futures = "0.3.30"
 http-body-util = "0.1.2"

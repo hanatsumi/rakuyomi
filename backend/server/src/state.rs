@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use axum_macros::FromRef;
-use cli::{
+use shared::{
     chapter_storage::ChapterStorage, database::Database, settings::Settings,
     source_manager::SourceManager,
 };

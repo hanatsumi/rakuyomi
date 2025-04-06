@@ -3,8 +3,8 @@ use axum::{
     extract::{FromRequestParts, Path},
     http::request::Parts,
 };
-use cli::{model::SourceId, source::Source, source_collection::SourceCollection};
 use serde::Deserialize;
+use shared::{model::SourceId, source::Source, source_collection::SourceCollection};
 
 use crate::{AppError, State};
 

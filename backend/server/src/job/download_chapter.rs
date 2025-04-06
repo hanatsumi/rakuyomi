@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
-use cli::{
+use shared::{
     chapter_storage::ChapterStorage, model::ChapterId, source_collection::SourceCollection,
     source_manager::SourceManager, usecases,
 };

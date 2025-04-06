@@ -5,7 +5,7 @@ use axum::{
     routing::{delete, get, post},
     Json, Router,
 };
-use cli::{
+use shared::{
     model::{ChapterId, MangaId},
     source_collection::SourceCollection,
     usecases::fetch_manga_chapters_in_batch::Filter as ChaptersToDownloadFilter,
