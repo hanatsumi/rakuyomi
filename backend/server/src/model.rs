@@ -1,4 +1,4 @@
-use cli::model::{
+use shared::model::{
     Chapter as DomainChapter, MangaInformation, SourceInformation as DomainSourceInformation,
 };
 use serde::Serialize;

@@ -540,53 +540,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "afb84c814227b90d6895e01398aee0d8033c00e7466aca416fb6a8e0eb19d8a7"
 
 [[package]]
-name = "cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-stream",
- "chrono",
- "chrono-tz",
- "criterion",
- "darling",
- "derive_more 1.0.0",
- "ego-tree",
- "futures",
- "html-escape",
- "log",
- "num_enum",
- "ouroboros",
- "pared",
- "pprof",
- "proc-macro2",
- "quote",
- "regex",
- "reqwest",
- "rust_decimal",
- "sanitize-filename",
- "schemars",
- "scopeguard",
- "scraper",
- "serde",
- "serde_json",
- "serde_json_lenient",
- "size",
- "sqlx",
- "surge-ping",
- "syn 2.0.87",
- "tempfile",
- "thiserror",
- "tokio",
- "tokio-util",
- "url",
- "walkdir",
- "wasm_macros",
- "wasm_shared",
- "wasmi 0.36.5",
- "zip",
-]
-
-[[package]]
 name = "colorchoice"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3004,7 +2957,6 @@ dependencies = [
  "axum",
  "axum-macros",
  "clap",
- "cli",
  "env_logger",
  "futures",
  "http-body-util",
@@ -3014,6 +2966,7 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
+ "shared",
  "tokio",
  "tokio-util",
  "tracing",
@@ -3059,6 +3012,53 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
 dependencies = [
  "lazy_static",
+]
+
+[[package]]
+name = "shared"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-stream",
+ "chrono",
+ "chrono-tz",
+ "criterion",
+ "darling",
+ "derive_more 1.0.0",
+ "ego-tree",
+ "futures",
+ "html-escape",
+ "log",
+ "num_enum",
+ "ouroboros",
+ "pared",
+ "pprof",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "reqwest",
+ "rust_decimal",
+ "sanitize-filename",
+ "schemars",
+ "scopeguard",
+ "scraper",
+ "serde",
+ "serde_json",
+ "serde_json_lenient",
+ "size",
+ "sqlx",
+ "surge-ping",
+ "syn 2.0.87",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tokio-util",
+ "url",
+ "walkdir",
+ "wasm_macros",
+ "wasm_shared",
+ "wasmi 0.36.5",
+ "zip",
 ]
 
 [[package]]

@@ -75,7 +75,7 @@
 
           mkUdsHttpRequestPackage = buildBackendRustPackage { packageName = "uds_http_request"; };
 
-          mkCliPackage = buildBackendRustPackage { packageName = "cli"; copyTarget = true; };
+          mkSharedPackage = buildBackendRustPackage { packageName = "shared"; copyTarget = true; };
 
           versionFile = pkgs.writeText "VERSION" version;
 
@@ -120,13 +120,13 @@
           # target folder to the nix store (which is really bad too)
           mkSchemaFile = target:
             let
-              cli = mkCliPackage target;
+              shared = mkSharedPackage target;
             in
               with pkgs; stdenv.mkDerivation {
                 name = "rakuyomi-settings-schema";
                 phases = [ "installPhase" ];
                 installPhase = ''
-                  cp ${cli}/target/${target}/release/settings.schema.json $out
+                  cp ${shared}/target/${target}/release/settings.schema.json $out
                 '';
               };
       in
@@ -135,7 +135,7 @@
         packages.rakuyomi.desktop = mkPluginFolderWithServer desktopTarget;
         packages.rakuyomi.koreader-with-plugin = koreaderWithRakuyomiFrontend;
         packages.rakuyomi.kindle = mkPluginFolderWithServer kindleTarget;
-        packages.rakuyomi.cli = mkCliPackage desktopTarget;
+        packages.rakuyomi.shared = mkSharedPackage desktopTarget;
         packages.rakuyomi.settings-schema = mkSchemaFile desktopTarget;
       }
     );

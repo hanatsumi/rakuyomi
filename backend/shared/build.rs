@@ -7,7 +7,7 @@ use std::fs;
 fn main() {
     // trigger recompilation when a new migration is added
     println!("cargo:rerun-if-changed=migrations");
-    println!("cargo:rerun-if-changed=cli/src/settings/schema.rs");
+    println!("cargo:rerun-if-changed=shared/src/settings/schema.rs");
 
     let schema_dest_path = get_cargo_target_dir().unwrap().join("settings.schema.json");
 

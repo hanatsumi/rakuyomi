@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -ev
 
-export BACKEND_CLI_DIR="${PROJECT_DIR}/backend/cli"
+export BACKEND_SHARED_DIR="${PROJECT_DIR}/backend/shared"
 export DATABASE_URL="sqlite:/tmp/rakuyomi.db"
 
-cd "$BACKEND_CLI_DIR"
+cd "$BACKEND_SHARED_DIR"
 
 cargo sqlx db create
 cargo sqlx migrate run

@@ -1,4 +1,4 @@
-use cli::{chapter_downloader::download_chapter_pages_as_cbz, settings::Settings, source::Source};
+use shared::{chapter_downloader::download_chapter_pages_as_cbz, settings::Settings, source::Source};
 #[allow(unused_imports)]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use futures::executor;

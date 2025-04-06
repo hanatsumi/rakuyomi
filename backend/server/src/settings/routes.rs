@@ -1,8 +1,8 @@
 use axum::extract::State as StateExtractor;
 use axum::routing::{get, put};
 use axum::{Json, Router};
-use cli::usecases;
-use cli::usecases::update_settings::UpdateableSettings;
+use shared::usecases;
+use shared::usecases::update_settings::UpdateableSettings;
 
 use crate::state::State;
 use crate::AppError;
