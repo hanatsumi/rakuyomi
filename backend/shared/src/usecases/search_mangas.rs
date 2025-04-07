@@ -1,6 +1,6 @@
 use crate::{
     database::Database,
-    model::{MangaInformation, SourceInformation},
+    model::{Manga, MangaInformation, MangaState, SourceInformation},
     source_collection::SourceCollection,
 };
 use futures::{stream, StreamExt};
@@ -12,7 +12,7 @@ pub async fn search_mangas(
     db: &Database,
     cancellation_token: CancellationToken,
     query: String,
-) -> Result<Vec<(SourceInformation, MangaInformation)>, Error> {
+) -> Result<Vec<Manga>, Error> {
     // FIXME this looks awful
     let query = &query;
     let cancellation_token = &cancellation_token;
@@ -54,7 +54,7 @@ pub async fn search_mangas(
         .collect()
         .await;
 
-    let mut mangas_with_source_informations: Vec<_> = source_results
+    let mut mangas: Vec<_> = source_results
         .into_iter()
         .flat_map(|results| {
             let SourceMangaSearchResults {
@@ -62,15 +62,17 @@ pub async fn search_mangas(
                 source_information,
             } = results;
 
-            mangas
-                .into_iter()
-                .map(move |manga| (source_information.clone(), manga))
+            mangas.into_iter().map(move |manga| Manga {
+                source_information: source_information.clone(),
+                information: manga,
+                state: MangaState {},
+            })
         })
         .collect();
 
-    mangas_with_source_informations.sort_by_cached_key(|(_, manga)| manga.title.clone());
+    mangas.sort_by_cached_key(|manga| manga.information.title.clone());
 
-    Ok(mangas_with_source_informations)
+    Ok(mangas)
 }
 
 #[derive(thiserror::Error, Debug)]
