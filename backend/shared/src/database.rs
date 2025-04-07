@@ -76,6 +76,45 @@ impl Database {
         .unwrap();
     }
 
+    pub async fn count_unread_chapters(&self, manga_id: &MangaId) -> Option<usize> {
+        let source_id = manga_id.source_id().value();
+        let manga_id = manga_id.value();
+
+        let count = sqlx::query_as!(
+            UnreadChaptersRow,
+            r#"
+                SELECT COUNT(*) as count,
+                       EXISTS(SELECT 1 FROM chapter_informations WHERE source_id = ?1 AND manga_id = ?2) AS "has_chapters: bool"
+                FROM chapter_informations ci
+                LEFT JOIN chapter_state cs 
+                    ON ci.source_id = cs.source_id 
+                    AND ci.manga_id = cs.manga_id 
+                    AND ci.chapter_id = cs.chapter_id
+                WHERE ci.source_id = ?1 
+                    AND ci.manga_id = ?2 
+                    AND ci.chapter_number > COALESCE(
+                        (SELECT MAX(ci2.chapter_number) 
+                         FROM chapter_informations ci2 
+                         JOIN chapter_state cs2 
+                            ON ci2.source_id = cs2.source_id 
+                            AND ci2.manga_id = cs2.manga_id 
+                            AND ci2.chapter_id = cs2.chapter_id
+                         WHERE ci2.source_id = ?1 
+                            AND ci2.manga_id = ?2 
+                            AND cs2.read = 1
+                        ), -1
+                    )
+            "#,
+            source_id,
+            manga_id
+        )
+        .fetch_one(&self.pool)
+        .await
+        .unwrap();
+
+        todo!()
+    }
+
     pub async fn find_cached_manga_information(
         &self,
         manga_id: &MangaId,
@@ -368,4 +407,10 @@ impl From<ChapterStateRow> for ChapterState {
     fn from(value: ChapterStateRow) -> Self {
         Self { read: value.read }
     }
+}
+
+#[derive(sqlx::FromRow)]
+struct UnreadChaptersRow {
+    has_chapters: bool,
+    count: i32,
 }

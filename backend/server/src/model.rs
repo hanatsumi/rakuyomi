@@ -1,7 +1,7 @@
-use shared::model::{
-    Chapter as DomainChapter, MangaInformation, SourceInformation as DomainSourceInformation,
-};
 use serde::Serialize;
+use shared::model::{
+    Chapter as DomainChapter, Manga as DomainManga, SourceInformation as DomainSourceInformation,
+};
 
 #[derive(Serialize)]
 pub struct SourceInformation {
@@ -29,15 +29,12 @@ pub struct Manga {
     title: String,
 }
 
-impl From<(DomainSourceInformation, MangaInformation)> for Manga {
-    fn from(
-        (source_information, manga_information): (DomainSourceInformation, MangaInformation),
-    ) -> Self {
+impl From<DomainManga> for Manga {
+    fn from(value: DomainManga) -> Self {
         Self {
-            id: manga_information.id.value().clone(),
-            source: source_information.into(),
-            // FIXME what the fuck
-            title: manga_information.title.unwrap_or("Unknown title".into()),
+            id: value.information.id.value().clone(),
+            source: value.source_information.into(),
+            title: value.information.title.unwrap_or("Unknown title".into()),
         }
     }
 }
