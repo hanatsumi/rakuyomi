@@ -344,7 +344,7 @@ end
 
 --- @class GroupSettingDefinition: { type: 'group', title: string|nil, items: SettingDefinition[], footer: string|nil }
 --- @class SwitchSettingDefinition: { type: 'switch', title: string, key: string, default: boolean }
---- @class SelectSettingDefinition: { type: 'select', title: string, key: string, values: string[], titles: string[], default: string  }
+--- @class SelectSettingDefinition: { type: 'select', title: string, key: string, values: string[], titles: string[]|nil, default: string  }
 --- @class TextSettingDefinition: { type: 'text', placeholder: string, key: string, default: string|nil }
 
 --- @alias SettingDefinition GroupSettingDefinition|SwitchSettingDefinition|SelectSettingDefinition|TextSettingDefinition

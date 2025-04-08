@@ -32,7 +32,11 @@ local function mapSettingDefinitionToValueDefinition(setting_definition)
     local options = {}
 
     for index, value in ipairs(setting_definition.values) do
-      local title = setting_definition.titles[index]
+      local title = value
+
+      if setting_definition.titles ~= nil then
+        title = setting_definition.titles[index]
+      end
 
       table.insert(options, { label = title, value = value })
     end

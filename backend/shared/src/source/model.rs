@@ -25,7 +25,7 @@ pub enum SettingDefinition {
         title: String,
         key: String,
         values: Vec<String>,
-        titles: Vec<String>,
+        titles: Option<Vec<String>>,
         default: String,
     },
     #[serde(rename = "switch")]
