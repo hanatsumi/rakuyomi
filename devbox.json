@@ -1,12 +1,12 @@
 {
   "packages": {
-    ".#koreader":            "",
-    "lua-language-server":   "latest",
-    "rustup":                "latest",
-    "sqlx-cli":              "latest",
-    "cachix":                "latest",
-    "gcc":                   "13.2.0",
-    "cargo-flamegraph":      "latest",
+    ".#koreader": "",
+    "lua-language-server": "latest",
+    "rustup": "latest",
+    "sqlx-cli": "latest",
+    "cachix": "latest",
+    "gcc": "13.2.0",
+    "cargo-flamegraph": "latest",
     "luajitPackages.busted": "latest",
     "mold-wrapped": {
       "version": "latest",
@@ -29,11 +29,11 @@
       ],
     },
     "poetry": {
-      "version":        "latest",
+      "version": "latest",
       "disable_plugin": true,
     },
     "python313Full": {
-      "version":        "latest",
+      "version": "latest",
       "disable_plugin": true,
     },
     "python313Packages.tkinter": "latest",
@@ -55,6 +55,9 @@
       "check-lint": [
         "sh -c 'cd $PROJECT_DIR/backend && cargo clippy -- -D warnings'",
         "python3 ci/lua-language-server-check.py frontend/",
+      ],
+      "fix-rust-format": [
+        "sh -c 'cd $PROJECT_DIR/backend && cargo fmt --all'",
       ],
       "fix-rust-lint": [
         "sh -c 'cd $PROJECT_DIR/backend && cargo clippy --fix --allow-dirty -- -D warnings'",
