@@ -64,7 +64,7 @@ function LibraryView:generateItemTableFromMangas(mangas)
   for _, manga in ipairs(mangas) do
     local mandatory = nil
 
-    if manga.unread_chapters_count > 0 then
+    if manga.unread_chapters_count ~= nil and manga.unread_chapters_count > 0 then
       mandatory = Icons.FA_BELL .. " " .. manga.unread_chapters_count
     end
 
