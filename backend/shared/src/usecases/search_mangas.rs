@@ -46,9 +46,19 @@ pub async fn search_mangas(
                 .for_each(|information| db.upsert_cached_manga_information(information.clone()))
                 .await;
 
+            // Fetch unread chapters count for each manga
+            let mangas = stream::iter(manga_informations)
+                .then(|manga| async move {
+                    let unread_count = db.count_unread_chapters(&manga.id).await;
+
+                    (manga, unread_count)
+                })
+                .collect::<Vec<_>>()
+                .await;
+
             SourceMangaSearchResults {
                 source_information: source.manifest().into(),
-                mangas: manga_informations,
+                mangas,
             }
         })
         .collect()
@@ -62,10 +72,11 @@ pub async fn search_mangas(
                 source_information,
             } = results;
 
-            mangas.into_iter().map(move |manga| Manga {
+            mangas.into_iter().map(move |(manga, unread_count)| Manga {
                 source_information: source_information.clone(),
                 information: manga,
                 state: MangaState {},
+                unread_chapters_count: unread_count,
             })
         })
         .collect();
@@ -83,5 +94,5 @@ pub enum Error {
 
 struct SourceMangaSearchResults {
     source_information: SourceInformation,
-    mangas: Vec<MangaInformation>,
+    mangas: Vec<(MangaInformation, Option<usize>)>,
 }

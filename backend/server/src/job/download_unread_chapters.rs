@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
 use anyhow::anyhow;
+use futures::{lock::Mutex, pin_mut, StreamExt};
+use serde::Serialize;
 use shared::{
     chapter_storage::ChapterStorage,
     database::Database,
@@ -11,8 +13,6 @@ use shared::{
         fetch_manga_chapters_in_batch::{Filter as ChapterToDownloadFilter, ProgressReport},
     },
 };
-use futures::{lock::Mutex, pin_mut, StreamExt};
-use serde::Serialize;
 use tokio_util::sync::CancellationToken;
 
 use crate::{AppError, ErrorResponse};

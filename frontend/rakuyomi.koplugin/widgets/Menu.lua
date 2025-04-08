@@ -17,7 +17,7 @@ end
 function Menu:updateItems(select_number)
   for _, item in ipairs(self.item_table) do
     if self.with_context_menu and item.select_enabled ~= false then
-      item.mandatory = (item.mandatory or "") .. Icons.FA_ELLIPSIS_VERTICAL
+      item.mandatory = (item.mandatory and (item.mandatory .. " ") or "") .. Icons.FA_ELLIPSIS_VERTICAL
     end
   end
 

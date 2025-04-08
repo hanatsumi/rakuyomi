@@ -133,6 +133,7 @@ pub struct Manga {
     pub source_information: SourceInformation,
     pub information: MangaInformation,
     pub state: MangaState,
+    pub unread_chapters_count: Option<usize>,
 }
 
 impl From<SourceManifest> for SourceInformation {

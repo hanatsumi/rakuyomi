@@ -62,9 +62,16 @@ end
 function LibraryView:generateItemTableFromMangas(mangas)
   local item_table = {}
   for _, manga in ipairs(mangas) do
+    local mandatory = nil
+
+    if manga.unread_chapters_count > 0 then
+      mandatory = Icons.FA_BELL .. " " .. manga.unread_chapters_count
+    end
+
     table.insert(item_table, {
       manga = manga,
       text = manga.title .. " (" .. manga.source.name .. ")",
+      mandatory = mandatory,
     })
   end
 

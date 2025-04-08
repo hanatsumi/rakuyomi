@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use axum::extract::{Path, State as StateExtractor};
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
+use serde::Deserialize;
 use shared::model::SourceId;
 use shared::settings::SourceSettingValue;
 use shared::source::model::SettingDefinition;
 use shared::usecases;
-use serde::Deserialize;
 
 use crate::model::SourceInformation;
 use crate::source_extractor::{SourceExtractor, SourceParams};

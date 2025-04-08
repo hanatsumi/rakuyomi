@@ -18,6 +18,8 @@ pub async fn get_manga_library(
     let mangas: Vec<_> = stream::iter(&manga_ids)
         .filter_map(|id| db.find_cached_manga_information(id))
         .filter_map(|manga| async move {
+            let unread_chapters_count = db.count_unread_chapters(&manga.id).await;
+
             Some(Manga {
                 source_information: SourceInformation::from(
                     source_collection
@@ -26,6 +28,7 @@ pub async fn get_manga_library(
                 ),
                 information: manga,
                 state: MangaState {},
+                unread_chapters_count,
             })
         })
         .collect()
