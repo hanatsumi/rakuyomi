@@ -1,7 +1,7 @@
-use shared::{settings::Settings, source::Source};
 #[allow(unused_imports)]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use pprof::criterion::{Output, PProfProfiler};
+use shared::{settings::Settings, source::Source};
 use std::{env, path::PathBuf};
 use tokio_util::sync::CancellationToken;
 

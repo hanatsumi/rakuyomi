@@ -187,6 +187,7 @@ end
 --- @field id string The ID of the manga.
 --- @field source SourceInformation The source information for this manga.
 --- @field title string The title of this manga.
+--- @field unread_chapters_count number|nil The number of unread chapters for this manga, or `nil` if we do not know how many chapters this manga has.
 
 --- @class Chapter
 --- @field id string The ID of this chapter.

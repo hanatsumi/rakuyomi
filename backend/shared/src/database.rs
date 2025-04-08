@@ -80,7 +80,7 @@ impl Database {
         let source_id = manga_id.source_id().value();
         let manga_id = manga_id.value();
 
-        let count = sqlx::query_as!(
+        let row = sqlx::query_as!(
             UnreadChaptersRow,
             r#"
                 SELECT COUNT(*) as count,
@@ -112,7 +112,11 @@ impl Database {
         .await
         .unwrap();
 
-        todo!()
+        if !row.has_chapters.unwrap_or(false) {
+            return None;
+        }
+
+        row.count.map(|count| count.try_into().unwrap())
     }
 
     pub async fn find_cached_manga_information(
@@ -411,6 +415,6 @@ impl From<ChapterStateRow> for ChapterState {
 
 #[derive(sqlx::FromRow)]
 struct UnreadChaptersRow {
-    has_chapters: bool,
-    count: i32,
+    count: Option<i32>,
+    has_chapters: Option<bool>,
 }

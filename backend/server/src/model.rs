@@ -27,6 +27,7 @@ pub struct Manga {
     id: String,
     source: SourceInformation,
     title: String,
+    unread_chapters_count: Option<usize>,
 }
 
 impl From<DomainManga> for Manga {
@@ -35,6 +36,7 @@ impl From<DomainManga> for Manga {
             id: value.information.id.value().clone(),
             source: value.source_information.into(),
             title: value.information.title.unwrap_or("Unknown title".into()),
+            unread_chapters_count: value.unread_chapters_count,
         }
     }
 }

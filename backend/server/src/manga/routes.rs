@@ -3,11 +3,11 @@ use std::time::Duration;
 use axum::extract::{Path, Query, State as StateExtractor};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use shared::model::{ChapterId, MangaId};
-use shared::usecases;
 use futures::Future;
 use log::warn;
 use serde::Deserialize;
+use shared::model::{ChapterId, MangaId};
+use shared::usecases;
 use tokio_util::sync::CancellationToken;
 
 use crate::model::{Chapter, Manga};
