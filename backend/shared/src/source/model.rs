@@ -19,6 +19,8 @@ pub enum SettingDefinition {
         footer: Option<String>,
     },
     #[serde(rename = "select")]
+    // `segment` works just like a `select`, but it's shown as a segmented button in Aidoku.
+    #[serde(alias = "segment")]
     Select {
         title: String,
         key: String,
