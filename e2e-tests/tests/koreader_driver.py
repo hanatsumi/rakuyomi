@@ -167,6 +167,16 @@ class KOReaderDriver:
 
         return ui_contents
     
+    async def install_source(self, source_id: str) -> None:
+        """
+        Installs a source in KOReader.
+        
+        Args:
+            source_id: The ID of the source to install
+        """
+        await self._send_ipc_command("install_source", {"source_id": source_id})
+        await self.wait_for_event('source_installed')
+    
     async def screenshot(self, output: Path) -> None:
         """
         Takes a screenshot of the KOReader window and saves it to the specified output path.
@@ -222,12 +232,13 @@ class KOReaderDriver:
             pyautogui.keyUp('fn')
         pyautogui.write(text)
 
-    def click_element(self, element_location):
+    def click_element(self, element_location, hold: float = 0.0):
         """
         Clicks on an element based on its location response.
         
         Args:
             element_location: A LocateButtonResponse or similar object containing x, y, width, height
+            duration: Duration to wait between clicks
         """
         self.activate_window()
         window_offset_x = element_location.x + element_location.width // 2
@@ -249,9 +260,22 @@ class KOReaderDriver:
         logger.info(f'Clicking on {window_offset_x}x{window_offset_y} inside the window -> {x}x{y} real position (window frame: {window_area})')
 
         pyautogui.moveTo(x=x, y=y)
-        # FIXME Using `click` here causes some weird bugs inside KOReader,
-        # such as buttons getting stuck in the `hold` state
-        pyautogui.click()
+
+        if hold > 0:
+            pyautogui.mouseDown()
+            pyautogui.sleep(hold)
+            pyautogui.mouseUp()
+        else:
+            pyautogui.click()
+    
+    def click_and_hold_element(self, element_location):
+        """
+        Clicks and holds on an element based on its location response.
+
+        Args:
+            element_location: A LocateButtonResponse or similar object containing x, y, width, height
+        """
+        self.click_element(element_location, hold=2.5)
     
     async def wait_for_event(self, event_type: str, timeout: float = 15.0) -> dict:
         """

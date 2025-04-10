@@ -139,6 +139,11 @@ function MangaSearchResults:onContextMenuChoice(item)
 
         return
       end
+
+      Testing:emitEvent("manga_added_to_library", {
+        source_id = manga.source.id,
+        manga_id = manga.id,
+      })
     end
   })
 end
