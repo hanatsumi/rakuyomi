@@ -9,7 +9,7 @@ import platform
 import pyautogui
 import pywinctl
 import signal
-import time
+import sys
 from collections import namedtuple
 from pathlib import Path
 from typing import TypeVar, Type
@@ -30,9 +30,26 @@ class KOReaderDriver:
         self.koreader_home = koreader_home
         self.rakuyomi_home = koreader_home / 'rakuyomi'
         self.rakuyomi_home.mkdir(parents=True, exist_ok=True)
-    
+        self.ipc_socket_path = "/tmp/rakuyomi_testing_ipc.sock"
+        self.reader = None
+        self.writer = None
+
     async def __aenter__(self):
         """Context manager enter - starts the KOReader process."""
+        # Set up IPC socket
+        try:
+            os.unlink(self.ipc_socket_path)
+        except OSError:
+            pass
+
+        # Start server
+        server = await asyncio.start_unix_server(
+            self._handle_ipc_connection,
+            path=self.ipc_socket_path,
+            limit=512 * 1024,
+        )
+        self._server = server
+
         # Write KOReader's settings file
         koreader_settings = """
             return {
@@ -58,8 +75,7 @@ class KOReaderDriver:
 
         self.process = await asyncio.create_subprocess_exec(
             'devbox', 'run', 'dev',
-            stdout=subprocess.PIPE,
-            limit=512*1024, # 512 KiB
+            stdout=sys.stderr,
             env={
                 **os.environ,
                 'RAKUYOMI_IS_TESTING': '1',
@@ -68,8 +84,18 @@ class KOReaderDriver:
             process_group=0
         )
 
-        initialization_timeout = float(os.environ.get('RAKUYOMI_TEST_INITIALIZATION_TIMEOUT', '30'))
-        await self.wait_for_event('initialized', initialization_timeout)
+        # Wait for KOReader to connect via IPC
+        try:
+            initialization_timeout = float(os.environ.get('RAKUYOMI_TEST_INITIALIZATION_TIMEOUT', '30'))
+
+            async with asyncio.timeout(initialization_timeout):
+                while not self.reader:
+                    await asyncio.sleep(0.1)
+                logger.info('KOReader connected to IPC socket')
+
+                await self.wait_for_event('initialized', initialization_timeout)
+        except TimeoutError:
+            raise TimeoutError("Timeout waiting for IPC connection/initialization")
 
         # For some reason, sometimes KOReader decides to disable input handling on initialization.
         # Wait for a bit after initialization for hooks to work.
@@ -83,9 +109,39 @@ class KOReaderDriver:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit - cleans up the KOReader process."""
+        if self.writer:
+            self.writer.close()
+            await self.writer.wait_closed()
+        
+        if hasattr(self, '_server'):
+            self._server.close()
+            await self._server.wait_closed()
+
+        try:
+            os.unlink(self.ipc_socket_path)
+        except OSError:
+            pass
+
         if hasattr(self, 'process') and self.process:
             os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
             await self.process.communicate()
+
+    async def _handle_ipc_connection(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+        """Handles new IPC connections."""
+        self.reader = reader
+        self.writer = writer
+        
+    async def _send_ipc_command(self, command_type: str, params: dict | None = None):
+        """Sends a command to KOReader via IPC."""
+        if not self.writer:
+            raise RuntimeError("No IPC connection available")
+            
+        message = {
+            "type": command_type,
+            "params": params or {}
+        }
+        self.writer.write(json.dumps(message).encode() + b'\n')
+        await self.writer.drain()
 
     def activate_window(self):
         """Activates the KOReader window."""
@@ -101,8 +157,7 @@ class KOReaderDriver:
     async def request_ui_contents(self, timeout=15) -> str:
         """Requests and returns the current UI contents."""
         start = datetime.now()
-        self.activate_window()
-        pyautogui.hotkey('shift', 'f8')
+        await self._send_ipc_command("dump_ui")
 
         event = await self.wait_for_event('ui_contents', timeout=timeout)
         ui_contents: str = event['params']['contents']
@@ -212,10 +267,14 @@ class KOReaderDriver:
         Raises:
             TimeoutError: If event is not received within timeout
         """
+
+        if not self.reader:
+            raise RuntimeError("No IPC connection available")
+
         try:
             async with asyncio.timeout(timeout):
                 while True:
-                    line = await self.process.stdout.readline() # type: ignore
+                    line = await self.reader.readline()
 
                     try:
                         json_message = json.loads(line)

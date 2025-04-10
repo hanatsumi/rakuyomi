@@ -1,3 +1,6 @@
+local C = require("ffi").C
+local ffi = require("ffi")
+require("ffi/posix_h")
 local serpent = require("ffi/serpent")
 local rapidjson = require("rapidjson")
 
@@ -71,10 +74,130 @@ function Testing:init()
     return
   end
 
+  self:setupIPC()
   self:hookOntoKeyPresses()
+  self:periodicallyReadIPC()
 
   self.initialized = true
   logger.info("Testing hooks initialized!")
+end
+
+function Testing:setupIPC()
+  local AF_UNIX = 1
+  local SOCK_STREAM = 1
+
+  ffi.cdef [[
+    struct sockaddr_un {
+      unsigned short sun_family;
+      char sun_path[108];
+    };
+    int connect(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
+  ]]
+
+  self.socket_fd = C.socket(AF_UNIX, SOCK_STREAM, 0)
+  if self.socket_fd < 0 then
+    local errno = ffi.errno()
+    local err_msg = ffi.string(C.strerror(errno))
+    logger.warn("Socket creation error: ", err_msg, " (errno: ", errno, ")")
+    return
+  end
+
+  local addr = ffi.new("struct sockaddr_un")
+  addr.sun_family = AF_UNIX
+  local socket_path = "/tmp/rakuyomi_testing_ipc.sock"
+  ffi.copy(addr.sun_path, socket_path)
+
+  local addr_size = ffi.sizeof("struct sockaddr_un")
+  if C.connect(self.socket_fd, ffi.cast("struct sockaddr *", addr), addr_size) < 0 then
+    logger.warn("Failed to connect to socket at " .. socket_path)
+    C.close(self.socket_fd)
+    self.socket_fd = nil
+    return
+  end
+
+  logger.info("Connected to IPC socket at " .. socket_path)
+end
+
+function Testing:periodicallyReadIPC()
+  UIManager:scheduleIn(0.1, function()
+    local data = self:_readNonBlockingFromIPC()
+    if data then
+      local success, decoded = pcall(rapidjson.decode, data)
+      if success and decoded then
+        if type(decoded) ~= "table" or type(decoded.type) ~= "string" then
+          logger.warn("Invalid IPC message format")
+          return self:periodicallyReadIPC()
+        end
+
+        -- Command handler mapping
+        local commands = {
+          dump_ui = function() self:dumpVisibleUI() end,
+          ping = function() self:emitEvent("pong", { timestamp = os.time() }) end
+        }
+
+        local handler = commands[decoded.type]
+        if handler then
+          local ok, err = pcall(handler)
+          if not ok then
+            logger.warn("Error handling command", decoded.type, err)
+          end
+        else
+          logger.warn("Unknown command type:", decoded.type)
+        end
+      else
+        logger.warn("Failed to decode IPC message:", data)
+      end
+    end
+    self:periodicallyReadIPC()
+  end)
+end
+
+---@return string|nil
+function Testing:_readNonBlockingFromIPC()
+  if not self.socket_fd then
+    return nil
+  end
+
+  -- Set up poll
+  local pfd = ffi.new("struct pollfd")
+  pfd.fd = self.socket_fd
+  pfd.events = C.POLLIN
+
+  -- Poll with zero timeout for non-blocking behavior
+  local ret = C.poll(pfd, 1, 0)
+
+  if ret < 0 then
+    -- Poll error
+    local errno = ffi.errno()
+    local err_msg = ffi.string(C.strerror(errno))
+    logger.warn("Poll error: ", err_msg, " (errno: ", errno, ")")
+    C.close(self.socket_fd)
+    self.socket_fd = nil
+    return nil
+  elseif ret == 0 then
+    -- No data available
+    return nil
+  end
+
+  -- Data is available, read it
+  local buffer = ffi.new("char[?]", 1024)
+  local bytes_read = C.read(self.socket_fd, buffer, 1024)
+
+  if bytes_read <= 0 then
+    -- Connection closed or error
+    local errno = ffi.errno()
+    if bytes_read < 0 then
+      local err_msg = ffi.string(C.strerror(errno))
+      logger.warn("Socket read error: ", err_msg, " (errno: ", errno, ")")
+    else
+      logger.info("IPC connection closed by peer")
+    end
+    C.close(self.socket_fd)
+    self.socket_fd = nil
+    return nil
+  end
+
+  return ffi.string(buffer, bytes_read)
 end
 
 function Testing:dumpVisibleUI()
@@ -90,12 +213,18 @@ end
 --- @param name string
 --- @param params table|nil
 function Testing:emitEvent(name, params)
+  if not self.socket_fd then
+    logger.warn("No socket connection available. Cannot emit event.")
+    return
+  end
+
   local json_message = {
     type = name,
     params = params,
   }
+  local message = rapidjson.encode(json_message)
 
-  print(rapidjson.encode(json_message))
+  C.write(self.socket_fd, message .. '\n', #message + 1)
 end
 
 ---@private
