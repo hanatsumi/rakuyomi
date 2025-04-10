@@ -69,11 +69,12 @@ async def test_open_chapter(koreader_driver: KOReaderDriver):
     koreader_driver.click_element(menu_button)
     time.sleep(1)
 
-    # Click on the "Search" button
+    # Click on the "Search" button in the menu
     search_button = await queries.locate_button(koreader_driver, "Search")
     koreader_driver.click_element(search_button)
     time.sleep(1)
 
+    # Type and click on the search button in the dialog
     koreader_driver.type('houseki no kuni')
     search_button = await queries.locate_button(koreader_driver, "Search")
     koreader_driver.click_element(search_button)
@@ -82,7 +83,6 @@ async def test_open_chapter(koreader_driver: KOReaderDriver):
 
     # Click on first manga
     mangas = await queries.list_mangas(koreader_driver)
-    print(mangas)
     location = await koreader_driver.query(
         f"Find the menu item with the text '{mangas[0].name} ({mangas[0].source})'",
         LocateButtonResponse

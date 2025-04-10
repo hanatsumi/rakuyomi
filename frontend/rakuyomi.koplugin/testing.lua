@@ -132,6 +132,21 @@ function Testing:periodicallyReadIPC()
         -- Command handler mapping
         local commands = {
           dump_ui = function() self:dumpVisibleUI() end,
+          install_source = function()
+            local Backend = require("Backend")
+            local source_id = decoded.params.source_id
+
+            local response = Backend.installSource(source_id)
+            if response.type == 'ERROR' then
+              logger.warn("Failed to install source:", response.message)
+
+              return
+            end
+
+            self:emitEvent("source_installed", {
+              source_id = source_id,
+            })
+          end,
           ping = function() self:emitEvent("pong", { timestamp = os.time() }) end
         }
 

@@ -75,7 +75,7 @@
         "busted -C frontend/rakuyomi.koplugin .",
       ],
       "test-e2e": [
-        "sh -c 'cd $PROJECT_DIR/e2e-tests && poetry env use $(which python) && poetry install --no-root && poetry run pytest'",
+        "sh -c 'cd $PROJECT_DIR/e2e-tests && poetry env use $(which python) && poetry install --no-root && poetry run pytest $@'",
       ],
     },
   },
