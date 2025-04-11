@@ -51,6 +51,7 @@ unsafe impl Sync for Html {}
 pub struct HTMLElement {
     pub document: Parc<Html>,
     pub node_id: NodeId,
+    pub base_uri: Option<Url>,
 }
 
 impl HTMLElement {
@@ -87,8 +88,9 @@ pub struct RequestBuildingState {
     pub headers: HashMap<String, String>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ResponseData {
+    pub url: Url,
     pub status_code: StatusCode,
     pub headers: HeaderMap,
     pub body: Option<Vec<u8>>,

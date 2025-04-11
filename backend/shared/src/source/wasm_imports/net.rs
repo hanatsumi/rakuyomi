@@ -218,6 +218,7 @@ fn send(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) {
         };
 
         let response_data = ResponseData {
+            url: response.url().clone(),
             headers: response.headers().clone(),
             status_code: response.status(),
             body: match executor::block_on(cancellation_token.run_until_cancelled(response.bytes()))
@@ -399,6 +400,7 @@ fn html(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> i32 {
         let html_element = HTMLElement {
             document: Html::from(document).into(),
             node_id,
+            base_uri: response.url.clone().into(),
         };
 
         Some(wasm_store.store_std_value(Value::from(vec![html_element]).into(), None) as i32)

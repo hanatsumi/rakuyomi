@@ -1,6 +1,7 @@
 use anyhow::Result;
 
 use scraper::{Element, Html as ScraperHtml, Node, Selector};
+use url::Url;
 use wasm_macros::{aidoku_wasm_function, register_wasm_function};
 use wasmi::{Caller, Linker};
 
@@ -52,56 +53,65 @@ pub fn register_html_imports(linker: &mut Linker<WasmStore>) -> Result<()> {
 }
 
 #[aidoku_wasm_function]
-fn parse(mut caller: Caller<'_, WasmStore>, data: Option<String>) -> i32 {
-    || -> Option<i32> {
-        let document = ScraperHtml::parse_document(&data?);
-        let node_id = document.root_element().id();
-        let html_element = HTMLElement {
-            document: Html::from(document).into(),
-            node_id,
-        };
-        let wasm_store = caller.data_mut();
-
-        Some(wasm_store.store_std_value(Value::from(vec![html_element]).into(), None) as i32)
-    }()
-    .unwrap_or(-1)
+fn parse(caller: Caller<'_, WasmStore>, data: Option<String>) -> i32 {
+    parse_with_uri(caller, data, None)
 }
 
 #[aidoku_wasm_function]
-fn parse_fragment(mut caller: Caller<'_, WasmStore>, data: Option<String>) -> i32 {
-    || -> Option<i32> {
-        let fragment = ScraperHtml::parse_fragment(&data?);
-        let node_id = fragment.root_element().id();
-        let html_element = HTMLElement {
-            document: Html::from(fragment).into(),
-            node_id,
-        };
-
-        let wasm_store = caller.data_mut();
-
-        Some(wasm_store.store_std_value(Value::from(vec![html_element]).into(), None) as i32)
-    }()
-    .unwrap_or(-1)
+fn parse_fragment(caller: Caller<'_, WasmStore>, data: Option<String>) -> i32 {
+    parse_fragment_with_uri(caller, data, None)
 }
 
 #[aidoku_wasm_function]
 fn parse_with_uri(
-    caller: Caller<'_, WasmStore>,
+    mut caller: Caller<'_, WasmStore>,
     data: Option<String>,
-    _uri: Option<String>,
+    uri: Option<String>,
 ) -> i32 {
-    // TODO tratar uri :thumbsup:
-    parse(caller, data)
+    || -> Option<i32> {
+        let document = ScraperHtml::parse_document(&data?);
+        let node_id = document.root_element().id();
+        let uri = match uri {
+            Some(uri) => Some(Url::parse(&uri).ok()?),
+            None => None,
+        };
+        let html_element = HTMLElement {
+            document: Html::from(document).into(),
+            node_id,
+            base_uri: uri,
+        };
+
+        let wasm_store = caller.data_mut();
+
+        Some(wasm_store.store_std_value(Value::from(vec![html_element]).into(), None) as i32)
+    }()
+    .unwrap_or(-1)
 }
 
 #[aidoku_wasm_function]
 fn parse_fragment_with_uri(
-    caller: Caller<'_, WasmStore>,
+    mut caller: Caller<'_, WasmStore>,
     data: Option<String>,
-    _uri: Option<String>,
+    uri: Option<String>,
 ) -> i32 {
-    // TODO tratar uri :thumbsup:
-    parse_fragment(caller, data)
+    || -> Option<i32> {
+        let fragment = ScraperHtml::parse_fragment(&data?);
+        let node_id = fragment.root_element().id();
+        let uri = match uri {
+            Some(uri) => Some(Url::parse(&uri).ok()?),
+            None => None,
+        };
+        let html_element = HTMLElement {
+            document: Html::from(fragment).into(),
+            node_id,
+            base_uri: uri,
+        };
+
+        let wasm_store = caller.data_mut();
+
+        Some(wasm_store.store_std_value(Value::from(vec![html_element]).into(), None) as i32)
+    }()
+    .unwrap_or(-1)
 }
 
 #[aidoku_wasm_function]
@@ -126,6 +136,7 @@ fn select(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, selector: Opti
                     .map(|selected_element_ref| HTMLElement {
                         document: element.document.clone(),
                         node_id: selected_element_ref.id(),
+                        base_uri: element.base_uri.clone(),
                     })
             })
             .collect();
@@ -144,6 +155,16 @@ fn attr(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, selector: Option
         let descriptor: usize = descriptor_i32.try_into().ok()?;
         let selector = selector?;
 
+        // SwiftSoup uses "abs:" as a prefix for attributes that should be converted to
+        // absolute URLs (e.g. href, src). Some Aidoku extensions actually use this (for some stupid
+        // reason), so we need to support it.
+        let has_abs_prefix = selector.starts_with("abs:");
+        let selector = if has_abs_prefix {
+            selector.strip_prefix("abs:").unwrap().to_string()
+        } else {
+            selector
+        };
+
         let wasm_store = caller.data_mut();
         let std_value = wasm_store.get_std_value(descriptor)?;
         let elements = match std_value.as_ref() {
@@ -153,10 +174,26 @@ fn attr(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, selector: Option
 
         let attr = elements
             .iter()
-            .map(|element| element.element_ref().value().attr(&selector))
+            .map(|element| {
+                let element_value = element.element_ref().value();
+
+                element_value.attr(&selector)
+            })
             .find(|element| element.is_some())?
             .unwrap()
             .to_string();
+
+        let attr = if has_abs_prefix {
+            let base_uri = elements
+                .iter()
+                .find_map(|element| element.base_uri.as_ref())?;
+            let attr_url = Url::parse(&attr).ok()?;
+            let absolute_url = base_uri.join(attr_url.as_str()).ok()?;
+
+            absolute_url.to_string()
+        } else {
+            attr
+        };
 
         Some(wasm_store.store_std_value(Value::from(attr).into(), Some(descriptor)) as i32)
     }()
@@ -242,6 +279,7 @@ fn next(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let new_element = HTMLElement {
             document: element.document.clone(),
             node_id: next_sibling_node_id,
+            base_uri: element.base_uri.clone(),
         };
 
         Some(
@@ -269,6 +307,7 @@ fn previous(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         let new_element = HTMLElement {
             document: element.document.clone(),
             node_id: next_sibling_node_id,
+            base_uri: element.base_uri.clone(),
         };
 
         Some(
@@ -280,8 +319,23 @@ fn previous(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
 }
 
 #[aidoku_wasm_function]
-fn base_uri(_caller: Caller<'_, WasmStore>, _descriptor_i32: i32) -> i32 {
-    todo!("wtf")
+fn base_uri(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
+    || -> Option<i32> {
+        let descriptor: usize = descriptor_i32.try_into().ok()?;
+
+        let wasm_store = caller.data_mut();
+        let element = match wasm_store.get_std_value(descriptor)?.as_ref() {
+            Value::HTMLElements(elements) if elements.len() == 1 => {
+                Some(elements.last().unwrap().clone())
+            }
+            _ => None,
+        }?;
+
+        let base_uri = element.base_uri?.to_string();
+
+        Some(wasm_store.store_std_value(Value::from(base_uri).into(), Some(descriptor)) as i32)
+    }()
+    .unwrap_or(-1)
 }
 
 #[aidoku_wasm_function]
