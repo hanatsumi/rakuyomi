@@ -7,7 +7,7 @@ use std::{
 use tempfile::NamedTempFile;
 use tokio_util::sync::CancellationToken;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use zip::{write::FileOptions, CompressionMethod, ZipWriter};
 
 use crate::{
@@ -35,6 +35,7 @@ pub async fn ensure_chapter_is_in_storage(
             chapter_id.value().clone(),
         )
         .await
+        .with_context(|| "Failed to get page list")
         .map_err(Error::DownloadError)?;
 
     // FIXME this logic should be contained entirely within the storage..? maybe we could return something that's writable
@@ -48,12 +49,19 @@ pub async fn ensure_chapter_is_in_storage(
         NamedTempFile::new_in(output_path.parent().unwrap()).map_err(|e| Error::Other(e.into()))?;
     download_chapter_pages_as_cbz(&temporary_file, source, pages)
         .await
+        .with_context(|| "Failed to download chapter pages")
         .map_err(Error::DownloadError)?;
 
     // If we succeeded downloading all the chapter pages, persist our temporary
     // file into the chapter storage definitively.
     chapter_storage
         .persist_chapter(chapter_id, temporary_file)
+        .with_context(|| {
+            format!(
+                "Failed to persist chapter {} into storage",
+                chapter_id.value()
+            )
+        })
         .map_err(Error::Other)?;
 
     Ok(output_path)
