@@ -81,9 +81,9 @@ class Agent:
         self.session.auth = OpenAIAuth(os.environ['OPENAI_API_KEY'])
         self.session.headers.update({'Content-Type': 'application/json'})
         retries = Retry(
-            total=3,
+            total=5,
             backoff_factor=1,
-            status_forcelist=[500, 502, 503, 504],
+            status_forcelist=[429, 500, 502, 503, 504],
             allowed_methods=["POST"]
         )
         self.session.mount('https://', HTTPAdapter(max_retries=retries))
