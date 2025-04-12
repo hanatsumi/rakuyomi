@@ -21,6 +21,7 @@
         # FIXME probably `armv7-unknown-linux-gnueabihf` is more accurate
         desktopTarget = "x86_64-unknown-linux-musl";
         kindleTarget = "arm-unknown-linux-musleabi";
+        kindlehfTarget = "arm-unknown-linux-musleabihf";
 
         pkgs = import nixpkgs {
           inherit system;
@@ -152,6 +153,7 @@
         packages.rakuyomi.desktop = mkPluginFolderWithServer desktopTarget;
         packages.rakuyomi.koreader-with-plugin = koreaderWithRakuyomiFrontend;
         packages.rakuyomi.kindle = mkPluginFolderWithServer kindleTarget;
+        packages.rakuyomi.kindlehf = mkPluginFolderWithServer kindlehfTarget;
         packages.rakuyomi.shared = mkSharedPackage desktopTarget;
         packages.rakuyomi.settings-schema = mkSchemaFile desktopTarget;
         packages.cargo-debugger = cargoDebugger;
