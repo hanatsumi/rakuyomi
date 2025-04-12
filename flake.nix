@@ -3,7 +3,6 @@
 
   inputs = {
     nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1.0.tar.gz";
-    nixpkgs-patched-koreader.url = "github:ekisu/nixpkgs/koreader-202407";
     crane.url = "github:ipetkov/crane";
     flake-utils.url  = "github:numtide/flake-utils";
     rust-overlay = {
@@ -12,7 +11,7 @@
     };
   };
 
-  outputs = { self, crane, nixpkgs, nixpkgs-patched-koreader, flake-utils, rust-overlay }:
+  outputs = { self, crane, nixpkgs, flake-utils, rust-overlay }:
     let
       genericVersion = self.lastModifiedDate + "-" + (self.shortRev or self.dirtyShortRev);
       semanticReleaseVersion = builtins.getEnv "SEMANTIC_RELEASE_VERSION";

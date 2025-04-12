@@ -12,4 +12,4 @@ ffmpeg -f x11grab -video_size 1280x1024 -i "$DISPLAY" \
 FFMPEG_PID=$!
 trap "kill $FFMPEG_PID" EXIT
 
-devbox run test-e2e
+test-e2e

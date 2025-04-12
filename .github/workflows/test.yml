@@ -4,22 +4,31 @@ on:
     branches:
       - main
   pull_request:
+defaults:
+  run:
+    shell: devenv shell bash -- -e {0}
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: Install devbox
-      uses: jetify-com/devbox-install-action@v0.11.0
+    - uses: cachix/install-nix-action@v31
+    - uses: cachix/cachix-action@v16
       with:
-        enable-cache: 'true'
+        name: rakuyomi
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+        extraPullNames: devenv
+    - name: Install devenv.sh
+      shell: bash
+      run: nix profile install nixpkgs#devenv
     - name: Check format
-      run: devbox run check-format
+      run: check-format
     - name: Check lint
-      run: devbox run check-lint
+      run: check-lint
     - name: Run frontend unittests
-      run: devbox run test-frontend
+      run: test-frontend
     - name: Install needed packages for E2E tests
+      shell: bash
       run: sudo apt-get update && sudo apt-get install -y fluxbox x11-xserver-utils gnome-screenshot ffmpeg
     - name: Run E2E tests
       run: xvfb-run ci/run-e2e-tests.sh
