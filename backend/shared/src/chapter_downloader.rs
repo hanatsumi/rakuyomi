@@ -84,7 +84,12 @@ where
     W: Write + Seek,
 {
     let mut writer = ZipWriter::new(output);
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        // Some sources return invalid certs, but otherwise download images just fine...
+        // This is kinda bad.
+        .danger_accept_invalid_certs(true)
+        .build()
+        .unwrap();
     let file_options = FileOptions::default().compression_method(CompressionMethod::Stored);
 
     stream::iter(pages)
