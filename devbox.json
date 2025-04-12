@@ -1,12 +1,12 @@
 {
   "packages": {
-    ".#koreader": "",
-    "lua-language-server": "latest",
-    "rustup": "latest",
-    "sqlx-cli": "latest",
-    "cachix": "latest",
-    "gcc": "13.2.0",
-    "cargo-flamegraph": "latest",
+    ".#koreader":            "",
+    "lua-language-server":   "latest",
+    "rustup":                "latest",
+    "sqlx-cli":              "latest",
+    "cachix":                "latest",
+    "gcc":                   "13.2.0",
+    "cargo-flamegraph":      "latest",
     "luajitPackages.busted": "latest",
     "mold-wrapped": {
       "version": "latest",
@@ -29,14 +29,15 @@
       ],
     },
     "poetry": {
-      "version": "latest",
+      "version":        "latest",
       "disable_plugin": true,
     },
     "python313Full": {
-      "version": "latest",
+      "version":        "latest",
       "disable_plugin": true,
     },
     "python313Packages.tkinter": "latest",
+    ".#cargo-debugger":          "",
   },
   "env": {
     "PROJECT_DIR": "$PWD",

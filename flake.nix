@@ -129,6 +129,24 @@
                   cp ${shared}/target/${target}/release/settings.schema.json $out
                 '';
               };
+
+          cargoDebugger = 
+            let
+              pkgs = import nixpkgs {
+                inherit system;
+                overlays = [ (import rust-overlay) ];
+              };
+              craneLib = (crane.mkLib pkgs);
+            in craneLib.buildPackage {
+              pname = "cargo-debugger";
+              version = "0.1.0";
+              src = pkgs.fetchFromGitHub {
+                owner = "jkelleyrtp";
+                repo = "cargo-debugger";
+                rev = "master";
+                sha256 = "sha256-5LJvGy6jZLsN3IhgWktLKvH8seAvee0cAH4Rs+1Wmuk="; # You'll need to replace this with the actual hash
+              };
+            };
       in
       {
         packages.koreader = koreader;
@@ -137,6 +155,7 @@
         packages.rakuyomi.kindle = mkPluginFolderWithServer kindleTarget;
         packages.rakuyomi.shared = mkSharedPackage desktopTarget;
         packages.rakuyomi.settings-schema = mkSchemaFile desktopTarget;
+        packages.cargo-debugger = cargoDebugger;
       }
     );
 }
