@@ -74,7 +74,7 @@ class KOReaderDriver:
             json.dump(settings, f, indent=2)
 
         self.process = await asyncio.create_subprocess_exec(
-            'devbox', 'run', 'dev',
+            'dev',
             stdout=sys.stderr,
             env={
                 **os.environ,

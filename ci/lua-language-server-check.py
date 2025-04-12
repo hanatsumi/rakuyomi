@@ -28,6 +28,7 @@ class Diagnostic:
     message: str
     range: Tuple[Location, Location]
 
+    @staticmethod
     def from_json(json: Dict[Any, Any]) -> 'Diagnostic':
         range_start = Location.from_json(json['range']['start'])
         range_end = Location.from_json(json['range']['end'])
@@ -72,7 +73,7 @@ def collect_diagnostics(project_path: Path) -> Dict[Path, List[Diagnostic]]:
         project_copy_target = temporary_dir_path / project_path.name
         luarc_copy_target = temporary_dir_path / project_path.name / '.luarc.json'
 
-        shutil.copytree(project_path, project_copy_target)
+        shutil.copytree(project_path, project_copy_target, ignore=lambda src, names: ['.luarc.json'] if '.luarc.json' in names else [])
         shutil.copy(luarc_ci_path, luarc_copy_target)
 
         subprocess.check_call([
