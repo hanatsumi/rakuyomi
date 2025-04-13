@@ -10,7 +10,11 @@
 
 ## Installation
 
-Download the latest release for your device from the [releases page](https://github.com/hanatsumi/rakuyomi/releases). The Kindle build has been reported to work with Kindle, Kobo and PocketBook devices; and it might work with other ARM-based e-reader devices. Feel free to open an issue if your e-reader is unsupported!
+Download the latest release for your device from the [releases page](https://github.com/hanatsumi/rakuyomi/releases). The following builds are available:
+- **Kindle (hard floats)**: should be used on _all_ Kindles running firmware ≥ **5.16.3** (in short, if you're running KOReader's `kindlehf` build, you'll need this)
+- **Kindle**: should work on older Kindle firmware versions; has been reported to work Kobo and PocketBook devices; and it might work with other ARM-based e-reader devices
+
+Feel free to open an issue if your e-reader is unsupported!
 
 Place the `rakuyomi.koplugin` folder inside KOReader's `plugins` folder.
 
