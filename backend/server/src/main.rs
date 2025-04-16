@@ -33,6 +33,9 @@ use shared::usecases::{
 };
 use tokio::sync::Mutex;
 
+#[cfg(feature = "syscall_compatibility_shims")]
+shared::generate_syscall_shims!();
+
 #[derive(Parser, Debug)]
 struct Args {
     home_path: PathBuf,
