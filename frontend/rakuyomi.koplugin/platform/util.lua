@@ -1,3 +1,4 @@
+local bit = require('bit')
 local ffi = require('ffi')
 local C = ffi.C
 local UIManager = require('ui/uimanager')
@@ -69,16 +70,27 @@ end
 ---@param onStderr fun(contents: string):nil
 function SubprocessOutputCapturer:pipeOutput(onStdout, onStderr)
   local buffer = ffi.new("char[?]", 1024)
-  local function readPipe(fd, callback)
-    local bytes_read = C.read(fd, buffer, 1024)
-    if bytes_read > 0 then
-      callback(ffi.string(buffer, bytes_read))
+  local fds = ffi.new("struct pollfd[2]")
+  fds[0].fd = self.stdout_pipe[0]
+  fds[0].events = C.POLLIN
+  fds[1].fd = self.stderr_pipe[0]
+  fds[1].events = C.POLLIN
+
+  local ret = C.poll(fds, 2, 0)
+  if ret > 0 then
+    if bit.band(fds[0].revents, C.POLLIN) ~= 0 then
+      local bytes_read = C.read(self.stdout_pipe[0], buffer, 1024)
+      if bytes_read > 0 then
+        onStdout(ffi.string(buffer, bytes_read))
+      end
+    end
+    if bit.band(fds[1].revents, C.POLLIN) ~= 0 then
+      local bytes_read = C.read(self.stderr_pipe[0], buffer, 1024)
+      if bytes_read > 0 then
+        onStderr(ffi.string(buffer, bytes_read))
+      end
     end
   end
-
-  -- Read from both pipes
-  readPipe(self.stdout_pipe[0], onStdout)
-  readPipe(self.stderr_pipe[0], onStderr)
 end
 
 util.SubprocessOutputCapturer = SubprocessOutputCapturer
