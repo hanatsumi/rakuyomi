@@ -12,7 +12,7 @@ end
 
 --- @return string -- The directory in which the plugin is located.
 function Paths.getPluginDirectory()
-  local callerSource = debug.getinfo(2, "S").source
+  local callerSource = debug.getinfo(1, "S").source
   if callerSource:find("^@") then
     local directory, _ = callerSource:gsub("^@(.*)/[^/]*", "%1")
 
