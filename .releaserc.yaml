@@ -7,6 +7,7 @@ plugins:
       "@semantic-release/github",
       {
         "assets": [
+          { "path": "build/rakuyomi-aarch64.zip", "label": "AArch64 build" },
           { "path": "build/rakuyomi-desktop.zip", "label": "Desktop (Linux) build" },
           { "path": "build/rakuyomi-kindle.zip", "label": "Kindle build" },
           { "path": "build/rakuyomi-kindlehf.zip", "label": "Kindle (hard floats) build" },

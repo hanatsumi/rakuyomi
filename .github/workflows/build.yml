@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: ["desktop", "kindle", "kindlehf"]
+        target: ["aarch64", "desktop", "kindle", "kindlehf"]
     steps:
     - uses: actions/checkout@v3
       with:
