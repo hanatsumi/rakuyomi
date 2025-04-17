@@ -5,7 +5,9 @@ local C = ffi.C
 local ffiutil = require('ffi/util')
 local Paths = require('Paths')
 local util = require('frontend/util')
-local must = require('util').must
+local platformUtil = require('platform/util')
+local must = platformUtil.must
+local SubprocessOutputCapturer = platformUtil.SubprocessOutputCapturer
 local rapidjson = require("rapidjson")
 
 local SERVER_COMMAND_WORKING_DIRECTORY = os.getenv('RAKUYOMI_SERVER_WORKING_DIRECTORY')
@@ -16,15 +18,29 @@ local REQUEST_COMMAND_OVERRIDE = os.getenv('RAKUYOMI_UDS_HTTP_REQUEST_COMMAND_OV
 local SOCKET_PATH = '/tmp/rakuyomi.sock'
 
 ---@class UnixServer: Server
----@field pid number
+---@field private pid number
+---@field private outputCapturer SubprocessOutputCapturer
+---@field private logBuffer string[]
 local UnixServer = {}
 
-function UnixServer:new(pid)
+function UnixServer:new(pid, outputCapturer)
   local server = {
-    pid = pid
+    pid = pid,
+    outputCapturer = outputCapturer,
+    logBuffer = {},
+    maxLogLines = 100,
   }
   setmetatable(server, { __index = UnixServer })
+
+  server:startLogCapture()
+
   return server
+end
+
+function UnixServer:getLogBuffer()
+  self:flushLogBuffer()
+
+  return self.logBuffer
 end
 
 function UnixServer:request(request)
@@ -87,6 +103,36 @@ function UnixServer:stop()
   logger.info("Subprocess finished:", done)
 end
 
+function UnixServer:startLogCapture()
+  local onOutput = function(contents)
+    self:handleLogOutput(contents)
+  end
+
+  self.outputCapturer:periodicallyPipeOutput(onOutput, onOutput)
+end
+
+function UnixServer:flushLogBuffer()
+  local onOutput = function(contents)
+    self:handleLogOutput(contents)
+  end
+
+  self.outputCapturer:pipeOutput(onOutput, onOutput)
+end
+
+function UnixServer:handleLogOutput(contents)
+  local newLines = util.splitToArray(contents, '\n')
+  for _, line in ipairs(newLines) do
+    logger.info("Server output: " .. line)
+
+    table.insert(self.logBuffer, line)
+  end
+
+  -- Keep only last 100 lines
+  while #self.logBuffer > 100 do
+    table.remove(self.logBuffer, 1)
+  end
+end
+
 ---@class GenericUnixPlatform: Platform
 local GenericUnixPlatform = {}
 
@@ -107,8 +153,12 @@ function GenericUnixPlatform:startServer()
   util.arrayAppend(serverCommandWithArgs, serverCommand)
   util.arrayAppend(serverCommandWithArgs, { Paths.getHomeDirectory() })
 
+  local capturer = SubprocessOutputCapturer:new()
+
   local pid = must("fork", C.fork())
   if pid == 0 then
+    capturer:setupChildProcess()
+
     if SERVER_COMMAND_WORKING_DIRECTORY ~= nil then
       ffi.cdef([[
         int chdir(const char *) __attribute__((nothrow, leaf));
@@ -125,7 +175,9 @@ function GenericUnixPlatform:startServer()
     logger.info("server exited with code " .. exitCode)
   end
 
-  return UnixServer:new(pid)
+  capturer:setupParentProcess()
+
+  return UnixServer:new(pid, capturer)
 end
 
 return GenericUnixPlatform
