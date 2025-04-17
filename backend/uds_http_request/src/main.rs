@@ -15,6 +15,9 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
 
+#[cfg(feature = "syscall_compatibility_shims")]
+shared::generate_syscall_shims!();
+
 #[derive(Debug, Deserialize)]
 struct Request {
     socket_path: PathBuf,
