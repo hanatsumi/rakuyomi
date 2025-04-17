@@ -51,7 +51,8 @@ async fn main() -> Result<()> {
         .with(
             tracing_subscriber::fmt::layer()
                 .with_writer(io::stderr)
-                .with_target(true),
+                .with_target(true)
+                .with_ansi(false),
         )
         .init();
 
