@@ -24,6 +24,11 @@ local Server = {}
 function Server:request(request)
 end
 
+--- Gets the last log lines written by the server.
+--- @return string[]
+function Server:getLogBuffer()
+end
+
 --- Stops the server.
 function Server:stop()
 end

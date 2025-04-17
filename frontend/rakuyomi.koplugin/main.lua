@@ -1,16 +1,19 @@
 local Device = require("device")
+local InfoMessage = require("ui/widget/infomessage")
 local InputContainer = require("ui/widget/container/inputcontainer")
 local FileManager = require("apps/filemanager/filemanager")
+local UIManager = require("ui/uimanager")
 local logger = require("logger")
 local _ = require("gettext")
 
 local Backend = require("Backend")
+local ErrorDialog = require("ErrorDialog")
 local LibraryView = require("LibraryView")
 local MangaReader = require("MangaReader")
 local Testing = require("testing")
 
 logger.info("Loading Rakuyomi plugin...")
-Backend.initialize()
+local backendInitialized, logs = Backend.initialize()
 
 local Rakuyomi = InputContainer:extend({
   name = "rakuyomi"
@@ -36,9 +39,23 @@ function Rakuyomi:addToMainMenu(menu_items)
     text = _("Rakuyomi"),
     sorting_hint = "search",
     callback = function()
+      if not backendInitialized then
+        self:showErrorDialog()
+
+        return
+      end
+
       self:openLibraryView()
     end
   }
+end
+
+function Rakuyomi:showErrorDialog()
+  ErrorDialog:show(
+    "Oops! Rakuyomi encountered an issue while starting up!\n" ..
+    "Here are some messages that might help identify the problem:\n\n" ..
+    logs
+  )
 end
 
 function Rakuyomi:openLibraryView()

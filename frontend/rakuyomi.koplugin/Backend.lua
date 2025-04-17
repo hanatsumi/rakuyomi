@@ -107,6 +107,7 @@ function Backend.requestJson(request)
   return { type = 'SUCCESS', body = replaceRapidJsonNullWithNilRecursively(parsed_body) }
 end
 
+---@return boolean
 local function waitUntilHttpServerIsReady()
   local start_time = os.time()
 
@@ -119,21 +120,29 @@ local function waitUntilHttpServerIsReady()
     end)
 
     if ok and response.type == 'SUCCESS' then
-      return
+      return true
     end
 
     ffiutil.sleep(1)
   end
 
-  error('server readiness check timed out')
+  return false
 end
 
+---@return boolean success Whether the backend was initialized successfully.
+---@return string|nil logs On error, the last logs written by the server.
 function Backend.initialize()
   assert(Backend.server == nil, "backend was already initialized!")
 
   Backend.server = Platform:startServer()
 
-  waitUntilHttpServerIsReady()
+  if not waitUntilHttpServerIsReady() then
+    local logBuffer = Backend.server:getLogBuffer()
+
+    return false, table.concat(logBuffer, "\n")
+  end
+
+  return true, nil
 end
 
 --- @class SourceInformation
