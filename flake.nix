@@ -19,6 +19,7 @@
     in flake-utils.lib.eachDefaultSystem (system:
       let
         # FIXME probably `armv7-unknown-linux-gnueabihf` is more accurate
+        aarch64Target = "aarch64-unknown-linux-musl";
         desktopTarget = "x86_64-unknown-linux-musl";
         kindleTarget = "arm-unknown-linux-musleabi";
         kindlehfTarget = "arm-unknown-linux-musleabihf";
@@ -150,6 +151,7 @@
       in
       {
         packages.koreader = koreader;
+        packages.rakuyomi.aarch64 = mkPluginFolderWithServer aarch64Target;
         packages.rakuyomi.desktop = mkPluginFolderWithServer desktopTarget;
         packages.rakuyomi.koreader-with-plugin = koreaderWithRakuyomiFrontend;
         packages.rakuyomi.kindle = mkPluginFolderWithServer kindleTarget;
