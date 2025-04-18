@@ -7,6 +7,8 @@ use futures::{stream, StreamExt};
 use log::warn;
 use tokio_util::sync::CancellationToken;
 
+const CONCURRENT_SEARCH_REQUESTS: usize = 5;
+
 pub async fn search_mangas(
     source_collection: &impl SourceCollection,
     db: &Database,
@@ -17,8 +19,18 @@ pub async fn search_mangas(
     let query = &query;
     let cancellation_token = &cancellation_token;
 
-    let source_results: Vec<SourceMangaSearchResults> = stream::iter(source_collection.sources())
-        .then(|source| async move {
+    // FIXME this kinda of works because cloning a source is cheap
+    // (it has internal mutability yadda yadda).
+    // we can't keep `source_collection` alive across async await points
+    // because lifetimes fuckery
+    let sources = source_collection
+        .sources()
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>();
+
+    let source_results: Vec<SourceMangaSearchResults> = stream::iter(sources)
+        .map(async |source| {
             // FIXME the conversion between `SourceManga` and `MangaInformation` probably should
             // be inside the source itself
             let search_result = source
@@ -61,7 +73,8 @@ pub async fn search_mangas(
                 mangas,
             }
         })
-        .collect()
+        .buffered(CONCURRENT_SEARCH_REQUESTS)
+        .collect::<Vec<_>>()
         .await;
 
     let mut mangas: Vec<_> = source_results

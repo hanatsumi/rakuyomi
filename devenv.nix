@@ -80,7 +80,10 @@ in {
   };
 
   # https://devenv.sh/languages/
-  languages.rust.enable = true;
+  languages.rust = {
+    enable = true;
+    channel = "nightly";
+  };
 
   # Enable cachix
   cachix = {

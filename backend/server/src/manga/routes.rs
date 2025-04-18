@@ -197,7 +197,7 @@ async fn mark_chapter_as_read(
 async fn cancel_after<F, Fut>(duration: Duration, f: F) -> Fut::Output
 where
     Fut: Future,
-    F: FnOnce(CancellationToken) -> Fut,
+    F: FnOnce(CancellationToken) -> Fut + Send,
 {
     let token = CancellationToken::new();
     let future = f(token.clone());
