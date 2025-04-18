@@ -1,22 +1,34 @@
 #[allow(unused_imports)]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use pprof::criterion::{Output, PProfProfiler};
-use shared::{settings::Settings, source::Source};
+use shared::{
+    database::Database, settings::Settings, source_manager::SourceManager, usecases::search_mangas,
+};
 use std::{env, path::PathBuf};
 use tokio_util::sync::CancellationToken;
 
 pub fn search_mangas_benchmark(c: &mut Criterion) {
-    let source_path: PathBuf = env::var("BENCHMARK_SOURCE_PATH").unwrap().into();
+    let sources_path: PathBuf = env::var("BENCHMARK_SOURCES_PATH").unwrap().into();
     let query = env::var("BENCHMARK_QUERY").unwrap();
     let settings = Settings::default();
 
-    let source = Source::from_aix_file(source_path.as_ref(), settings).unwrap();
+    let source_manager = SourceManager::from_folder(sources_path, settings).unwrap();
 
     let runtime = tokio::runtime::Runtime::new().unwrap();
 
     c.bench_function("search_mangas", |b| {
-        b.to_async(&runtime)
-            .iter(|| source.search_mangas(CancellationToken::new(), query.clone()))
+        b.to_async(&runtime).iter(|| async {
+            let db = Database::new(&PathBuf::from("test.db")).await.unwrap();
+
+            search_mangas(
+                &source_manager,
+                &db,
+                CancellationToken::new(),
+                query.clone(),
+            )
+            .await
+            .unwrap();
+        })
     });
 }
 
