@@ -1,0 +1,6 @@
+[book]
+authors = ["hanatsumi"]
+language = "en"
+multilingual = false
+src = "src"
+title = "rakuyomi guide"
