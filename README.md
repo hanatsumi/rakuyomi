@@ -40,7 +40,7 @@ Create a `rakuyomi/settings.json` file inside KOReader's home directory, with th
 
 After configuring a source list, sources can be installed through the plugin, by going to the main menu and going to "Manage sources".
 
-For a better manga reading experience, you might also look into KOReader's [reader recommended settings](./docs/reader-recommended-settings/index.md).
+For a better manga reading experience, you might also look into KOReader's [reader recommended settings](./docs/src/reader-recommended-settings/index.md).
 
 ## Usage
 

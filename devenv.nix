@@ -47,16 +47,17 @@ let
 in {
   # https://devenv.sh/packages/
   packages = [koreader cargo-debugger] ++ (with pkgs; [ 
+    cargo-flamegraph
+    clang
+    gcc
     git
     lua-language-server
-    sqlx-cli
-    gcc
-    cargo-flamegraph
     luajitPackages.busted
-    clang
+    mdbook
     pkgs-unstable.poetry
     python313Full
     python313Packages.tkinter
+    sqlx-cli
   ] ++ lib.optionals (!stdenv.isDarwin) [
     mold-wrapped
   ] ++ lib.optionals stdenv.isDarwin [
