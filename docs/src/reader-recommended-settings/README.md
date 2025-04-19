@@ -10,7 +10,7 @@ In the bottom menu, go to the next-to-last submenu, and then set **Dithering** t
 
 <div align="center">
 
-![Dithering](./dithering.png)
+![Dithering](./images/dithering.png)
 
 </div>
 
@@ -20,9 +20,9 @@ Also in the bottom menu, go to the fourth submenu and set the **View Mode** to "
 
 <div align="center">
 
-![View mode](./view-mode.png)
+![View mode](./images/view-mode.png)
 
-![Page crop](./page-crop.png)
+![Page crop](./images/page-crop.png)
 
 </div>
 
@@ -30,4 +30,4 @@ Also in the bottom menu, go to the fourth submenu and set the **View Mode** to "
 
 Go to the third submenu on the bottom menu, then set **Fit** to "full". This will resize the pages so that they fit completely inside your screen. 
 
-![Fit](./fit.png)
+![Fit](./images/fit.png)
