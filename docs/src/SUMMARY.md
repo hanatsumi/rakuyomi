@@ -1,7 +1,11 @@
 # Summary
 
-[Introduction](../README.md)
+[Introduction](./README.md)
 
 # User Guide
 
-- [Reader Recommended Settings](./reader-recommended-settings/index.md)
+- [Installation](./installation/README.md)
+    - [Choosing a Build](./installation/choosing-a-build.md)
+    - [Installing to Your Device](./installation/installing-to-your-device.md)
+
+- [Reader Recommended Settings](./reader-recommended-settings/README.md)
