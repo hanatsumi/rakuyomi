@@ -54,6 +54,7 @@ in {
     lua-language-server
     luajitPackages.busted
     mdbook
+    mdbook-admonish
     pkgs-unstable.poetry
     python313Full
     python313Packages.tkinter
