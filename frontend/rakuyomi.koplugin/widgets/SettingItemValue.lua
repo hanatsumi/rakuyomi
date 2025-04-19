@@ -5,6 +5,7 @@ local InputContainer = require("ui/widget/container/inputcontainer")
 local InputDialog = require("ui/widget/inputdialog")
 local RadioButtonWidget = require("ui/widget/radiobuttonwidget")
 local SpinWidget = require("ui/widget/spinwidget")
+local TextBoxWidget = require("ui/widget/textboxwidget")
 local TextWidget = require("ui/widget/textwidget")
 local UIManager = require("ui/uimanager")
 
@@ -17,8 +18,9 @@ local SETTING_ITEM_FONT_SIZE = 18
 --- @class EnumValueDefinition: { type: 'enum', title: string, options: EnumValueDefinitionOption[] }
 --- @class IntegerValueDefinition: { type: 'integer', title: string, min_value: number, max_value: number, unit?: string }
 --- @class StringValueDefinition: { type: 'string', title: string, placeholder: string }
+--- @class LabelValueDefinition: { type: 'label', title: string, text: string }
 
---- @alias ValueDefinition BooleanValueDefinition|EnumValueDefinition|IntegerValueDefinition|StringValueDefinition
+--- @alias ValueDefinition BooleanValueDefinition|EnumValueDefinition|IntegerValueDefinition|StringValueDefinition|LabelValueDefinition
 
 --- @class SettingItemValue: { [any]: any }
 --- @field value_definition ValueDefinition
@@ -84,6 +86,12 @@ function SettingItemValue:createValueWidget()
     return TextWidget:new {
       text = self:getCurrentValue(),
       editable = true,
+      face = Font:getFace("cfont", SETTING_ITEM_FONT_SIZE),
+      max_width = self.max_width,
+    }
+  elseif self.value_definition.type == "label" then
+    return TextBoxWidget:new {
+      text = self.value_definition.text,
       face = Font:getFace("cfont", SETTING_ITEM_FONT_SIZE),
       max_width = self.max_width,
     }

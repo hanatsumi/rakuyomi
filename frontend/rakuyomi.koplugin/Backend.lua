@@ -313,8 +313,9 @@ end
 --- @class SwitchSettingDefinition: { type: 'switch', title: string, key: string, default: boolean }
 --- @class SelectSettingDefinition: { type: 'select', title: string, key: string, values: string[], titles: string[]|nil, default: string  }
 --- @class TextSettingDefinition: { type: 'text', placeholder: string, key: string, default: string|nil }
+--- @class LinkSettingDefinition: { type: 'link', title: string, url: string }
 
---- @alias SettingDefinition GroupSettingDefinition|SwitchSettingDefinition|SelectSettingDefinition|TextSettingDefinition
+--- @alias SettingDefinition GroupSettingDefinition|SwitchSettingDefinition|SelectSettingDefinition|TextSettingDefinition|LinkSettingDefinition
 
 --- Lists the setting definitions for a given source.
 --- @return SuccessfulResponse<SettingDefinition[]>|ErrorResponse
