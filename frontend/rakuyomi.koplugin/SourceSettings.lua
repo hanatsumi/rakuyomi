@@ -52,6 +52,12 @@ local function mapSettingDefinitionToValueDefinition(setting_definition)
       title = setting_definition.title or setting_definition.placeholder,
       placeholder = setting_definition.placeholder
     }
+  elseif setting_definition.type == 'link' then
+    return {
+      type = 'label',
+      title = setting_definition.title,
+      text = setting_definition.url,
+    }
   else
     error("unexpected setting definition type: " .. setting_definition.type)
   end

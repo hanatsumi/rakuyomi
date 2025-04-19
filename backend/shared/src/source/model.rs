@@ -41,6 +41,8 @@ pub enum SettingDefinition {
         // FIXME is text the only setting type that's allowed to not have a default?
         default: Option<String>,
     },
+    #[serde(rename = "link")]
+    Link { title: String, url: String },
 }
 
 #[derive(Debug, Clone, Default, FromPrimitive)]
