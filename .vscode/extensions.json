@@ -5,6 +5,7 @@
         "ms-python.python",
         "editorconfig.editorconfig",
         "mkhl.direnv",
-        "github.vscode-github-actions"
+        "github.vscode-github-actions",
+        "vadimcn.vscode-lldb"
     ]
 }
