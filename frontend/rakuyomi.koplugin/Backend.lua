@@ -257,10 +257,17 @@ end
 
 --- Downloads the given chapter to the storage.
 --- @return SuccessfulResponse<string>|ErrorResponse
-function Backend.downloadChapter(source_id, manga_id, chapter_id)
+function Backend.downloadChapter(source_id, manga_id, chapter_id, chapter_num)
+  local query_params = {}
+
+  if chapter_num ~= nil then
+    query_params.chapter_num = chapter_num
+  end
+
   return Backend.requestJson({
     path = "/mangas/" ..
         source_id .. "/" .. util.urlEncode(manga_id) .. "/chapters/" .. util.urlEncode(chapter_id) .. "/download",
+    query_params = query_params,
     method = "POST",
   })
 end
@@ -364,14 +371,15 @@ end
 
 --- Creates a new download chapter job. Returns the job's UUID.
 --- @return SuccessfulResponse<string>|ErrorResponse
-function Backend.createDownloadChapterJob(source_id, manga_id, chapter_id)
+function Backend.createDownloadChapterJob(source_id, manga_id, chapter_id, chapter_num)
   return Backend.requestJson({
     path = "/jobs/download-chapter",
     method = 'POST',
     body = {
       source_id = source_id,
       manga_id = manga_id,
-      chapter_id = chapter_id
+      chapter_id = chapter_id,
+      chapter_num = chapter_num,
     }
   })
 end

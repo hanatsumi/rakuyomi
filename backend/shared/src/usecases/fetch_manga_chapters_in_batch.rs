@@ -1,5 +1,6 @@
 use async_stream::stream;
 use futures::Stream;
+use rust_decimal::prelude::*;
 use std::collections::HashSet;
 use tokio::select;
 use tokio_util::sync::CancellationToken;
@@ -35,7 +36,12 @@ pub fn fetch_manga_chapters_in_batch<'a>(
 
                     return;
                 },
-                result = ensure_chapter_is_in_storage(chapter_storage, source, &information.id) => result
+                result = ensure_chapter_is_in_storage(
+                    chapter_storage,
+                    source,
+                    &information.id,
+                    information.chapter_number.and_then(|number| number.to_f64())
+                ) => result
             };
 
             match ensure_in_storage_result {

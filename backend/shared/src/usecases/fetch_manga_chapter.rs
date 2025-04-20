@@ -10,8 +10,9 @@ pub async fn fetch_manga_chapter(
     source: &Source,
     chapter_storage: &ChapterStorage,
     chapter_id: &ChapterId,
+    chapter_num: Option<f64>,
 ) -> Result<PathBuf, Error> {
-    ensure_chapter_is_in_storage(chapter_storage, source, chapter_id)
+    ensure_chapter_is_in_storage(chapter_storage, source, chapter_id, chapter_num)
         .await
         .map_err(|e| match e {
             ChapterDownloaderError::DownloadError(e) => Error::DownloadError(e),
