@@ -15,3 +15,9 @@ assets_version = "3.0.2" # do not edit: managed by `mdbook-admonish install`
 
 [output.html]
 additional-css = ["./mdbook-admonish.css"]
+site-url = "/rakuyomi/"
+
+[output.html.redirect]
+"/installation/index.html" = "/user-guide/installation/index.html"
+"/reader-recommended-settings/index.html" = "/user-guide/reader-recommended-settings/index.html"
+"/quickstart.html" = "/user-guide/quickstart.html"

@@ -4,8 +4,8 @@
 
 # User Guide
 
-- [Installation](./installation/README.md)
-    - [Choosing a Build](./installation/choosing-a-build.md)
-    - [Installing to Your Device](./installation/installing-to-your-device.md)
-- [Quickstart](./quickstart.md)
-- [Reader Recommended Settings](./reader-recommended-settings/README.md)
+- [Installation](./user-guide/installation/README.md)
+    - [Choosing a Build](./user-guide/installation/choosing-a-build.md)
+    - [Installing to Your Device](./user-guide/installation/installing-to-your-device.md)
+- [Quickstart](./user-guide/quickstart.md)
+- [Reader Recommended Settings](./user-guide/reader-recommended-settings/README.md)
