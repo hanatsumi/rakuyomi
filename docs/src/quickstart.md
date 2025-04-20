@@ -19,7 +19,7 @@ You'll now see a list of **Installed Sources** (which will be empty initially). 
     <img src="./images/available-sources.png" alt="available sources" width="48%" style="max-height: 70vh"/>
 </div>
 
-Return to the **Library** by tapping the back button in the bottom right. To search for mangas, open the menu (<i class="fa fa-bars"></i>) and select **Search mangas**:
+Return to the **Library** by tapping the back button in the bottom left. To search for mangas, open the menu (<i class="fa fa-bars"></i>) and select **Search mangas**:
 
 <div style="text-align: center">
     <img src="./images/manga-search.png" alt="library view menu" style="max-height: 70vh"/>

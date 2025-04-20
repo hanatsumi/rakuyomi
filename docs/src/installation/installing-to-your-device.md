@@ -42,4 +42,4 @@ Here's a recommended starter configuration that you can customize or use as-is:
 7. Copy your `settings.json` file into the new `rakuyomi` folder:
 ![settings file](./images/settings-file.png)
 
-rakuyomi is now installed on your device!
+rakuyomi is now installed on your device! Ready to get started? Check out the [Quickstart Guide](../quickstart.md) to learn how to use it effectively.

@@ -10,4 +10,4 @@
 
 ## Installation & Usage
 
-For detailed installation and usage instructions, please check out the [Installation](https://hanatsumi.github.io/rakuyomi/installation/) and [Quickstart](https://hanatsumi.github.io/rakuyomi/quickstart) on our user guides!
+For detailed installation and usage instructions, please check out the [Installation](https://hanatsumi.github.io/rakuyomi/installation/) and [Quickstart](https://hanatsumi.github.io/rakuyomi/quickstart) sections on our user guide!
