@@ -4,4 +4,7 @@
         "backend/Cargo.toml"
     ],
     "rust-analyzer.server.path": "rust-analyzer",
+    "lldb.launch.sourceLanguages": [
+        "rust"
+    ],
 }
