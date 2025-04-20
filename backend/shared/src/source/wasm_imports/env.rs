@@ -5,13 +5,13 @@ use wasm_shared::{
     get_memory,
     memory_reader::{read_bytes, read_string},
 };
-use wasmi::{Caller, Linker};
+use wasmi::{core::HostError, Caller, Linker};
 
 use crate::source::wasm_store::WasmStore;
 
 pub fn register_env_imports(linker: &mut Linker<WasmStore>) -> Result<()> {
     register_wasm_function!(linker, "env", "print", print)?;
-    register_wasm_function!(linker, "env", "abort", abort)?;
+    linker.func_wrap("env", "abort", abort)?;
 
     Ok(())
 }
@@ -24,14 +24,24 @@ fn print(caller: Caller<'_, WasmStore>, string: Option<String>) {
     info!("{}: env.print: {string}", wasm_store.id);
 }
 
-#[aidoku_wasm_function]
+#[derive(thiserror::Error, Debug)]
+#[error("source aborted")]
+struct AbortError {
+    message: String,
+    file_name: String,
+    line: i32,
+    column: i32,
+}
+
+impl HostError for AbortError {}
+
 fn abort(
     mut caller: Caller<'_, WasmStore>,
     msg_offset: i32,
     file_name_offset: i32,
     line: i32,
     column: i32,
-) {
+) -> core::result::Result<(), wasmi::Error> {
     // For some stupid reason, unlike _all_ of the Aidoku WASM function exports, this
     // specifically receives the offsets of the beginning of the stream, and the length comes
     // before the offset (?)
@@ -56,6 +66,15 @@ fn abort(
 
     error!(
         "{}: env.abort called with {:?} (file: {:?}, {line}:{column})",
-        wasm_store.id, message, file
+        &wasm_store.id, &message, &file
     );
+
+    let error = AbortError {
+        message: message.unwrap_or_default(),
+        file_name: file.unwrap_or_default(),
+        line,
+        column,
+    };
+
+    Err(wasmi::Error::host(error))
 }
