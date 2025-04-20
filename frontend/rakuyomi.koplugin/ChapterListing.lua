@@ -276,13 +276,14 @@ function ChapterListing:refreshChapters()
 end
 
 --- @private
+--- @param chapter Chapter
 --- @param download_job DownloadChapter|nil
 function ChapterListing:openChapterOnReader(chapter, download_job)
   Trapper:wrap(function()
     -- If the download job we have is already invalid (internet problems, for example),
     -- spawn a new job before proceeding.
     if download_job == nil or download_job:poll().type == 'ERROR' then
-      download_job = DownloadChapter:new(chapter.source_id, chapter.manga_id, chapter.id)
+      download_job = DownloadChapter:new(chapter.source_id, chapter.manga_id, chapter.id, chapter.chapter_num)
     end
 
     if download_job == nil then
@@ -317,7 +318,12 @@ function ChapterListing:openChapterOnReader(chapter, download_job)
     local nextChapterDownloadJob = nil
 
     if nextChapter ~= nil then
-      nextChapterDownloadJob = DownloadChapter:new(nextChapter.source_id, nextChapter.manga_id, nextChapter.id)
+      nextChapterDownloadJob = DownloadChapter:new(
+        nextChapter.source_id,
+        nextChapter.manga_id,
+        nextChapter.id,
+        nextChapter.chapter_num
+      )
     end
 
     local onReturnCallback = function()

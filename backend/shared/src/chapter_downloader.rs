@@ -22,6 +22,7 @@ pub async fn ensure_chapter_is_in_storage(
     chapter_storage: &ChapterStorage,
     source: &Source,
     chapter_id: &ChapterId,
+    chapter_num: Option<f64>,
 ) -> Result<PathBuf, Error> {
     if let Some(path) = chapter_storage.get_stored_chapter(chapter_id) {
         return Ok(path);
@@ -33,6 +34,7 @@ pub async fn ensure_chapter_is_in_storage(
             CancellationToken::new(),
             chapter_id.manga_id().value().clone(),
             chapter_id.value().clone(),
+            chapter_num,
         )
         .await
         .with_context(|| "Failed to get page list")

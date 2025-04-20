@@ -401,6 +401,7 @@ fn object_get(
             ObjectValue::ValueMap(_) => object_ref
                 .try_project(|object| {
                     if let ObjectValue::ValueMap(map) = object {
+                        dbg!(&object);
                         map.get(&key).ok_or(())
                     } else {
                         panic!("expected object to be a ValueMap")

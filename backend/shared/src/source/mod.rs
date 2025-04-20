@@ -101,7 +101,8 @@ impl Source {
         Result<Vec<Page>>,
         cancellation_token: CancellationToken,
         manga_id: String,
-        chapter_id: String
+        chapter_id: String,
+        chapter_num: Option<f64>
     );
 
     wrap_blocking_source_fn!(
@@ -313,24 +314,35 @@ impl BlockingSource {
         cancellation_token: CancellationToken,
         manga_id: String,
         chapter_id: String,
+        chapter_num: Option<f64>,
     ) -> Result<Vec<Page>> {
         self.run_under_context(
             cancellation_token,
             OperationContextObject::Chapter {
                 id: chapter_id.clone(),
             },
-            |this| this.get_page_list_inner(manga_id, chapter_id),
+            |this| this.get_page_list_inner(manga_id, chapter_id, chapter_num),
         )
     }
 
-    fn get_page_list_inner(&mut self, manga_id: String, chapter_id: String) -> Result<Vec<Page>> {
-        // HACK the same thing with the `Manga` said above, we also only need the `id`
-        // from the `Chapter` object
-        // FIXME we could create an `ObjectValue` for this concept? something like
-        // `MangaId` or `ChapterId` would be a cleaner implementation
+    fn get_page_list_inner(
+        &mut self,
+        manga_id: String,
+        chapter_id: String,
+        chapter_num: Option<f64>,
+    ) -> Result<Vec<Page>> {
+        // HACK the same thing with the `Manga` said above, we also usually only need the `id`
+        // from the `Chapter` object and the `mangaId`.
         let mut chapter_hashmap = ValueMap::new();
         chapter_hashmap.insert("id".to_string(), Value::String(chapter_id));
         chapter_hashmap.insert("mangaId".to_string(), Value::String(manga_id));
+
+        // HACK guya sources actually use the `chapterNum` field for some fucking reason????
+        // like it's a huge fucking hack it's not even by accident XD
+        // ref: https://github.com/Skittyblock/aidoku-community-sources/blob/bd79840e182ff7c90c8444ed160e2e8d50b6a219/src/rust/guya/sources/dankefurslesen/src/lib.rs#L54
+        if let Some(chapter_num) = chapter_num {
+            chapter_hashmap.insert("chapterNum".to_string(), Value::Float(chapter_num));
+        }
 
         let chapter_descriptor = self.store.data_mut().store_std_value(
             Value::Object(ObjectValue::ValueMap(chapter_hashmap)).into(),

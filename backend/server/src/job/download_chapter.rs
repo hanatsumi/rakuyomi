@@ -18,13 +18,14 @@ impl DownloadChapterJob {
         source_manager: Arc<Mutex<SourceManager>>,
         chapter_storage: ChapterStorage,
         chapter_id: ChapterId,
+        chapter_num: Option<f64>,
     ) -> Self {
         let output: Arc<Mutex<Option<Result<PathBuf, ErrorResponse>>>> = Default::default();
         let output_clone = output.clone();
 
         tokio::spawn(async move {
             *output_clone.lock().await =
-                Some(Self::do_job(source_manager, chapter_storage, chapter_id).await);
+                Some(Self::do_job(source_manager, chapter_storage, chapter_id, chapter_num).await);
         });
 
         Self(output)
@@ -34,6 +35,7 @@ impl DownloadChapterJob {
         source_manager: Arc<Mutex<SourceManager>>,
         chapter_storage: ChapterStorage,
         chapter_id: ChapterId,
+        chapter_num: Option<f64>,
     ) -> Result<PathBuf, ErrorResponse> {
         let source_manager = source_manager.lock().await;
         let source = source_manager
@@ -41,7 +43,7 @@ impl DownloadChapterJob {
             .ok_or(AppError::SourceNotFound)?;
 
         Ok(
-            usecases::fetch_manga_chapter(source, &chapter_storage, &chapter_id)
+            usecases::fetch_manga_chapter(source, &chapter_storage, &chapter_id, chapter_num)
                 .await
                 .map_err(AppError::from)?,
         )
