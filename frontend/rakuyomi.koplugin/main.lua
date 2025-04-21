@@ -5,6 +5,7 @@ local FileManager = require("apps/filemanager/filemanager")
 local UIManager = require("ui/uimanager")
 local logger = require("logger")
 local _ = require("gettext")
+local OfflineAlertDialog = require("OfflineAlertDialog")
 
 local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
@@ -60,6 +61,7 @@ end
 
 function Rakuyomi:openLibraryView()
   LibraryView:fetchAndShow()
+  OfflineAlertDialog:showIfOffline()
 end
 
 return Rakuyomi

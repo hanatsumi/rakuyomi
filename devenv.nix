@@ -29,6 +29,9 @@ let
   luarcConfig = ''
     {
       "$schema": "https://raw.githubusercontent.com/sumneko/vscode-lua/master/setting/schema.json",
+      "diagnostics.globals": [
+        "G_reader_settings"
+      ],
       "workspace.library": [
         "''${3rd}/luassert/library",
         "''${3rd}/busted/library",
