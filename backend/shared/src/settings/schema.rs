@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::{borrow::Cow, collections::HashMap, path::PathBuf};
 
 use regex::Regex;
 use schemars::JsonSchema;
@@ -46,6 +46,11 @@ pub struct Settings {
         skip_serializing_if = "is_default_storage_size_limit"
     )]
     pub storage_size_limit: StorageSizeLimit,
+
+    /// The path to the folder where downloaded chapters will be stored.
+    /// If not set, the default downloads folder will be used.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub storage_path: Option<PathBuf>,
 
     /// Source-specific settings.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
