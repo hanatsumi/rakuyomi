@@ -1,5 +1,3 @@
-local ConfirmBox = require("ui/widget/confirmbox")
-local Menu = require("ui/widget/menu")
 local UIManager = require("ui/uimanager")
 local Screen = require("device").screen
 local Trapper = require("ui/trapper")
@@ -8,6 +6,7 @@ local Icons = require("Icons")
 local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
 local LoadingDialog = require("LoadingDialog")
+local Menu = require("widgets/Menu")
 local Testing = require("testing")
 
 --- @class AvailableSourcesListing: { [any]: any }

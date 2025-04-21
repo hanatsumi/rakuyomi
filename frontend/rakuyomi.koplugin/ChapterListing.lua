@@ -1,6 +1,5 @@
 local BD = require("ui/bidi")
 local ButtonDialog = require("ui/widget/buttondialog")
-local Menu = require("ui/widget/menu")
 local InfoMessage = require("ui/widget/infomessage")
 local InputDialog = require("ui/widget/inputdialog")
 local UIManager = require("ui/uimanager")
@@ -15,6 +14,7 @@ local DownloadChapter = require("jobs/DownloadChapter")
 local DownloadUnreadChapters = require("jobs/DownloadUnreadChapters")
 local DownloadUnreadChaptersJobDialog = require("DownloadUnreadChaptersJobDialog")
 local Icons = require("Icons")
+local Menu = require("widgets/Menu")
 local ErrorDialog = require("ErrorDialog")
 local MangaReader = require("MangaReader")
 local Testing = require("testing")
@@ -237,7 +237,7 @@ function ChapterListing:fetchAndShow(manga, onReturnCallback, accept_cached_resu
 end
 
 --- @private
-function ChapterListing:onMenuChoice(item)
+function ChapterListing:onPrimaryMenuChoice(item)
   local chapter = item.chapter
 
   self:openChapterOnReader(chapter)

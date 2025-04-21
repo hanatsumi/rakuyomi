@@ -46,7 +46,14 @@ function Menu:onMenuHold(entry, pos)
   self:onContextMenuChoice(entry, pos)
 end
 
+--- Defaults to calling the entry's callback.
+--- Override this function to change the behavior.
 function Menu:onPrimaryMenuChoice(entry, pos)
+  if entry.callback then
+    entry.callback()
+  end
+
+  return true
 end
 
 function Menu:onContextMenuChoice(entry, pos)
