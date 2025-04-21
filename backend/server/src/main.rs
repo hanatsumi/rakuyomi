@@ -62,13 +62,19 @@ async fn main() -> anyhow::Result<()> {
 
     let sources_path = args.home_path.join("sources");
     let database_path = args.home_path.join("database.db");
-    let downloads_folder_path = args.home_path.join("downloads");
+    let default_downloads_folder_path = args.home_path.join("downloads");
     let settings_path = args.home_path.join("settings.json");
 
     let database = Database::new(&database_path).await?;
     let settings = Settings::from_file(&settings_path)
         .with_context(|| format!("Couldn't read settings file at {}", settings_path.display()))?;
     let source_manager = SourceManager::from_folder(sources_path, settings.clone())?;
+
+    let downloads_folder_path = settings
+        .storage_path
+        .clone()
+        .unwrap_or_else(|| default_downloads_folder_path);
+
     let chapter_storage =
         ChapterStorage::new(downloads_folder_path, settings.storage_size_limit.0)?;
 
