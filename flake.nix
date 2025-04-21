@@ -72,7 +72,7 @@
               CARGO_BUILD_TARGET = target;
               # https://github.com/rust-lang/cargo/issues/4133
               # The `allow-multiple-definitions` linker flag allow us to shim some libc functions that do syscalls.
-              CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static -C linker=${TARGET_CC} -C link-arg=-Wl,--allow-multiple-definition";
+              CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static -C linker=${TARGET_CC} -C link-arg=-Wl,--allow-multiple-definition --cfg tokio_unstable";
             };
 
           mkServerPackage = {

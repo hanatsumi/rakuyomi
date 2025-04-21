@@ -155,9 +155,14 @@ function GenericUnixPlatform:startServer()
 
   local capturer = SubprocessOutputCapturer:new()
 
+  logger.info("Starting server with command (before fork):", serverCommandWithArgs)
+
   local pid = must("fork", C.fork())
   if pid == 0 then
-    capturer:setupChildProcess()
+    logger.info("After fork, child process PID:", C.getpid())
+    logger.info("Redirecting child process to parent pipes...")
+
+    -- capturer:setupChildProcess()
 
     if SERVER_COMMAND_WORKING_DIRECTORY ~= nil then
       ffi.cdef([[
@@ -167,6 +172,13 @@ function GenericUnixPlatform:startServer()
       C.chdir(SERVER_COMMAND_WORKING_DIRECTORY)
     end
 
+    logger.info("Enabling debug flags (RUST_LOG and RUST_BACKTRACE)")
+
+    C.setenv("RUST_LOG", "trace", 1)
+    C.setenv("RUST_BACKTRACE", "full", 1)
+
+    logger.info("Running execl", serverCommandWithArgs)
+
     local exitCode = must(
       "execl",
       C.execl(serverCommandWithArgs[1], unpack(serverCommandWithArgs, 1, #serverCommandWithArgs + 1))
@@ -175,7 +187,7 @@ function GenericUnixPlatform:startServer()
     logger.info("server exited with code " .. exitCode)
   end
 
-  capturer:setupParentProcess()
+  -- capturer:setupParentProcess()
 
   return UnixServer:new(pid, capturer)
 end
