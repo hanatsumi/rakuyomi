@@ -1,4 +1,6 @@
 local BaseMenu = require("ui/widget/menu")
+local NetworkMgr = require("ui/network/manager")
+local logger = require("logger")
 
 local Icons = require("Icons")
 
@@ -10,6 +12,8 @@ function Menu:init()
   if self.with_context_menu then
     self.align_baselines = true
   end
+
+  self:updateOfflineSubtitle(true)
 
   BaseMenu.init(self)
 end
@@ -46,6 +50,33 @@ function Menu:onPrimaryMenuChoice(entry, pos)
 end
 
 function Menu:onContextMenuChoice(entry, pos)
+end
+
+---@private
+function Menu:onNetworkConnected()
+  logger.info("Menu:onNetworkConnected()")
+
+  self:updateOfflineSubtitle()
+end
+
+---@private
+function Menu:onNetworkDisconnected()
+  logger.info("Menu:onNetworkDisconnected()")
+
+  self:updateOfflineSubtitle()
+end
+
+---@private
+function Menu:updateOfflineSubtitle(skip_reinit)
+  if NetworkMgr:isConnected() then
+    self.subtitle = nil
+  else
+    self.subtitle = Icons.WIFI_OFF .. " Offline mode"
+  end
+
+  if not skip_reinit then
+    BaseMenu.init(self)
+  end
 end
 
 return Menu
