@@ -110,6 +110,7 @@ in {
     fix-rust-lint.exec = "cd $DEVENV_ROOT/backend && cargo clippy --fix --allow-dirty -- -D warnings";
     dev.exec = "cd $DEVENV_ROOT && . tools/run-koreader-with-plugin.sh";
     debug.exec = "cd $DEVENV_ROOT && . tools/run-koreader-with-plugin.sh --debug";
+    docs.exec = "cd $DEVENV_ROOT/docs && exec mdbook serve --open";
     prepare-sql-queries.exec = "cd $DEVENV_ROOT && . tools/prepare-sqlx-queries.sh";
     remote-install.exec = "cd $DEVENV_ROOT && python3 tools/install-into-remote-koreader.py";
     test-frontend.exec = "cd $DEVENV_ROOT && busted -C frontend/rakuyomi.koplugin .";
