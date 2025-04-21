@@ -18,8 +18,3 @@ additional-css = ["./mdbook-admonish.css"]
 git-repository-url = "https://github.com/hanatsumi/rakuyomi"
 edit-url-template = "https://github.com/hanatsumi/rakuyomi/edit/main/docs/{path}"
 site-url = "/rakuyomi/"
-
-[output.html.redirect]
-"/installation/index.html" = "/user-guide/installation/index.html"
-"/reader-recommended-settings/index.html" = "/user-guide/reader-recommended-settings/index.html"
-"/quickstart.html" = "/user-guide/quickstart.html"
