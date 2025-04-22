@@ -135,8 +135,9 @@ async fn get_cached_manga_chapters(
     Path(params): Path<MangaChaptersPathParams>,
 ) -> Result<Json<Vec<Chapter>>, AppError> {
     let manga_id = MangaId::from(params);
+    let chapter_storage = &*chapter_storage.lock().await;
     let chapters =
-        usecases::get_cached_manga_chapters(&database, &chapter_storage, manga_id).await?;
+        usecases::get_cached_manga_chapters(&database, chapter_storage, manga_id).await?;
 
     let chapters = chapters.into_iter().map(Chapter::from).collect();
 
@@ -181,8 +182,9 @@ async fn download_manga_chapter(
     Query(DownloadMangaChapterQuery { chapter_num }): Query<DownloadMangaChapterQuery>,
 ) -> Result<Json<String>, AppError> {
     let chapter_id = ChapterId::from(params);
+    let chapter_storage = &*chapter_storage.lock().await;
     let output_path =
-        usecases::fetch_manga_chapter(&source, &chapter_storage, &chapter_id, chapter_num)
+        usecases::fetch_manga_chapter(&source, chapter_storage, &chapter_id, chapter_num)
             .await
             .map_err(AppError::from_fetch_manga_chapters_error)?;
 

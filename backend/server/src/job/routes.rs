@@ -58,6 +58,7 @@ async fn create_download_chapter_job(
 ) -> Result<Json<Uuid>, AppError> {
     let id = Uuid::new_v4();
     let chapter_num = body.chapter_num.clone();
+    let chapter_storage = chapter_storage.lock().await.clone();
     let job =
         DownloadChapterJob::spawn_new(source_manager, chapter_storage, body.into(), chapter_num);
 
@@ -105,6 +106,7 @@ async fn create_download_unread_chapters_job(
         .clone();
 
     let id = Uuid::new_v4();
+    let chapter_storage = chapter_storage.lock().await.clone();
     let job =
         DownloadUnreadChaptersJob::spawn_new(source, database, chapter_storage, manga_id, filter);
 

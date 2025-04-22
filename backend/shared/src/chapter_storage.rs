@@ -76,6 +76,15 @@ impl ChapterStorage {
         Ok(path)
     }
 
+    pub fn set_downloads_folder_path(&mut self, path: PathBuf) -> Result<()> {
+        fs::create_dir_all(&path)
+            .with_context(|| "while trying to ensure chapter storage exists")?;
+
+        self.downloads_folder_path = path;
+
+        Ok(())
+    }
+
     fn calculate_storage_size(&self) -> Size {
         let size_in_bytes: u64 = self
             .chapter_files_iterator()

@@ -11,6 +11,7 @@ local TitleBar = require("ui/widget/titlebar")
 local UIManager = require("ui/uimanager")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local logger = require("logger")
+local Paths = require("Paths")
 
 local Backend = require("Backend")
 local ErrorDialog = require("ErrorDialog")
@@ -59,6 +60,15 @@ function Settings:init()
       }
     },
     {
+      'storage_path',
+      {
+        type = 'path',
+        title = 'Chapter storage path',
+        path_type = 'directory',
+        default = Paths.getHomeDirectory() .. '/downloads',
+      }
+    },
+    {
       'storage_size_limit_mb',
       {
         type = 'integer',
@@ -67,7 +77,7 @@ function Settings:init()
         max_value = 10240,
         unit = 'MB'
       }
-    }
+    },
   }
 
   local vertical_group = VerticalGroup:new {
@@ -78,12 +88,18 @@ function Settings:init()
     local key = tuple[1]
     local definition = tuple[2]
 
+    -- FIXME shouldn't the backend return the default value when unset?
+    local value = self.settings[key]
+    if key == 'storage_path' and value == nil then
+      value = Paths.getHomeDirectory() .. '/downloads'
+    end
+
     table.insert(vertical_group, SettingItem:new {
       show_parent = self,
       width = self.item_width,
       label = definition.title,
       value_definition = definition,
-      value = self.settings[key],
+      value = value,
       on_value_changed_callback = function(new_value)
         self:updateSetting(key, new_value)
       end

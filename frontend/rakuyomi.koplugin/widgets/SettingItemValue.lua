@@ -3,6 +3,7 @@ local GestureRange = require("ui/gesturerange")
 local Font = require("ui/font")
 local InputContainer = require("ui/widget/container/inputcontainer")
 local InputDialog = require("ui/widget/inputdialog")
+local PathChooser = require("ui/widget/pathchooser")
 local RadioButtonWidget = require("ui/widget/radiobuttonwidget")
 local SpinWidget = require("ui/widget/spinwidget")
 local TextBoxWidget = require("ui/widget/textboxwidget")
@@ -19,8 +20,9 @@ local SETTING_ITEM_FONT_SIZE = 18
 --- @class IntegerValueDefinition: { type: 'integer', title: string, min_value: number, max_value: number, unit?: string }
 --- @class StringValueDefinition: { type: 'string', title: string, placeholder: string }
 --- @class LabelValueDefinition: { type: 'label', title: string, text: string }
+--- @class PathValueDefinition: { type: 'path', title: string, path_type: 'directory' }
 
---- @alias ValueDefinition BooleanValueDefinition|EnumValueDefinition|IntegerValueDefinition|StringValueDefinition|LabelValueDefinition
+--- @alias ValueDefinition BooleanValueDefinition|EnumValueDefinition|IntegerValueDefinition|StringValueDefinition|LabelValueDefinition|PathValueDefinition
 
 --- @class SettingItemValue: { [any]: any }
 --- @field value_definition ValueDefinition
@@ -94,6 +96,14 @@ function SettingItemValue:createValueWidget()
       text = self.value_definition.text,
       face = Font:getFace("cfont", SETTING_ITEM_FONT_SIZE),
       max_width = self.max_width,
+    }
+  elseif self.value_definition.type == "path" then
+    return TextWidget:new {
+      text = self:getCurrentValue() .. " " .. Icons.UNICODE_ARROW_RIGHT,
+      editable = true,
+      face = Font:getFace("cfont", SETTING_ITEM_FONT_SIZE),
+      max_width = self.max_width,
+      truncate_left = true,
     }
   else
     error("unexpected value definition type: " .. self.value_definition.type)
@@ -170,6 +180,25 @@ function SettingItemValue:onTap()
 
     UIManager:show(dialog)
     dialog:onShowKeyboard()
+  elseif self.value_definition.type == "path" then
+    local path_chooser
+    path_chooser = PathChooser:new({
+      title = self.value_definition.title,
+      path = self:getCurrentValue(),
+      onConfirm = function(new_path)
+        self:updateCurrentValue(new_path)
+        UIManager:close(path_chooser)
+      end,
+      file_filter = function()
+        -- This is a directory chooser, so don't show files
+        return false
+      end,
+      select_directory = true,
+      select_file = false,
+      show_files = false,
+      show_current_dir_for_hold = true,
+    })
+    UIManager:show(path_chooser)
   end
 end
 
