@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -26,13 +26,15 @@ pub fn update_settings(
 pub struct UpdateableSettings {
     chapter_sorting_mode: ChapterSortingMode,
     storage_size_limit_mb: usize,
+    storage_path: Option<PathBuf>,
 }
 
 impl UpdateableSettings {
-    pub fn apply_updates(&self, settings: &mut Settings) {
+    pub fn apply_updates(self, settings: &mut Settings) {
         settings.chapter_sorting_mode = self.chapter_sorting_mode;
         settings.storage_size_limit =
             StorageSizeLimit(Size::from_megabytes(self.storage_size_limit_mb));
+        settings.storage_path = self.storage_path;
     }
 }
 
@@ -43,6 +45,7 @@ impl From<&Settings> for UpdateableSettings {
             storage_size_limit_mb: (value.storage_size_limit.0.bytes() / consts::MB)
                 .try_into()
                 .unwrap(),
+            storage_path: value.storage_path.clone(),
         }
     }
 }

@@ -13,7 +13,7 @@ use crate::job::State as JobState;
 pub struct State {
     pub source_manager: Arc<Mutex<SourceManager>>,
     pub database: Arc<Database>,
-    pub chapter_storage: ChapterStorage,
+    pub chapter_storage: Arc<Mutex<ChapterStorage>>,
     pub settings: Arc<Mutex<Settings>>,
     pub settings_path: PathBuf,
     pub job_state: JobState,
