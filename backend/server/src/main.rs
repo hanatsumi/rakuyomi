@@ -33,6 +33,9 @@ use shared::usecases::{
 };
 use tokio::sync::Mutex;
 
+#[cfg(feature = "syscall_compatibility_shims")]
+shared::generate_syscall_shims!();
+
 #[derive(Parser, Debug)]
 struct Args {
     home_path: PathBuf,
@@ -40,8 +43,7 @@ struct Args {
 
 const SOCKET_PATH: &str = "/tmp/rakuyomi.sock";
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info");
     }
@@ -51,6 +53,11 @@ async fn main() -> anyhow::Result<()> {
         .with(tracing_subscriber::fmt::layer().with_ansi(false))
         .init();
 
+    async_main()
+}
+
+#[tokio::main]
+async fn async_main() -> anyhow::Result<()> {
     info!(
         "starting rakuyomi, version: {}",
         get_version().unwrap_or_else(|| "unknown".into())

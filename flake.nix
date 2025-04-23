@@ -34,8 +34,10 @@
 
         buildBackendRustPackage = {
           packageName,
+          target,
+          withSyscallCompatibilityShims ? false,
           copyTarget ? false
-        }: target:
+        }:
           let
             pkgs = import nixpkgs {
               inherit system;
@@ -60,7 +62,7 @@
               doCheck = false;
 
               src = ./backend;
-              cargoExtraArgs = "--package=${packageName}";
+              cargoExtraArgs = "--package=${packageName}" + lib.optionalString withSyscallCompatibilityShims " --features=syscall_compatibility_shims";
 
               nativeBuildInputs = [
                 stdenv.cc
@@ -69,14 +71,23 @@
               TARGET_CC = with pkgsCross.stdenv; "${cc}/bin/${cc.targetPrefix}cc";
               CARGO_BUILD_TARGET = target;
               # https://github.com/rust-lang/cargo/issues/4133
-              CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static -C linker=${TARGET_CC}";
+              # The `allow-multiple-definitions` linker flag allow us to shim some libc functions that do syscalls.
+              CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static -C linker=${TARGET_CC} -C link-arg=-Wl,--allow-multiple-definition --cfg tokio_unstable";
             };
 
-          mkServerPackage = buildBackendRustPackage { packageName = "server"; };
+          mkServerPackage = {
+            target,
+            withSyscallCompatibilityShims ? false,
+          }@args: buildBackendRustPackage ({ packageName = "server"; } // args);
 
-          mkUdsHttpRequestPackage = buildBackendRustPackage { packageName = "uds_http_request"; };
+          mkUdsHttpRequestPackage = {
+            target,
+            withSyscallCompatibilityShims ? false,
+          }@args: buildBackendRustPackage ({ packageName = "uds_http_request"; } // args);
 
-          mkSharedPackage = buildBackendRustPackage { packageName = "shared"; copyTarget = true; };
+          mkSharedPackage = {
+            target,
+          }@args: buildBackendRustPackage ({ packageName = "shared"; copyTarget = true; } // args);
 
           versionFile = pkgs.writeText "VERSION" version;
 
@@ -95,10 +106,10 @@
             '';
           };
 
-          mkPluginFolderWithServer = target:
+          mkPluginFolderWithServer = { target, withSyscallCompatibilityShims ? false }@args:
             let
-              server = mkServerPackage target;
-              udsHttpRequest = mkUdsHttpRequestPackage target;
+              server = mkServerPackage args;
+              udsHttpRequest = mkUdsHttpRequestPackage args;
             in
               with pkgs; stdenv.mkDerivation {
                 name = "rakuyomi-plugin";
@@ -121,7 +132,7 @@
           # target folder to the nix store (which is really bad too)
           mkSchemaFile = target:
             let
-              shared = mkSharedPackage target;
+              shared = mkSharedPackage { inherit target; };
             in
               with pkgs; stdenv.mkDerivation {
                 name = "rakuyomi-settings-schema";
@@ -151,11 +162,13 @@
       in
       {
         packages.koreader = koreader;
-        packages.rakuyomi.aarch64 = mkPluginFolderWithServer aarch64Target;
-        packages.rakuyomi.desktop = mkPluginFolderWithServer desktopTarget;
+        packages.rakuyomi.aarch64 = mkPluginFolderWithServer { target = aarch64Target; };
+        packages.rakuyomi.desktop = mkPluginFolderWithServer { target = desktopTarget; };
+        packages.rakuyomi.desktop-legacy = mkPluginFolderWithServer { target = desktopTarget; withSyscallCompatibilityShims = true; };
         packages.rakuyomi.koreader-with-plugin = koreaderWithRakuyomiFrontend;
-        packages.rakuyomi.kindle = mkPluginFolderWithServer kindleTarget;
-        packages.rakuyomi.kindlehf = mkPluginFolderWithServer kindlehfTarget;
+        packages.rakuyomi.kindle-legacy = mkPluginFolderWithServer { target = kindleTarget; withSyscallCompatibilityShims = true; };
+        packages.rakuyomi.kindle = mkPluginFolderWithServer { target = kindleTarget; };
+        packages.rakuyomi.kindlehf = mkPluginFolderWithServer { target = kindlehfTarget; };
         packages.rakuyomi.shared = mkSharedPackage desktopTarget;
         packages.rakuyomi.settings-schema = mkSchemaFile desktopTarget;
         packages.cargo-debugger = cargoDebugger;

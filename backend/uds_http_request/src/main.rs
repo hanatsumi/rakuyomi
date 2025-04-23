@@ -15,6 +15,9 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
 
+#[cfg(feature = "syscall_compatibility_shims")]
+shared::generate_syscall_shims!();
+
 #[derive(Debug, Deserialize)]
 struct Request {
     socket_path: PathBuf,
@@ -40,8 +43,7 @@ enum RequestResult {
     Response(ResponseData),
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info");
     }
@@ -56,6 +58,11 @@ async fn main() -> Result<()> {
         )
         .init();
 
+    async_main()
+}
+
+#[tokio::main]
+async fn async_main() -> Result<()> {
     let mut request_json = String::new();
     std::io::stdin()
         .read_line(&mut request_json)
