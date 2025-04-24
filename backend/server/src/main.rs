@@ -53,7 +53,9 @@ async fn main() -> anyhow::Result<()> {
 
     info!(
         "starting rakuyomi, version: {}",
-        get_version().unwrap_or_else(|| "unknown".into())
+        get_build_info()
+            .map(|info| info.format_display())
+            .unwrap_or_else(|| "unknown".into())
     );
 
     let args = Args::parse();
@@ -109,10 +111,24 @@ async fn health_check() -> Json<()> {
     Json(())
 }
 
-fn get_version() -> Option<String> {
-    let version_file_path = current_exe().ok()?.with_file_name("VERSION");
+#[derive(serde::Deserialize, Debug, Clone)]
+struct BuildInfo {
+    version: String,
+    build: String,
+}
 
-    fs::read_to_string(version_file_path).ok()
+impl BuildInfo {
+    fn format_display(&self) -> String {
+        format!("{} ({})", self.version, self.build)
+    }
+}
+
+fn get_build_info() -> Option<BuildInfo> {
+    let build_info_path = current_exe().ok()?.with_file_name("BUILD_INFO.json");
+    let contents = fs::read_to_string(build_info_path).ok()?;
+    let build_info: BuildInfo = serde_json::from_str(&contents).ok()?;
+
+    Some(build_info)
 }
 
 // Make our own error that wraps `anyhow::Error`.
