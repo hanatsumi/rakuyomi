@@ -78,7 +78,10 @@
 
           mkSharedPackage = buildBackendRustPackage { packageName = "shared"; copyTarget = true; };
 
-          versionFile = pkgs.writeText "VERSION" version;
+          mkBuildInfoFile = packageName: pkgs.writers.writeJSON "BUILD_INFO.json" {
+            version = version;
+            build = packageName;
+          };
 
           pluginFolderWithoutServer = with pkgs; stdenv.mkDerivation {
             name = "rakuyomi-plugin-without-server";
@@ -91,14 +94,14 @@
             installPhase = ''
               mkdir $out
               cp -r $src/rakuyomi.koplugin/* $out/
-              cp ${versionFile} $out/VERSION
             '';
           };
 
-          mkPluginFolderWithServer = target:
+          mkPluginFolderWithServer = { buildName, target }:
             let
               server = mkServerPackage target;
               udsHttpRequest = mkUdsHttpRequestPackage target;
+              buildInfoFile = mkBuildInfoFile buildName;
             in
               with pkgs; stdenv.mkDerivation {
                 name = "rakuyomi-plugin";
@@ -108,6 +111,7 @@
                   cp -r ${pluginFolderWithoutServer}/* $out/
                   cp ${server}/bin/server $out/server
                   cp ${udsHttpRequest}/bin/uds_http_request $out/uds_http_request
+                  cp ${buildInfoFile} $out/BUILD_INFO.json
                 '';
               };
 
@@ -149,15 +153,25 @@
               };
             };
       in
-      {
+      let
+        buildTargets = {
+          aarch64 = aarch64Target;
+          desktop = desktopTarget;
+          kindle = kindleTarget;
+          kindlehf = kindlehfTarget;
+        };
+
+        builds = (builtins.mapAttrs 
+          (name: target: mkPluginFolderWithServer { buildName = name; target = target; })
+          buildTargets
+        );
+      in {
         packages.koreader = koreader;
-        packages.rakuyomi.aarch64 = mkPluginFolderWithServer aarch64Target;
-        packages.rakuyomi.desktop = mkPluginFolderWithServer desktopTarget;
-        packages.rakuyomi.koreader-with-plugin = koreaderWithRakuyomiFrontend;
-        packages.rakuyomi.kindle = mkPluginFolderWithServer kindleTarget;
-        packages.rakuyomi.kindlehf = mkPluginFolderWithServer kindlehfTarget;
-        packages.rakuyomi.shared = mkSharedPackage desktopTarget;
-        packages.rakuyomi.settings-schema = mkSchemaFile desktopTarget;
+        packages.rakuyomi = builds // {
+          koreader-with-plugin = koreaderWithRakuyomiFrontend;
+          shared = mkSharedPackage desktopTarget;
+          settings-schema = mkSchemaFile desktopTarget;
+        };
         packages.cargo-debugger = cargoDebugger;
       }
     );
