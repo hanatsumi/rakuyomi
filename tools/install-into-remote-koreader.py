@@ -18,13 +18,24 @@ def main(host: str, ssh_port: int) -> None:
 
     REMOTE_OUTPUT_PATH = '/mnt/us/koreader/plugins/rakuyomi.koplugin'
 
-    subprocess.check_call([
-        'ssh', '-p', str(ssh_port), f'root@{host}', f'rm -rf {REMOTE_OUTPUT_PATH}'
-    ])
+    # Use sshpass to provide an empty password
+    ssh_command = [
+        'sshpass', '-p', '', 'ssh', '-p', str(ssh_port),
+        # Add StrictHostKeyChecking=no to avoid prompt for unknown hosts
+        '-o', 'StrictHostKeyChecking=no',
+        f'root@{host}', f'rm -rf {REMOTE_OUTPUT_PATH}'
+    ]
+    print('Removing old plugin files from remote device...')
+    subprocess.check_call(ssh_command)
 
-    subprocess.check_call([
-        'scp', '-r', '-P', str(ssh_port), plugin_output_path, f'root@{host}:{REMOTE_OUTPUT_PATH}',
-    ])
+    scp_command = [
+        'sshpass', '-p', '', 'scp', '-r', '-P', str(ssh_port),
+        # Add StrictHostKeyChecking=no to avoid prompt for unknown hosts
+        '-o', 'StrictHostKeyChecking=no',
+        str(plugin_output_path), f'root@{host}:{REMOTE_OUTPUT_PATH}',
+    ]
+    print('Copying new plugin files into remote device...')
+    subprocess.check_call(scp_command)
 
     print('Plugin successfully installed! Please restart KOReader on the target device.')
 
