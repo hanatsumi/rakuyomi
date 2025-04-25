@@ -5,6 +5,7 @@ mod settings;
 mod source;
 mod source_extractor;
 mod state;
+mod update;
 
 use anyhow::Context;
 use log::{error, info, warn};
@@ -95,6 +96,7 @@ async fn main() -> anyhow::Result<()> {
         .merge(job::routes())
         .merge(settings::routes())
         .merge(source::routes())
+        .merge(update::routes())
         .with_state(state);
 
     // run our app with hyper, listening on the domain socket
