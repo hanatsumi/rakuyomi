@@ -62,6 +62,7 @@ in {
     python313Full
     python313Packages.tkinter
     sqlx-cli
+    sshpass
   ] ++ lib.optionals (!stdenv.isDarwin) [
     mold-wrapped
   ] ++ lib.optionals stdenv.isDarwin [
@@ -113,6 +114,12 @@ in {
     docs.exec = "cd $DEVENV_ROOT/docs && exec mdbook serve --open";
     prepare-sql-queries.exec = "cd $DEVENV_ROOT && . tools/prepare-sqlx-queries.sh";
     remote-install.exec = "cd $DEVENV_ROOT && python3 tools/install-into-remote-koreader.py";
+    remote-ssh.exec = ''
+      sshpass -p "" ssh \
+      -p "$REMOTE_KOREADER_SSH_PORT" \
+      -o StrictHostKeyChecking=no \
+      "root@$REMOTE_KOREADER_HOST" "$@"
+    '';
     test-frontend.exec = "cd $DEVENV_ROOT && busted -C frontend/rakuyomi.koplugin .";
     test-e2e.exec = ''
       cd $DEVENV_ROOT/e2e-tests && \
