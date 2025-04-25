@@ -35,7 +35,7 @@ end
 --- @field method string? The request method to be used
 --- @field body unknown? The request body to be sent. Must be encodable as JSON.
 --- @field query_params table<string, string|number>? The query parameters to be sent on request.
---- @field timeout number? The timeout used for this request. If unset, the default `luasocket` timeout will be used.
+--- @field timeout number? The timeout used for this request. If unset, the default value for the platform will be used (usually 60 seconds).
 
 --- @class SuccessfulResponse<T>: { type: 'SUCCESS', body: T }
 --- @class ErrorResponse: { type: 'ERROR', message: string }
@@ -419,6 +419,34 @@ function Backend.requestJobCancellation(id)
   return Backend.requestJson({
     path = "/jobs/" .. id,
     method = 'DELETE'
+  })
+end
+
+--- @class UpdateInfo
+--- @field public available boolean Whether an update is available
+--- @field public current_version string The current version of rakuyomi
+--- @field public latest_version string The latest available version
+--- @field public release_url string URL to the release page
+
+--- Checks if there is an update available for rakuyomi
+--- @return SuccessfulResponse<UpdateInfo>|ErrorResponse
+function Backend.checkForUpdates()
+  return Backend.requestJson({
+    path = "/update/check",
+    method = "GET"
+  })
+end
+
+--- Updates the plugin to the given version.
+--- @param version string
+function Backend.installUpdate(version)
+  return Backend.requestJson({
+    path = "/update/install",
+    method = "POST",
+    body = {
+      version = version,
+    },
+    timeout = 120,
   })
 end
 

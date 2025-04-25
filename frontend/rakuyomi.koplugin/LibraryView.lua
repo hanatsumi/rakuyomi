@@ -16,6 +16,7 @@ local MangaSearchResults = require("MangaSearchResults")
 local Menu = require("widgets/Menu")
 local Settings = require("Settings")
 local Testing = require("testing")
+local UpdateChecker = require("UpdateChecker")
 
 local LibraryView = Menu:extend {
   name = "library_view",
@@ -187,6 +188,16 @@ function LibraryView:openMenu()
           UIManager:close(dialog)
 
           self:openSettings()
+        end
+      },
+    },
+    {
+      {
+        text = Icons.FA_ARROW_UP .. " Check for updates",
+        callback = function()
+          UIManager:close(dialog)
+
+          UpdateChecker:checkForUpdates()
         end
       },
     },
