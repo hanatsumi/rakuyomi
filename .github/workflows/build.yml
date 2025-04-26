@@ -43,10 +43,6 @@ jobs:
         nix build --impure .#rakuyomi.${{ matrix.target }} -o build/rakuyomi.koplugin
     - name: Package plugin contents
       run: "cd build && zip -r rakuyomi-${{ matrix.target }}.zip rakuyomi.koplugin"
-    - name: Get version
-      id: get-version
-      run: |
-        echo "RAKUYOMI_VERSION=$(nix eval --raw .#rakuyomi.version)" >> "$GITHUB_OUTPUT"
     - name: Upload plugin as workflow artifact
       uses: actions/upload-artifact@v4
       with:
