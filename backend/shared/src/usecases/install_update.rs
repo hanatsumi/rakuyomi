@@ -1,4 +1,5 @@
 use anyhow::Context;
+use futures_util::StreamExt;
 use log::{error, info, warn};
 use std::fs;
 use std::io::{self, Write};
@@ -47,11 +48,6 @@ async fn download_update_zip(version: &str, build_name: &str) -> anyhow::Result<
         .error_for_status()
         .context("Failed to download update (server error)")?;
 
-    let bytes = response
-        .bytes()
-        .await
-        .context("Failed to read response bytes")?;
-
     // Create a named temp file for the download
     let mut update_zip_file = tempfile::Builder::new()
         .prefix("rakuyomi-update-")
@@ -59,9 +55,16 @@ async fn download_update_zip(version: &str, build_name: &str) -> anyhow::Result<
         .tempfile()
         .context("Could not create named temporary file for download")?;
 
-    update_zip_file
-        .write_all(&bytes)
-        .context("Failed to write to temporary zip file")?;
+    let mut stream = response.bytes_stream();
+    let mut downloaded_bytes = 0;
+
+    while let Some(item) = stream.next().await {
+        let chunk = item.context("Error while downloading file chunk")?;
+        update_zip_file
+            .write_all(&chunk)
+            .context("Failed to write chunk to temporary zip file")?;
+        downloaded_bytes += chunk.len();
+    }
 
     update_zip_file
         .flush()
@@ -69,7 +72,7 @@ async fn download_update_zip(version: &str, build_name: &str) -> anyhow::Result<
 
     info!(
         "Update downloaded successfully ({} bytes) and saved to temporary file: {}",
-        bytes.len(),
+        downloaded_bytes,
         update_zip_file.path().display()
     );
 
