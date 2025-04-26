@@ -3,7 +3,9 @@ use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Context, Result};
+use base64::{engine::general_purpose, Engine as _};
 use log::debug;
+use sha2::{Digest, Sha256};
 use size::Size;
 use tempfile::NamedTempFile;
 use walkdir::{DirEntry, WalkDir};
@@ -30,16 +32,22 @@ impl ChapterStorage {
     }
 
     pub fn get_stored_chapter(&self, id: &ChapterId) -> Option<PathBuf> {
-        let path = self.path_for_chapter(id);
+        let new_path = self.path_for_chapter(id);
+        if new_path.exists() {
+            return Some(new_path);
+        }
 
-        if path.exists() {
-            Some(path)
+        // Backwards compatibility: check the old path format
+        let old_path = self.path_for_chapter_legacy(id);
+        if old_path.exists() {
+            Some(old_path)
         } else {
             None
         }
     }
 
     pub fn get_path_to_store_chapter(&self, id: &ChapterId) -> PathBuf {
+        // New chapters should always use the new path format
         self.path_for_chapter(id)
     }
 
@@ -70,6 +78,7 @@ impl ChapterStorage {
             current_size = self.calculate_storage_size();
         }
 
+        // Persist using the new path format
         let path = self.path_for_chapter(id);
         temporary_file.persist(&path)?;
 
@@ -141,12 +150,29 @@ impl ChapterStorage {
             })
     }
 
-    fn path_for_chapter(&self, chapter_id: &ChapterId) -> PathBuf {
+    // DEPRECATED: This function provides backwards compatibility for the old chapter path format.
+    // We should remove it after some versions (enough time for users to have already migrated :eyes:)
+    fn path_for_chapter_legacy(&self, chapter_id: &ChapterId) -> PathBuf {
         let output_filename = sanitize_filename::sanitize(format!(
             "{}-{}.cbz",
             chapter_id.source_id().value(),
             chapter_id.value()
         ));
+
+        self.downloads_folder_path.join(output_filename)
+    }
+
+    fn path_for_chapter(&self, chapter_id: &ChapterId) -> PathBuf {
+        let mut hasher = Sha256::new();
+        hasher.update(chapter_id.source_id().value().as_bytes());
+        hasher.update(chapter_id.manga_id().value().as_bytes());
+        hasher.update(chapter_id.value().as_bytes());
+        let hash_result = hasher.finalize();
+
+        // Use URL-safe base64 encoding without padding for the filename
+        let encoded_hash = general_purpose::URL_SAFE_NO_PAD.encode(hash_result);
+
+        let output_filename = format!("{}.cbz", encoded_hash);
 
         self.downloads_folder_path.join(output_filename)
     }

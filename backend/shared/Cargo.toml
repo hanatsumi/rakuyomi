@@ -54,6 +54,8 @@ pared = { git = "https://github.com/hanatsumi/pared.git", branch = "feat/unwrap-
 sanitize-filename = "0.5.0"
 serde_json_lenient = "0.2.3"
 futures-util = "0.3.31"
+sha2 = "0.10"
+base64 = "0.22"
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["async_tokio"] }
