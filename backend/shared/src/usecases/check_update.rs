@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use anyhow::Context;
+use semver::Version;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
@@ -9,6 +10,8 @@ pub struct CheckUpdateResponse {
     pub current_version: String,
     pub latest_version: String,
     pub release_url: String,
+    /// Indicates if the update can be automatically installed (i.e., not a major version bump).
+    pub auto_installable: bool,
 }
 
 #[derive(Deserialize)]
@@ -18,6 +21,8 @@ struct GitHubRelease {
 }
 
 pub async fn check_update(current_version: String) -> anyhow::Result<CheckUpdateResponse> {
+    let current_version = Version::parse(current_version.trim_start_matches("v"))
+        .context("Failed to parse current version")?;
     // Get latest release from GitHub API
     let client = reqwest::Client::new();
     let response = client
@@ -35,13 +40,16 @@ pub async fn check_update(current_version: String) -> anyhow::Result<CheckUpdate
         .await
         .context("Failed to parse GitHub API response")?;
 
-    let latest_version = latest_release.tag_name.trim_start_matches('v').to_string();
-    let available = latest_version != current_version && !latest_version.is_empty();
+    let latest_version = Version::parse(latest_release.tag_name.trim_start_matches('v'))
+        .context("Failed to parse latest version")?;
+    let available = latest_version > current_version;
+    let auto_installable = available && latest_version.major == current_version.major;
 
     Ok(CheckUpdateResponse {
         available,
-        current_version,
-        latest_version,
+        current_version: current_version.to_string(),
+        latest_version: latest_version.to_string(),
         release_url: latest_release.html_url,
+        auto_installable,
     })
 }

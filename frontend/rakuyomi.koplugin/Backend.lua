@@ -427,6 +427,7 @@ end
 --- @field public current_version string The current version of rakuyomi
 --- @field public latest_version string The latest available version
 --- @field public release_url string URL to the release page
+--- @field public auto_installable boolean Whether the update can be automatically installed
 
 --- Checks if there is an update available for rakuyomi
 --- @return SuccessfulResponse<UpdateInfo>|ErrorResponse

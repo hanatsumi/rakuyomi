@@ -36,30 +36,55 @@ function UpdateChecker:checkForUpdates()
 
   local dialog
 
-  local buttons = {
-    {
-      {
-        text = _("Later"),
-        callback = function()
-          UIManager:close(dialog)
-        end
-      },
-      {
-        text = _("Update Now"),
-        callback = function()
-          UIManager:close(dialog)
-          self:installUpdate(update_info.latest_version)
-        end
-      }
-    }
-  }
-
-  dialog = ButtonDialog:new {
-    title = string.format(
+  local dialog_title
+  local buttons
+  if update_info.auto_installable then
+    dialog_title = string.format(
       _("Version %s is available. You're currently running version %s.\n\nWould you like to update now?"),
       update_info.latest_version,
       update_info.current_version or "unknown"
-    ),
+    )
+
+    buttons = {
+      {
+        {
+          text = _("Later"),
+          callback = function()
+            UIManager:close(dialog)
+          end
+        },
+        {
+          text = _("Update Now"),
+          callback = function()
+            UIManager:close(dialog)
+            self:installUpdate(update_info.latest_version)
+          end
+        }
+      }
+    }
+  else
+    dialog_title = string.format(
+      _(
+        "Version %s is available. You're currently running version %s.\n\n" ..
+        "This update cannot be installed automatically, please visit the user guide for instructions."),
+      update_info.latest_version,
+      update_info.current_version or "unknown"
+    )
+
+    buttons = {
+      {
+        {
+          text = _("OK"),
+          callback = function()
+            UIManager:close(dialog)
+          end
+        }
+      }
+    }
+  end
+
+  dialog = ButtonDialog:new {
+    title = dialog_title,
     buttons = buttons
   }
 
