@@ -76,7 +76,7 @@ async fn main() -> anyhow::Result<()> {
     let downloads_folder_path = settings
         .storage_path
         .clone()
-        .unwrap_or_else(|| default_downloads_folder_path);
+        .unwrap_or(default_downloads_folder_path);
 
     let chapter_storage =
         ChapterStorage::new(downloads_folder_path, settings.storage_size_limit.0)?;
