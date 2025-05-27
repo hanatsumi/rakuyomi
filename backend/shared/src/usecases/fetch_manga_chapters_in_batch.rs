@@ -67,10 +67,26 @@ async fn apply_chapter_filter(
     all_chapters: Vec<ChapterInformation>,
     filter: Filter,
 ) -> Vec<ChapterInformation> {
+    if let Filter::SpecificChapters(chapters) = filter {
+        return chapters;
+    }
+
     let mut last_read_chapter = None;
+    let target_scanlator = match &filter {
+        Filter::ScanlatorChapters { scanlator, .. } => Some(scanlator.clone()),
+        _ => None,
+    };
 
     // Starting from the newest chapter (in source order), find out the first one marked as read.
     for chapter in all_chapters.iter() {
+        // Skip chapters that don't match our target scanlator (if filtering by scanlator)
+        if let Some(ref target_scanlator) = target_scanlator {
+            let chapter_scanlator = chapter.scanlator.as_deref().unwrap_or("Unknown");
+            if chapter_scanlator != target_scanlator {
+                continue;
+            }
+        }
+
         let read = db
             .find_chapter_state(&chapter.id)
             .await
@@ -104,6 +120,24 @@ async fn apply_chapter_filter(
                 })
                 .collect()
         }
+        Filter::ScanlatorChapters { scanlator, amount } => {
+            // Filter by scanlator first
+            let scanlator_chapters: Vec<_> = unread_chapters
+                .filter(|chapter| {
+                    chapter.scanlator.as_ref()
+                        .map(|s| s == &scanlator)
+                        .unwrap_or(scanlator == "Unknown")
+                })
+                .collect();
+
+            // Then limit by amount if specified
+            if let Some(limit) = amount {
+                scanlator_chapters.into_iter().take(limit).collect()
+            } else {
+                scanlator_chapters
+            }
+        }
+        Filter::SpecificChapters(_) => unreachable!(),
     };
 
     filtered_chapters
@@ -112,6 +146,8 @@ async fn apply_chapter_filter(
 pub enum Filter {
     NextUnreadChapters(usize),
     AllUnreadChapters,
+    ScanlatorChapters { scanlator: String, amount: Option<usize> },
+    SpecificChapters(Vec<ChapterInformation>),
 }
 
 pub enum ProgressReport {

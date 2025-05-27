@@ -398,6 +398,23 @@ function Backend.createDownloadUnreadChaptersJob(source_id, manga_id, amount)
   })
 end
 
+--- Creates a new download scanlator chapters job. Returns the job's UUID.
+--- @return SuccessfulResponse<string>|ErrorResponse
+function Backend.createDownloadScanlatorChaptersJob(source_id, manga_id, scanlator, amount)
+  local body = {
+    source_id = source_id,
+    manga_id = manga_id,
+    scanlator = scanlator,
+    amount = amount
+  }
+  
+  return Backend.requestJson({
+    path = "/jobs/download-scanlator-chapters",
+    method = 'POST',
+    body = body
+  })
+end
+
 --- @class PendingJob<T>: { type: 'PENDING', data: T }
 --- @class CompletedJob<T>: { type: 'COMPLETED', data: T }
 --- @class ErroredJob: { type: 'ERROR', data: ErrorResponse }
