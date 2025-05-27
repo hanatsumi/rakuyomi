@@ -14,6 +14,7 @@ return {
   FA_GEAR              = "\u{F013}",
   FA_MAGNIFYING_GLASS  = "\u{F002}",
   FA_PLUG              = "\u{F1E6}",
+  FA_FILTER            = "\u{f0b0}",
   WIFI_OFF             = "\u{ECA9}",
   UNICODE_ARROW_RIGHT  = "\u{25B8}",
 }

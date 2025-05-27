@@ -4,6 +4,7 @@ use serde_json::Value;
 use super::{
     download_chapter::DownloadChapterJob,
     download_unread_chapters::DownloadUnreadChaptersJob,
+    download_scanlator_chapters::DownloadScanlatorChaptersJob,
     state::{Job, JobState, RunningJob},
 };
 
@@ -21,6 +22,9 @@ impl JobDetail {
             RunningJob::DownloadChapter(job) => Self::from_download_chapter_job(job).await,
             RunningJob::DownloadUnreadChapters(job) => {
                 Self::from_download_unread_chapters_job(job).await
+            }
+            RunningJob::DownloadScanlatorChapters(job) => { 
+                Self::from_download_scanlator_chapters_job(job).await
             }
         }
     }
@@ -45,6 +49,19 @@ impl JobDetail {
             JobState::InProgress(v) => (
                 JobDetail::Pending(serde_json::to_value(v).unwrap()),
                 Some(RunningJob::DownloadUnreadChapters(job)),
+            ),
+            JobState::Completed(_) => (JobDetail::Completed(().into()), None),
+            JobState::Errored(v) => (JobDetail::Error(serde_json::to_value(v).unwrap()), None),
+        }
+    }
+
+    async fn from_download_scanlator_chapters_job(
+        job: DownloadScanlatorChaptersJob,
+    ) -> (Self, Option<RunningJob>) {
+        match job.poll().await {
+            JobState::InProgress(v) => (
+                JobDetail::Pending(serde_json::to_value(v).unwrap()),
+                Some(RunningJob::DownloadScanlatorChapters(job)),
             ),
             JobState::Completed(_) => (JobDetail::Completed(().into()), None),
             JobState::Errored(v) => (JobDetail::Error(serde_json::to_value(v).unwrap()), None),

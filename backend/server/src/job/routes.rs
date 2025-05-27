@@ -18,7 +18,9 @@ use crate::job::state::RunningJob;
 use crate::state::State as AppState;
 
 use super::{
-    download_chapter::DownloadChapterJob, download_unread_chapters::DownloadUnreadChaptersJob,
+    download_chapter::DownloadChapterJob, 
+    download_unread_chapters::DownloadUnreadChaptersJob,
+    download_scanlator_chapters::{DownloadScanlatorChaptersJob, ScanlatorFilter},
     state::Job,
 };
 
@@ -28,6 +30,10 @@ pub fn routes() -> Router<AppState> {
         .route(
             "/jobs/download-unread-chapters",
             post(create_download_unread_chapters_job),
+        )
+        .route(
+            "/jobs/download-scanlator-chapters", 
+            post(create_download_scanlator_chapters_job),
         )
         .route("/jobs/:id", get(get_job))
         .route("/jobs/:id", delete(cancel_job))
@@ -118,6 +124,61 @@ async fn create_download_unread_chapters_job(
     Ok(Json(id))
 }
 
+#[derive(Deserialize, Clone)]
+struct CreateDownloadScanlatorChaptersJobBody {
+    source_id: String,
+    manga_id: String,
+    scanlator: String,
+    amount: Option<usize>,
+}
+
+impl From<CreateDownloadScanlatorChaptersJobBody> for MangaId {
+    fn from(value: CreateDownloadScanlatorChaptersJobBody) -> Self {
+        MangaId::from_strings(value.source_id, value.manga_id)
+    }
+}
+
+async fn create_download_scanlator_chapters_job(
+    StateExtractor(AppState {
+        source_manager,
+        database,
+        chapter_storage,
+        ..
+    }): StateExtractor<AppState>,
+    StateExtractor(State { job_registry }): StateExtractor<State>,
+    Json(body): Json<CreateDownloadScanlatorChaptersJobBody>,
+) -> Result<Json<Uuid>, AppError> {
+    let manga_id = MangaId::from(body.clone());
+
+    let source_manager = source_manager.lock().await;
+    let source = source_manager
+        .get_by_id(manga_id.source_id())
+        .ok_or(AppError::SourceNotFound)?
+        .clone();
+
+    let scanlator_filter = ScanlatorFilter {
+        scanlator: body.scanlator,
+        amount: body.amount,
+    };
+
+    let id = Uuid::new_v4();
+    let chapter_storage = chapter_storage.lock().await.clone();
+    let job = DownloadScanlatorChaptersJob::spawn_new(
+        source, 
+        database, 
+        chapter_storage, 
+        manga_id, 
+        scanlator_filter
+    );
+
+    job_registry
+        .lock()
+        .await
+        .insert(id, RunningJob::DownloadScanlatorChapters(job));
+
+    Ok(Json(id))
+}
+
 #[derive(Deserialize)]
 struct GetJobParams {
     id: Uuid,
@@ -153,6 +214,7 @@ async fn cancel_job(
 
     match job {
         RunningJob::DownloadUnreadChapters(job) => job.cancel().await?,
+        RunningJob::DownloadScanlatorChapters(job) => job.cancel().await?,
         _ => Err(anyhow!("job is not cancellable"))?,
     };
 
