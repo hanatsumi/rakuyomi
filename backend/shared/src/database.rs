@@ -80,78 +80,45 @@ impl Database {
         let source_id = manga_id.source_id().value();
         let manga_id_val = manga_id.value();
 
+        // Get preferred scanlator if it exists
         let preferred_scanlator = self.find_manga_state(manga_id)
             .await
             .and_then(|state| state.preferred_scanlator);
 
-        let row = match preferred_scanlator {
-            Some(scanlator) => {
-                sqlx::query_as!(
-                    UnreadChaptersRow,
-                    r#"
-                        SELECT COUNT(*) as count,
-                            EXISTS(SELECT 1 FROM chapter_informations WHERE source_id = ?1 AND manga_id = ?2 AND (scanlator = ?3 OR (scanlator IS NULL AND ?3 = 'Unknown'))) AS "has_chapters: bool"
-                        FROM chapter_informations ci
-                        LEFT JOIN chapter_state cs 
-                            ON ci.source_id = cs.source_id 
-                            AND ci.manga_id = cs.manga_id 
-                            AND ci.chapter_id = cs.chapter_id
-                        WHERE ci.source_id = ?1 
-                            AND ci.manga_id = ?2 
-                            AND (ci.scanlator = ?3 OR (ci.scanlator IS NULL AND ?3 = 'Unknown'))
-                            AND ci.chapter_number > COALESCE(
-                                (SELECT MAX(ci2.chapter_number) 
-                                FROM chapter_informations ci2 
-                                JOIN chapter_state cs2 
-                                    ON ci2.source_id = cs2.source_id 
-                                    AND ci2.manga_id = cs2.manga_id 
-                                    AND ci2.chapter_id = cs2.chapter_id
-                                WHERE ci2.source_id = ?1 
-                                    AND ci2.manga_id = ?2 
-                                    AND (ci2.scanlator = ?3 OR (ci2.scanlator IS NULL AND ?3 = 'Unknown'))
-                                    AND cs2.read = 1
-                                ), -1
-                            )
-                    "#,
-                    source_id, manga_id_val, scanlator
-                )
-                .fetch_one(&self.pool)
-                .await
-                .unwrap()
-            },
-            None => {
-                sqlx::query_as!(
-                    UnreadChaptersRow,
-                    r#"
-                        SELECT COUNT(*) as count,
-                            EXISTS(SELECT 1 FROM chapter_informations WHERE source_id = ?1 AND manga_id = ?2) AS "has_chapters: bool"
-                        FROM chapter_informations ci
-                        LEFT JOIN chapter_state cs 
-                            ON ci.source_id = cs.source_id 
-                            AND ci.manga_id = cs.manga_id 
-                            AND ci.chapter_id = cs.chapter_id
-                        WHERE ci.source_id = ?1 
-                            AND ci.manga_id = ?2 
-                            AND ci.chapter_number > COALESCE(
-                                (SELECT MAX(ci2.chapter_number) 
-                                FROM chapter_informations ci2 
-                                JOIN chapter_state cs2 
-                                    ON ci2.source_id = cs2.source_id 
-                                    AND ci2.manga_id = cs2.manga_id 
-                                    AND ci2.chapter_id = cs2.chapter_id
-                                WHERE ci2.source_id = ?1 
-                                    AND ci2.manga_id = ?2 
-                                    AND cs2.read = 1
-                                ), -1
-                            )
-                    "#,
-                    source_id, manga_id_val
-                )
-                .fetch_one(&self.pool)
-                .await
-                .unwrap()
-            }
-        };
+        let row = sqlx::query_as!(
+            UnreadChaptersRow,
+            r#"
+                SELECT COUNT(*) as count,
+                    EXISTS(SELECT 1 FROM chapter_informations 
+                            WHERE source_id = ?1 AND manga_id = ?2 
+                            AND (?3 IS NULL OR scanlator = ?3 OR scanlator IS NULL)) AS "has_chapters: bool"
+                FROM chapter_informations ci
+                LEFT JOIN chapter_state cs 
+                    ON ci.source_id = cs.source_id 
+                    AND ci.manga_id = cs.manga_id 
+                    AND ci.chapter_id = cs.chapter_id
+                WHERE ci.source_id = ?1 
+                    AND ci.manga_id = ?2 
+                    AND (?3 IS NULL OR ci.scanlator = ?3 OR ci.scanlator IS NULL)
+                    AND ci.chapter_number > COALESCE(
+                        (SELECT MAX(ci2.chapter_number) 
+                        FROM chapter_informations ci2 
+                        JOIN chapter_state cs2 
+                            ON ci2.source_id = cs2.source_id 
+                            AND ci2.manga_id = cs2.manga_id 
+                            AND ci2.chapter_id = cs2.chapter_id
+                        WHERE ci2.source_id = ?1 
+                            AND ci2.manga_id = ?2 
+                            AND (?3 IS NULL OR ci2.scanlator = ?3 OR ci2.scanlator IS NULL)
+                            AND cs2.read = 1
+                        ), -1
+                    )
+            "#,
+            source_id, manga_id_val, preferred_scanlator
+        )
+        .fetch_one(&self.pool)
+        .await
+        .unwrap();
 
         if !row.has_chapters.unwrap_or(false) {
             return None;
