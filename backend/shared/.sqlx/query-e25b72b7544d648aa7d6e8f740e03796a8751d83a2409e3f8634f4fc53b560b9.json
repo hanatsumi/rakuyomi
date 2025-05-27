@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                INSERT INTO manga_state (source_id, manga_id, preferred_scanlator)\n                VALUES (?1, ?2, ?3)\n                ON CONFLICT DO UPDATE SET\n                    preferred_scanlator = excluded.preferred_scanlator\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "e25b72b7544d648aa7d6e8f740e03796a8751d83a2409e3f8634f4fc53b560b9"
+}

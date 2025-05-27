@@ -348,6 +348,27 @@ function Backend.setSourceStoredSettings(source_id, stored_settings)
   })
 end
 
+--- Gets the preferred scanlator for a manga.
+--- @return SuccessfulResponse<string|nil>|ErrorResponse
+function Backend.getPreferredScanlator(source_id, manga_id)
+  return Backend.requestJson({
+    path = "/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/preferred-scanlator",
+    method = "GET"
+  })
+end
+
+--- Sets the preferred scanlator for a manga.
+--- @return SuccessfulResponse<nil>|ErrorResponse
+function Backend.setPreferredScanlator(source_id, manga_id, preferred_scanlator)
+  return Backend.requestJson({
+    path = "/mangas/" .. source_id .. "/" .. util.urlEncode(manga_id) .. "/preferred-scanlator",
+    method = "POST",
+    body = {
+      preferred_scanlator = preferred_scanlator
+    }
+  })
+end
+
 --- @alias ChapterSortingMode 'chapter_ascending'|'chapter_descending'
 --- @class Settings: { chapter_sorting_mode: ChapterSortingMode }
 

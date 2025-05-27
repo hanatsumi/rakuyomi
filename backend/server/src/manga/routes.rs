@@ -45,6 +45,14 @@ pub fn routes() -> Router<State> {
             "/mangas/:source_id/:manga_id/chapters/:chapter_id/mark-as-read",
             post(mark_chapter_as_read),
         )
+        .route(
+            "/mangas/:source_id/:manga_id/preferred-scanlator",
+            get(get_manga_preferred_scanlator),
+        )
+        .route(
+            "/mangas/:source_id/:manga_id/preferred-scanlator",
+            post(set_manga_preferred_scanlator),
+        )
 }
 
 async fn get_manga_library(
@@ -200,6 +208,41 @@ async fn mark_chapter_as_read(
 
     usecases::mark_chapter_as_read(&database, chapter_id).await;
 
+    Json(())
+}
+
+// Scanlator preference handlers
+#[derive(Deserialize)]
+struct SetPreferredScanlatorBody {
+    preferred_scanlator: Option<String>,
+}
+
+async fn get_manga_preferred_scanlator(
+    StateExtractor(State { database, .. }): StateExtractor<State>,
+    SourceExtractor(_source): SourceExtractor,
+    Path(params): Path<MangaChaptersPathParams>,
+) -> Result<Json<Option<String>>, AppError> {
+    let manga_id = MangaId::from(params);
+    
+    let preferred_scanlator = usecases::get_manga_preferred_scanlator(&database, &manga_id).await;
+    
+    Ok(Json(preferred_scanlator))
+}
+
+async fn set_manga_preferred_scanlator(
+    StateExtractor(State { database, .. }): StateExtractor<State>,
+    SourceExtractor(_source): SourceExtractor,
+    Path(params): Path<MangaChaptersPathParams>,
+    Json(body): Json<SetPreferredScanlatorBody>,
+) -> Json<()> {
+    let manga_id = MangaId::from(params);
+    
+    usecases::set_manga_preferred_scanlator(
+        &database, 
+        manga_id, 
+        body.preferred_scanlator
+    ).await;
+    
     Json(())
 }
 

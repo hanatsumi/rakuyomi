@@ -27,7 +27,7 @@ pub async fn get_manga_library(
                         .manifest(),
                 ),
                 information: manga,
-                state: MangaState {},
+                state: MangaState::default(),
                 unread_chapters_count,
             })
         })
