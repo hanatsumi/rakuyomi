@@ -1,3 +1,4 @@
+use anyhow::Result;
 use crate::{
     database::Database,
     model::{MangaId, MangaState},
@@ -7,12 +8,7 @@ pub async fn set_manga_preferred_scanlator(
     db: &Database, 
     manga_id: MangaId, 
     preferred_scanlator: Option<String>
-) {
-    let library_mangas = db.get_manga_library().await;
-    if !library_mangas.contains(&manga_id) {
-        return;
-    }
-
+) -> Result<()> {
     let manga_state = db.find_manga_state(&manga_id).await.unwrap_or_default();
     
     let updated_manga_state = MangaState {
@@ -21,13 +17,14 @@ pub async fn set_manga_preferred_scanlator(
     };
     
     db.upsert_manga_state(&manga_id, updated_manga_state).await;
+    
+    Ok(())
 }
 
 pub async fn get_manga_preferred_scanlator(
     db: &Database, 
     manga_id: &MangaId
-) -> Option<String> {
-    db.find_manga_state(manga_id)
-        .await
-        .and_then(|state| state.preferred_scanlator)
+) -> Result<Option<String>> {
+    let state = db.find_manga_state(manga_id).await;
+    Ok(state.and_then(|s| s.preferred_scanlator))
 }

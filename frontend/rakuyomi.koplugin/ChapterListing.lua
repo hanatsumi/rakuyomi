@@ -475,9 +475,8 @@ function ChapterListing:showScanlatorDialog()
         UIManager:close(dialog)
         self.selected_scanlator = nil
         
-        -- Save preference to backend if manga is tracked
         if self.manga.unread_chapters_count then
-          Backend.setPreferredScanlator(self.manga.source.id, self.manga.id, scanlator)
+          Backend.setPreferredScanlator(self.manga.source.id, self.manga.id, nil)
         end
         
         self:updateItems()
@@ -498,8 +497,9 @@ function ChapterListing:showScanlatorDialog()
           UIManager:close(dialog)
           self.selected_scanlator = scanlator
           
-          -- Save preference to backend
-          Backend.setPreferredScanlator(self.manga.source.id, self.manga.id, scanlator)
+          if self.manga.unread_chapters_count then
+            Backend.setPreferredScanlator(self.manga.source.id, self.manga.id, scanlator)
+          end
           
           self:updateItems()
           UIManager:show(InfoMessage:new { text = "Filtered to: " .. scanlator, timeout = 1 })
