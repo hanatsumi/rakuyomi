@@ -77,13 +77,13 @@ impl Database {
     }
 
     pub async fn count_unread_chapters(&self, manga_id: &MangaId) -> Option<usize> {
-        let source_id = manga_id.source_id().value();
-        let manga_id_val = manga_id.value();
-
         // Get preferred scanlator if it exists
         let preferred_scanlator = self.find_manga_state(manga_id)
             .await
             .and_then(|state| state.preferred_scanlator);
+
+        let source_id = manga_id.source_id().value();
+        let manga_id = manga_id.value();
 
         let row = sqlx::query_as!(
             UnreadChaptersRow,
@@ -114,7 +114,7 @@ impl Database {
                         ), -1
                     )
             "#,
-            source_id, manga_id_val, preferred_scanlator
+            source_id, manga_id, preferred_scanlator
         )
         .fetch_one(&self.pool)
         .await
