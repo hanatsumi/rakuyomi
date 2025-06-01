@@ -67,10 +67,6 @@ async fn apply_chapter_filter(
     all_chapters: Vec<ChapterInformation>,
     filter: Filter,
 ) -> Vec<ChapterInformation> {
-    if let Filter::SpecificChapters(chapters) = filter {
-        return chapters;
-    }
-
     let mut last_read_chapter = None;
     let target_scanlator = match &filter {
         Filter::ScanlatorChapters { scanlator, .. } => Some(scanlator.clone()),
@@ -137,7 +133,6 @@ async fn apply_chapter_filter(
                 scanlator_chapters
             }
         }
-        Filter::SpecificChapters(_) => unreachable!(),
     };
 
     filtered_chapters
@@ -147,7 +142,6 @@ pub enum Filter {
     NextUnreadChapters(usize),
     AllUnreadChapters,
     ScanlatorChapters { scanlator: String, amount: Option<usize> },
-    SpecificChapters(Vec<ChapterInformation>),
 }
 
 pub enum ProgressReport {
