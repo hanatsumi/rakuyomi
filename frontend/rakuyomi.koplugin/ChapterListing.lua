@@ -119,18 +119,7 @@ function ChapterListing:extractAvailableScanlators()
     end
   end
   
-  table.sort(scanlators, function(a, b)
-    local a_is_official = a:lower():find("official") ~= nil
-    local b_is_official = b:lower():find("official") ~= nil
-    
-    if a_is_official and not b_is_official then
-      return true
-    elseif not a_is_official and b_is_official then
-      return false
-    else
-      return a < b
-    end
-  end)
+  table.sort(scanlators)
   
   self.available_scanlators = scanlators
 end
@@ -475,9 +464,7 @@ function ChapterListing:showScanlatorDialog()
         UIManager:close(dialog)
         self.selected_scanlator = nil
         
-        if self.manga.unread_chapters_count then
-          Backend.setPreferredScanlator(self.manga.source.id, self.manga.id, nil)
-        end
+        Backend.setPreferredScanlator(self.manga.source.id, self.manga.id, nil)
         
         self:updateItems()
         UIManager:show(InfoMessage:new { text = "Showing all groups", timeout = 1 })
@@ -497,9 +484,7 @@ function ChapterListing:showScanlatorDialog()
           UIManager:close(dialog)
           self.selected_scanlator = scanlator
           
-          if self.manga.unread_chapters_count then
-            Backend.setPreferredScanlator(self.manga.source.id, self.manga.id, scanlator)
-          end
+          Backend.setPreferredScanlator(self.manga.source.id, self.manga.id, scanlator)
           
           self:updateItems()
           UIManager:show(InfoMessage:new { text = "Filtered to: " .. scanlator, timeout = 1 })
@@ -579,11 +564,12 @@ function ChapterListing:onDownloadUnreadChapters()
 end
 
 function ChapterListing:createDownloadJob(amount)
-  if not self.selected_scanlator then
-    return DownloadUnreadChapters:new(self.manga.source.id, self.manga.id, amount)
-  else
-    return DownloadUnreadChapters:new(self.manga.source.id, self.manga.id, amount, self.selected_scanlator)
-  end
+  return DownloadUnreadChapters:new({
+    source_id = self.manga.source.id,
+    manga_id = self.manga.id,
+    amount = amount,
+    scanlator = self.selected_scanlator
+  })
 end
 
 function ChapterListing:onDownloadAllChapters()
