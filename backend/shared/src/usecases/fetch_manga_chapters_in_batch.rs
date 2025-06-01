@@ -131,8 +131,8 @@ async fn apply_chapter_filter(
                 .collect();
 
             // Then limit by amount if specified
-            if let Some(limit) = amount {
-                scanlator_chapters.into_iter().take(limit).collect()
+            if let Some(amount) = amount {
+                scanlator_chapters.into_iter().take(amount).collect()
             } else {
                 scanlator_chapters
             }
