@@ -18,20 +18,20 @@ local DownloadUnreadChapters = Job:extend()
 --- @param amount number|nil
 --- @param scanlator string|nil NEW: Optional scanlator filter
 --- @return self|nil job A new job, or `nil`, if the job could not be created.
-function DownloadUnreadChapters:new(source_id, manga_id, amount, scanlator)
+function DownloadUnreadChapters:new(params)
   local o = {
-    source_id = source_id,
-    manga_id = manga_id,
-    amount = amount,
-    scanlator = scanlator,
+    source_id = params.source_id,
+    manga_id = params.manga_id,
+    amount = params.amount,
+    scanlator = params.scanlator,
   }
   setmetatable(o, self)
   self.__index = self
-
+  
   if not o:start() then
     return nil
   end
-
+  
   return o
 end
 
