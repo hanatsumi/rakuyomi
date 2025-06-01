@@ -33,10 +33,3 @@ CREATE TABLE chapter_state (
     chapter_id TEXT NOT NULL,
     read INTEGER NOT NULL
 ) STRICT;
-
-CREATE TABLE manga_state (
-    source_id TEXT NOT NULL,
-    manga_id TEXT NOT NULL,
-    preferred_scanlator TEXT NULL,
-    PRIMARY KEY (source_id, manga_id)
-) STRICT;
