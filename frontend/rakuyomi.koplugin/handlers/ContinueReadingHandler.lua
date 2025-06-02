@@ -144,16 +144,6 @@ local function downloadChapter(chapter)
   end)
 end
 
-local function updateChapterDownloadStatus(all_chapters, target_chapter)
-  for _, chap in ipairs(all_chapters) do
-    if chap.id == target_chapter.id then
-      chap.downloaded = true
-      break
-    end
-  end
-  target_chapter.downloaded = true
-end
-
 local function openChapterInReader(chapter, all_chapters, callbacks)
   Trapper:wrap(function()
     local download_response = downloadChapter(chapter)
@@ -163,7 +153,7 @@ local function openChapterInReader(chapter, all_chapters, callbacks)
       return
     end
 
-    updateChapterDownloadStatus(all_chapters, chapter)
+    chapter.downloaded = true
 
     -- Create reader callbacks
     local onEndOfBookCallback = function()
