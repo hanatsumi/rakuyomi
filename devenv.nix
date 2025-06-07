@@ -98,7 +98,7 @@ in {
   };
 
   enterShell = ''
-    cd $DEVENV_ROOT/backend && cargo fetch
+    cargo fetch --manifest-path="$DEVENV_ROOT/backend/Cargo.toml"
   '';
 
   scripts = {
