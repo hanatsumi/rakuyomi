@@ -15,7 +15,7 @@ class UnreadChaptersResponse(BaseModel):
     unread_chapters: Optional[int]
 
 async def test_library_view(koreader_driver: KOReaderDriver):
-    await koreader_driver.install_source('multi.mangadex')
+    await koreader_driver.install_source('multi.batoto')
     await koreader_driver.open_library_view()
 
     library_view_mangas = await queries.list_mangas(koreader_driver)
