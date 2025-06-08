@@ -88,7 +88,7 @@ pub async fn search_mangas(
             mangas.into_iter().map(move |(manga, unread_count)| Manga {
                 source_information: source_information.clone(),
                 information: manga,
-                state: MangaState {},
+                state: MangaState::default(),
                 unread_chapters_count: unread_count,
             })
         })

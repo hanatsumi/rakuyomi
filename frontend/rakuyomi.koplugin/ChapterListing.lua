@@ -39,6 +39,9 @@ local ChapterListing = Menu:extend {
   chapter_sorting_mode = nil,
   -- callback to be called when pressing the back button
   on_return_callback = nil,
+  -- scanlator filtering
+  selected_scanlator = nil,
+  available_scanlators = {},
 }
 
 function ChapterListing:init()
@@ -81,7 +84,44 @@ function ChapterListing:updateChapterList()
   local chapter_results = response.body
   self.chapters = chapter_results
 
+  self:extractAvailableScanlators()
+
+  self:loadSavedScanlatorPreference()
+
   self:updateItems()
+end
+
+-- Load saved scanlator preference from backend
+function ChapterListing:loadSavedScanlatorPreference()
+  local response = Backend.getPreferredScanlator(self.manga.source.id, self.manga.id)
+  
+  if response.type == 'SUCCESS' and response.body then
+    -- Only set if the scanlator still exists in available scanlators
+    for _, available_scanlator in ipairs(self.available_scanlators) do
+      if available_scanlator == response.body then
+        self.selected_scanlator = response.body
+        break
+      end
+    end
+  end
+end
+
+-- Extract unique scanlators
+function ChapterListing:extractAvailableScanlators()
+  local scanlators = {}
+  local scanlator_set = {}
+  
+  for _, chapter in ipairs(self.chapters) do
+    local scanlator = chapter.scanlator or "Unknown"
+    if not scanlator_set[scanlator] then
+      scanlator_set[scanlator] = true
+      table.insert(scanlators, scanlator)
+    end
+  end
+  
+  table.sort(scanlators)
+  
+  self.available_scanlators = scanlators
 end
 
 --- Updates the menu item contents with the chapter information
@@ -133,9 +173,21 @@ end
 
 --- @private
 function ChapterListing:generateItemTableFromChapters(chapters)
+  -- Filter chapters by selected scanlator
+  local filtered_chapters = chapters
+  if self.selected_scanlator then
+    filtered_chapters = {}
+    for _, chapter in ipairs(chapters) do
+      local chapter_scanlator = chapter.scanlator or "Unknown"
+      if chapter_scanlator == self.selected_scanlator then
+        table.insert(filtered_chapters, chapter)
+      end
+    end
+  end
+
   --- @type table
   --- @diagnostic disable-next-line: assign-type-mismatch
-  local sorted_chapters_with_index = util.tableDeepCopy(chapters)
+  local sorted_chapters_with_index = util.tableDeepCopy(filtered_chapters)
   for index, chapter in ipairs(sorted_chapters_with_index) do
     chapter.index = index
   end
@@ -162,7 +214,8 @@ function ChapterListing:generateItemTableFromChapters(chapters)
 
     text = text .. chapter.title
 
-    if chapter.scanlator ~= nil then
+    -- Only show scanlator if not filtering by scanlator
+    if chapter.scanlator ~= nil and not self.selected_scanlator then
       text = text .. " (" .. chapter.scanlator .. ")"
     end
 
@@ -374,7 +427,74 @@ function ChapterListing:openMenu()
     }
   }
 
+  -- Add scanlator filter button if multiple scanlators exist
+  if #self.available_scanlators > 1 then
+    local scanlator_text = self.selected_scanlator and 
+      (Icons.FA_FILTER .. " Group: " .. self.selected_scanlator) or 
+      Icons.FA_FILTER .. " Filter by Group"
+    
+    table.insert(buttons, {
+      {
+        text = scanlator_text,
+        callback = function()
+          UIManager:close(dialog)
+          self:showScanlatorDialog()
+        end
+      }
+    })
+  end
+
   dialog = ButtonDialog:new {
+    buttons = buttons,
+  }
+
+  UIManager:show(dialog)
+end
+
+-- Scanlator selection dialog with persistence
+function ChapterListing:showScanlatorDialog()
+  local dialog
+  local buttons = {}
+
+  -- Show All option
+  table.insert(buttons, {
+    {
+      text = self.selected_scanlator == nil and Icons.FA_CHECK .. " Show All" or "Show All",
+      callback = function()
+        UIManager:close(dialog)
+        self.selected_scanlator = nil
+        
+        Backend.setPreferredScanlator(self.manga.source.id, self.manga.id, nil)
+        
+        self:updateItems()
+        UIManager:show(InfoMessage:new { text = "Showing all groups", timeout = 1 })
+      end
+    }
+  })
+
+  -- Individual scanlators
+  for _, scanlator in ipairs(self.available_scanlators) do
+    local is_selected = self.selected_scanlator == scanlator
+    local text = is_selected and (Icons.FA_CHECK .. " " .. scanlator) or scanlator
+    
+    table.insert(buttons, {
+      {
+        text = text,
+        callback = function()
+          UIManager:close(dialog)
+          self.selected_scanlator = scanlator
+          
+          Backend.setPreferredScanlator(self.manga.source.id, self.manga.id, scanlator)
+          
+          self:updateItems()
+          UIManager:show(InfoMessage:new { text = "Filtered to: " .. scanlator, timeout = 1 })
+        end
+      }
+    })
+  end
+
+  dialog = ButtonDialog:new {
+    title = "Filter by Group",
     buttons = buttons,
   }
 
@@ -387,7 +507,9 @@ function ChapterListing:onDownloadUnreadChapters()
     title = "Download unread chapters...",
     input_type = "number",
     input_hint = "Amount of unread chapters (default: all)",
-    description = "Specify the amount of unread chapters to download, or leave empty to download all of them.",
+    description = self.selected_scanlator and 
+      ("Will download from: " .. self.selected_scanlator .. "\n\nSpecify amount or leave empty for all.") or
+      "Specify the amount of unread chapters to download, or leave empty to download all of them.",
     buttons = {
       {
         {
@@ -414,16 +536,24 @@ function ChapterListing:onDownloadUnreadChapters()
               end
             end
 
-            local job = DownloadUnreadChapters:new(self.manga.source.id, self.manga.id, amount)
-            local dialog = DownloadUnreadChaptersJobDialog:new({
-              show_parent = self,
-              job = job,
-              dismiss_callback = function()
-                self:updateChapterList()
-              end
-            })
+            -- Use scanlator-aware download
+            local job = self:createDownloadJob(amount)
+            if job then
+              local dialog = DownloadUnreadChaptersJobDialog:new({
+                show_parent = self,
+                job = job,
+                dismiss_callback = function()
+                  self:updateChapterList()
+                end
+              })
 
-            dialog:show()
+              dialog:show()
+            else
+              UIManager:show(InfoMessage:new {
+                text = "No unread chapters found for " .. (self.selected_scanlator or "this manga"),
+                timeout = 2,
+              })
+            end
           end,
         },
       }
@@ -431,6 +561,15 @@ function ChapterListing:onDownloadUnreadChapters()
   }
 
   UIManager:show(input_dialog)
+end
+
+function ChapterListing:createDownloadJob(amount)
+  return DownloadUnreadChapters:new({
+    source_id = self.manga.source.id,
+    manga_id = self.manga.id,
+    amount = amount,
+    scanlator = self.selected_scanlator
+  })
 end
 
 function ChapterListing:onDownloadAllChapters()

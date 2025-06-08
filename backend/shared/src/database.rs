@@ -77,6 +77,12 @@ impl Database {
     }
 
     pub async fn count_unread_chapters(&self, manga_id: &MangaId) -> Option<usize> {
+        // Get preferred scanlator if it exists
+        let preferred_scanlator = self
+            .find_manga_state(manga_id)
+            .await
+            .and_then(|state| state.preferred_scanlator);
+
         let source_id = manga_id.source_id().value();
         let manga_id = manga_id.value();
 
@@ -84,7 +90,9 @@ impl Database {
             UnreadChaptersRow,
             r#"
                 SELECT COUNT(*) as count,
-                       EXISTS(SELECT 1 FROM chapter_informations WHERE source_id = ?1 AND manga_id = ?2) AS "has_chapters: bool"
+                    EXISTS(SELECT 1 FROM chapter_informations 
+                            WHERE source_id = ?1 AND manga_id = ?2 
+                            AND (?3 IS NULL OR scanlator = ?3 OR scanlator IS NULL)) AS "has_chapters: bool"
                 FROM chapter_informations ci
                 LEFT JOIN chapter_state cs 
                     ON ci.source_id = cs.source_id 
@@ -92,21 +100,22 @@ impl Database {
                     AND ci.chapter_id = cs.chapter_id
                 WHERE ci.source_id = ?1 
                     AND ci.manga_id = ?2 
+                    AND (?3 IS NULL OR ci.scanlator = ?3 OR ci.scanlator IS NULL)
                     AND ci.chapter_number > COALESCE(
                         (SELECT MAX(ci2.chapter_number) 
-                         FROM chapter_informations ci2 
-                         JOIN chapter_state cs2 
+                        FROM chapter_informations ci2 
+                        JOIN chapter_state cs2 
                             ON ci2.source_id = cs2.source_id 
                             AND ci2.manga_id = cs2.manga_id 
                             AND ci2.chapter_id = cs2.chapter_id
-                         WHERE ci2.source_id = ?1 
+                        WHERE ci2.source_id = ?1 
                             AND ci2.manga_id = ?2 
+                            AND (?3 IS NULL OR ci2.scanlator = ?3 OR ci2.scanlator IS NULL)
                             AND cs2.read = 1
                         ), -1
                     )
             "#,
-            source_id,
-            manga_id
+            source_id, manga_id, preferred_scanlator
         )
         .fetch_one(&self.pool)
         .await
@@ -282,8 +291,45 @@ impl Database {
             .try_collect::<()>().await.unwrap();
     }
 
-    pub async fn find_manga_state(&self, _id: &MangaId) -> Option<MangaState> {
-        todo!()
+    pub async fn find_manga_state(&self, manga_id: &MangaId) -> Option<MangaState> {
+        let source_id = manga_id.source_id().value();
+        let manga_id = manga_id.value();
+
+        let maybe_row = sqlx::query_as!(
+            MangaStateRow,
+            r#"
+                SELECT source_id, manga_id, preferred_scanlator 
+                FROM manga_state
+                WHERE source_id = ?1 AND manga_id = ?2;
+            "#,
+            source_id,
+            manga_id,
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .unwrap();
+
+        maybe_row.map(|row| row.into())
+    }
+
+    pub async fn upsert_manga_state(&self, manga_id: &MangaId, state: MangaState) {
+        let source_id = manga_id.source_id().value();
+        let manga_id = manga_id.value();
+
+        sqlx::query!(
+            r#"
+                INSERT INTO manga_state (source_id, manga_id, preferred_scanlator)
+                VALUES (?1, ?2, ?3)
+                ON CONFLICT DO UPDATE SET
+                    preferred_scanlator = excluded.preferred_scanlator
+            "#,
+            source_id,
+            manga_id,
+            state.preferred_scanlator,
+        )
+        .execute(&self.pool)
+        .await
+        .unwrap();
     }
 
     pub async fn find_chapter_state(&self, chapter_id: &ChapterId) -> Option<ChapterState> {
@@ -417,4 +463,20 @@ impl From<ChapterStateRow> for ChapterState {
 struct UnreadChaptersRow {
     count: Option<i32>,
     has_chapters: Option<bool>,
+}
+
+#[derive(sqlx::FromRow)]
+#[allow(dead_code)]
+struct MangaStateRow {
+    source_id: String,
+    manga_id: String,
+    preferred_scanlator: Option<String>,
+}
+
+impl From<MangaStateRow> for MangaState {
+    fn from(value: MangaStateRow) -> Self {
+        Self {
+            preferred_scanlator: value.preferred_scanlator,
+        }
+    }
 }
