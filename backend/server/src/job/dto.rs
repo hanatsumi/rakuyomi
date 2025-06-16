@@ -3,8 +3,8 @@ use serde_json::Value;
 
 use super::{
     download_chapter::DownloadChapterJob,
-    download_unread_chapters::DownloadUnreadChaptersJob,
     download_scanlator_chapters::DownloadScanlatorChaptersJob,
+    download_unread_chapters::DownloadUnreadChaptersJob,
     state::{Job, JobState, RunningJob},
 };
 
@@ -23,7 +23,7 @@ impl JobDetail {
             RunningJob::DownloadUnreadChapters(job) => {
                 Self::from_download_unread_chapters_job(job).await
             }
-            RunningJob::DownloadScanlatorChapters(job) => { 
+            RunningJob::DownloadScanlatorChapters(job) => {
                 Self::from_download_scanlator_chapters_job(job).await
             }
         }

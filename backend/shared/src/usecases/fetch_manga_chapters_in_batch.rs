@@ -120,7 +120,9 @@ async fn apply_chapter_filter(
             // Filter by scanlator first
             let scanlator_chapters: Vec<_> = unread_chapters
                 .filter(|chapter| {
-                    chapter.scanlator.as_ref()
+                    chapter
+                        .scanlator
+                        .as_ref()
                         .map(|s| s == &scanlator)
                         .unwrap_or(scanlator == "Unknown")
                 })
@@ -141,7 +143,10 @@ async fn apply_chapter_filter(
 pub enum Filter {
     NextUnreadChapters(usize),
     AllUnreadChapters,
-    ScanlatorChapters { scanlator: String, amount: Option<usize> },
+    ScanlatorChapters {
+        scanlator: String,
+        amount: Option<usize>,
+    },
 }
 
 pub enum ProgressReport {

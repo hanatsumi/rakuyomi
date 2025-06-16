@@ -6,9 +6,9 @@ use uuid::Uuid;
 use crate::AppError;
 
 use super::{
-    download_chapter::DownloadChapterJob, 
-    download_unread_chapters::DownloadUnreadChaptersJob,
+    download_chapter::DownloadChapterJob,
     download_scanlator_chapters::DownloadScanlatorChaptersJob,
+    download_unread_chapters::DownloadUnreadChaptersJob,
 };
 
 pub enum JobState<Progress, Output, Error> {

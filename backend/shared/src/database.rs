@@ -78,7 +78,8 @@ impl Database {
 
     pub async fn count_unread_chapters(&self, manga_id: &MangaId) -> Option<usize> {
         // Get preferred scanlator if it exists
-        let preferred_scanlator = self.find_manga_state(manga_id)
+        let preferred_scanlator = self
+            .find_manga_state(manga_id)
             .await
             .and_then(|state| state.preferred_scanlator);
 
