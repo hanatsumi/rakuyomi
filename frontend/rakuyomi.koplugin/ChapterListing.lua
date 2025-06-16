@@ -95,8 +95,9 @@ end
 function ChapterListing:loadSavedScanlatorPreference()
   local response = Backend.getPreferredScanlator(self.manga.source.id, self.manga.id)
   
+  self.selected_scanlator = nil
+  
   if response.type == 'SUCCESS' and response.body then
-    -- Only set if the scanlator still exists in available scanlators
     for _, available_scanlator in ipairs(self.available_scanlators) do
       if available_scanlator == response.body then
         self.selected_scanlator = response.body
