@@ -16,7 +16,7 @@ pub fn chapter_downloader_benchmark(c: &mut Criterion) {
 
     let source = Source::from_aix_file(source_path.as_ref(), settings).unwrap();
     let pages =
-        executor::block_on(source.get_page_list(CancellationToken::new(), manga_id, chapter_id))
+        executor::block_on(source.get_page_list(CancellationToken::new(), manga_id, chapter_id, todo!(),))
             .unwrap();
 
     let runtime = tokio::runtime::Runtime::new().unwrap();

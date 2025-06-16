@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use serde::Serialize;
 use shared::{
     chapter_storage::ChapterStorage,
     database::Database,
@@ -6,12 +6,12 @@ use shared::{
     source::Source,
     usecases::fetch_manga_chapters_in_batch::{Filter, ProgressReport},
 };
+use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
-use serde::Serialize;
 
-use crate::{AppError, ErrorResponse};
 use super::state::{Job, JobState};
+use crate::{AppError, ErrorResponse};
 
 // Create a serializable progress type
 #[derive(Debug, Clone, Serialize)]
@@ -43,7 +43,7 @@ impl DownloadScanlatorChaptersJob {
     ) -> Self {
         let cancellation_token = CancellationToken::new();
         let output: Arc<Mutex<Option<Result<(), ErrorResponse>>>> = Default::default();
-        let progress: Arc<Mutex<SerializableProgress>> = 
+        let progress: Arc<Mutex<SerializableProgress>> =
             Arc::new(Mutex::new(SerializableProgress::Initializing));
 
         let output_clone = output.clone();
@@ -57,14 +57,15 @@ impl DownloadScanlatorChaptersJob {
                 amount: scanlator_filter.amount,
             };
 
-            let stream = shared::usecases::fetch_manga_chapters_in_batch::fetch_manga_chapters_in_batch(
-                cancellation_token_clone,
-                &source,
-                &database,
-                &chapter_storage,
-                manga_id,
-                filter,
-            );
+            let stream =
+                shared::usecases::fetch_manga_chapters_in_batch::fetch_manga_chapters_in_batch(
+                    cancellation_token_clone,
+                    &source,
+                    &database,
+                    &chapter_storage,
+                    manga_id,
+                    filter,
+                );
 
             use futures::StreamExt;
 
@@ -74,7 +75,8 @@ impl DownloadScanlatorChaptersJob {
             while let Some(progress_report) = pinned_stream.next().await {
                 match progress_report {
                     ProgressReport::Progressing { downloaded, total } => {
-                        *progress_clone.lock().await = SerializableProgress::Downloading { downloaded, total };
+                        *progress_clone.lock().await =
+                            SerializableProgress::Downloading { downloaded, total };
                     }
                     ProgressReport::Finished => {
                         *output_clone.lock().await = Some(Ok(()));

@@ -116,7 +116,6 @@ pub struct ChapterInformation {
     pub volume_number: Option<Decimal>,
 }
 
-
 #[derive(Default, Clone, Debug)]
 pub struct MangaState {
     pub preferred_scanlator: Option<String>,

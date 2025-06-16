@@ -18,9 +18,9 @@ use crate::job::state::RunningJob;
 use crate::state::State as AppState;
 
 use super::{
-    download_chapter::DownloadChapterJob, 
-    download_unread_chapters::DownloadUnreadChaptersJob,
+    download_chapter::DownloadChapterJob,
     download_scanlator_chapters::{DownloadScanlatorChaptersJob, ScanlatorFilter},
+    download_unread_chapters::DownloadUnreadChaptersJob,
     state::Job,
 };
 
@@ -32,7 +32,7 @@ pub fn routes() -> Router<AppState> {
             post(create_download_unread_chapters_job),
         )
         .route(
-            "/jobs/download-scanlator-chapters", 
+            "/jobs/download-scanlator-chapters",
             post(create_download_scanlator_chapters_job),
         )
         .route("/jobs/:id", get(get_job))
@@ -63,7 +63,7 @@ async fn create_download_chapter_job(
     Json(body): Json<CreateDownloadChapterJobBody>,
 ) -> Result<Json<Uuid>, AppError> {
     let id = Uuid::new_v4();
-    let chapter_num = body.chapter_num.clone();
+    let chapter_num = body.chapter_num;
     let chapter_storage = chapter_storage.lock().await.clone();
     let job =
         DownloadChapterJob::spawn_new(source_manager, chapter_storage, body.into(), chapter_num);
@@ -164,11 +164,11 @@ async fn create_download_scanlator_chapters_job(
     let id = Uuid::new_v4();
     let chapter_storage = chapter_storage.lock().await.clone();
     let job = DownloadScanlatorChaptersJob::spawn_new(
-        source, 
-        database, 
-        chapter_storage, 
-        manga_id, 
-        scanlator_filter
+        source,
+        database,
+        chapter_storage,
+        manga_id,
+        scanlator_filter,
     );
 
     job_registry

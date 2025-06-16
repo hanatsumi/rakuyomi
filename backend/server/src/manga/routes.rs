@@ -223,9 +223,9 @@ async fn get_manga_preferred_scanlator(
     Path(params): Path<MangaChaptersPathParams>,
 ) -> Result<Json<Option<String>>, AppError> {
     let manga_id = MangaId::from(params);
-    
+
     let preferred_scanlator = usecases::get_manga_preferred_scanlator(&database, &manga_id).await?;
-    
+
     Ok(Json(preferred_scanlator))
 }
 
@@ -236,13 +236,9 @@ async fn set_manga_preferred_scanlator(
     Json(body): Json<SetPreferredScanlatorBody>,
 ) -> Result<Json<()>, AppError> {
     let manga_id = MangaId::from(params);
-    
-    usecases::set_manga_preferred_scanlator(
-        &database, 
-        manga_id, 
-        body.preferred_scanlator
-    ).await?;
-    
+
+    usecases::set_manga_preferred_scanlator(&database, manga_id, body.preferred_scanlator).await?;
+
     Ok(Json(()))
 }
 
