@@ -118,6 +118,13 @@ fn parse_fragment_with_uri(
 fn select(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, selector: Option<String>) -> i32 {
     || -> Option<i32> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
+        let mut selector_str = selector?;
+        
+        // INFO: WeebCentral Workaround
+        if selector_str == "section[x-data~=scroll] > img" {
+            selector_str = "img[src]".to_string();
+        }
+        
         let wasm_store = caller.data_mut();
         let std_value = wasm_store.get_std_value(descriptor)?;
         let html_elements = match std_value.as_ref() {
@@ -125,8 +132,7 @@ fn select(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, selector: Opti
             _ => None,
         }?;
 
-        // TODO NAMING IS PURE GARBAGE
-        let selector = Selector::parse(&selector?).ok()?;
+        let selector = Selector::parse(&selector_str).ok()?;
         let selected_elements: Vec<_> = html_elements
             .iter()
             .flat_map(|element| {
@@ -239,7 +245,7 @@ fn first(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
             _ => None,
         }?;
 
-        Some(wasm_store.store_std_value(Value::from(vec![element]).into(), Some(descriptor)) as i32)
+        Some(wasm_store.store_std_value(Value::from(vec![element]).into(), None) as i32)
     }()
     .unwrap_or(-1)
 }
@@ -360,7 +366,9 @@ fn text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
             .flat_map(|element| element.element_ref().text())
             .map(|s| s.trim())
             .collect::<Vec<_>>()
-            .join(" ");
+            .join(" ")
+            .trim()
+            .to_string();
 
         Some(wasm_store.store_std_value(Value::from(text).into(), Some(descriptor)) as i32)
     }()

@@ -25,9 +25,9 @@ url = { version = "2.4.0", features = ["serde"] }
 wasm_macros = { path = "../wasm_macros" }
 wasm_shared = { path = "../wasm_shared" }
 serde_json = "1.0.103"
-scraper = "0.17.1"
+scraper = "0.23.1"
 ouroboros = "0.17.1"
-ego-tree = "0.6.2"
+ego-tree = "0.10.0"
 html-escape = "0.2.13"
 reqwest = { version = "0.11.18", default-features = false, features = ["blocking", "json", "rustls-tls", "stream"] }
 semver = "1.0"
