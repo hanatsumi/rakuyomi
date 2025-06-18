@@ -95,6 +95,7 @@ class KOReaderDriver:
 
                 await self.wait_for_event('initialized', initialization_timeout)
         except TimeoutError:
+            await self._stop_process()
             raise TimeoutError("Timeout waiting for IPC connection/initialization")
 
         # For some reason, sometimes KOReader decides to disable input handling on initialization.
@@ -102,7 +103,16 @@ class KOReaderDriver:
         await asyncio.sleep(1)
         logger.info('Waited for KOReader\'s user input handling to be enabled')
 
-        self.window = next(w for w in pywinctl.getAllWindows() if w.title.endswith('KOReader'))
+        window = next(
+            (w for w in pywinctl.getAllWindows() if w.title.endswith('KOReader')),
+            None
+        )
+
+        if not window:
+            await self._stop_process()
+            raise RuntimeError("KOReader window not found, is it running?")
+
+        self.window = window
         self.window.moveTo(0, 0, wait=True)
 
         return self
@@ -112,7 +122,7 @@ class KOReaderDriver:
         if self.writer:
             self.writer.close()
             await self.writer.wait_closed()
-        
+
         if hasattr(self, '_server'):
             self._server.close()
             await self._server.wait_closed()
@@ -122,6 +132,9 @@ class KOReaderDriver:
         except OSError:
             pass
 
+        await self._stop_process()
+
+    async def _stop_process(self):
         if hasattr(self, 'process') and self.process:
             os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
             await self.process.communicate()
@@ -130,12 +143,12 @@ class KOReaderDriver:
         """Handles new IPC connections."""
         self.reader = reader
         self.writer = writer
-        
+
     async def _send_ipc_command(self, command_type: str, params: dict | None = None):
         """Sends a command to KOReader via IPC."""
         if not self.writer:
             raise RuntimeError("No IPC connection available")
-            
+
         message = {
             "type": command_type,
             "params": params or {}
@@ -166,21 +179,21 @@ class KOReaderDriver:
         logger.info(f'Requested UI contents in {duration.total_seconds()}s, hash is {hashlib.sha256(ui_contents.encode()).hexdigest()}')
 
         return ui_contents
-    
+
     async def install_source(self, source_id: str) -> None:
         """
         Installs a source in KOReader.
-        
+
         Args:
             source_id: The ID of the source to install
         """
         await self._send_ipc_command("install_source", {"source_id": source_id})
         await self.wait_for_event('source_installed')
-    
+
     async def screenshot(self, output: Path) -> None:
         """
         Takes a screenshot of the KOReader window and saves it to the specified output path.
-        
+
         Args:
             output: Path to save the screenshot
         """
@@ -191,9 +204,9 @@ class KOReaderDriver:
         draw = ImageDraw.Draw(img)
         radius = 10
         draw.ellipse([
-            cursor_position.x - radius, 
+            cursor_position.x - radius,
             cursor_position.y - radius,
-            cursor_position.x + radius, 
+            cursor_position.x + radius,
             cursor_position.y + radius
         ], fill='red')
         img.save(output)
@@ -201,12 +214,12 @@ class KOReaderDriver:
     async def query(self, query: str, response_class: Type[T] | TypeAdapter[T], timeout=15) -> T:
         """
         Performs a query on the current UI contents and returns the response.
-        
+
         Args:
             query: The query string to send to the agent
             response_class: The Pydantic model class to parse the response into
             timeout: How long to wait for the UI contents
-            
+
         Returns:
             An instance of response_class containing the query results
         """
@@ -221,7 +234,7 @@ class KOReaderDriver:
     def type(self, text: str):
         """
         Types the given text into the active window.
-        
+
         Args:
             text: The text to type
         """
@@ -235,7 +248,7 @@ class KOReaderDriver:
     def click_element(self, element_location, hold: float = 0.0):
         """
         Clicks on an element based on its location response.
-        
+
         Args:
             element_location: A LocateButtonResponse or similar object containing x, y, width, height
             duration: Duration to wait between clicks
@@ -246,7 +259,7 @@ class KOReaderDriver:
 
         # Handle retina displays on macOS
         is_retina = platform.system() == 'Darwin' and subprocess.call(
-            "system_profiler SPDisplaysDataType | grep 'retina'", 
+            "system_profiler SPDisplaysDataType | grep 'retina'",
             shell=True
         )
         if is_retina:
@@ -267,7 +280,7 @@ class KOReaderDriver:
             pyautogui.mouseUp()
         else:
             pyautogui.click()
-    
+
     def click_and_hold_element(self, element_location):
         """
         Clicks and holds on an element based on its location response.
@@ -276,7 +289,7 @@ class KOReaderDriver:
             element_location: A LocateButtonResponse or similar object containing x, y, width, height
         """
         self.click_element(element_location, hold=2.5)
-    
+
     async def wait_for_event(self, event_type: str, timeout: float = 15.0) -> dict:
         """
         Waits for a specific event from stdout with timeout.
@@ -309,7 +322,7 @@ class KOReaderDriver:
                         continue
         except TimeoutError:
             raise TimeoutError(f"Timeout waiting for event: {event_type}")
-    
+
     def _get_window_frame(self) -> WindowFrame:
         if 'CI' in os.environ:
             # pywinctl fucks up when we're running under Fluxbox.
@@ -328,4 +341,3 @@ class KOReaderDriver:
             right=frame.right,
             bottom=frame.bottom
         )
-
