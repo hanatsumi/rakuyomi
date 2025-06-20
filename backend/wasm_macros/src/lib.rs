@@ -82,34 +82,21 @@ pub fn aidoku_wasm_function(_args: OGTokenStream, input: OGTokenStream) -> OGTok
         }),
     };
 
-    let is_unit_return = match &actual_return_type {
-        Type::Tuple(actual_return_type) => actual_return_type.elems.is_empty(),
-        _ => false,
-    };
-
-    let return_value_writer = if is_unit_return {
-        quote! {}
-    } else {
-        quote! { results[0] = result.to_wasm_value(); }
-    };
-
-    let wasm_return_types = if is_unit_return {
-        quote! { [].iter().cloned() }
-    } else {
-        quote! { [<#actual_return_type as ::wasm_shared::ToWasmValue>::WASM_VALUE_TYPE].iter().cloned() }
+    let wasm_return_types = quote! {
+        <#actual_return_type as ::wasm_shared::WasmFunctionReturnType>::WASM_TYPES.iter().cloned()
     };
 
     let func = quote! {
         #input
 
         pub fn #internal_ident(mut caller: ::wasmi::Caller<'_, #caller_store_type>, params: &[::wasmi::Val], results: &mut [::wasmi::Val]) -> ::core::result::Result<(), ::wasmi::Error> {
-            use ::wasm_shared::ToWasmValue;
+            use ::wasm_shared::WasmFunctionReturnType;
             #argument_accessor_start
             #(#argument_setters)*
 
             let result = #ident(caller, #(#function_call_parameters, )*);
 
-            #return_value_writer
+            result.write_return_values(stringify!(#ident), results);
 
             Ok(())
         }
