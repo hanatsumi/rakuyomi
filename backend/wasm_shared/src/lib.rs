@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Ok, Result};
 use chrono::DateTime;
 use memory_reader::{read_bytes, read_string};
 use wasmi::{core::ValType, Caller, Extern, Memory, Val};
@@ -182,5 +182,58 @@ impl ToWasmValue for i32 {
 
     fn to_wasm_value(&self) -> Val {
         Val::I32(*self)
+    }
+}
+
+pub trait WasmFunctionReturnType {
+    const WASM_TYPES: &'static [ValType];
+
+    fn write_return_values(self, function_name: &str, results: &mut [::wasmi::Val]);
+}
+
+impl<T> WasmFunctionReturnType for T
+where
+    T: ToWasmValue,
+{
+    const WASM_TYPES: &'static [ValType] = &[T::WASM_VALUE_TYPE];
+
+    fn write_return_values(self, _function_name: &str, results: &mut [wasmi::Val]) {
+        results[0] = self.to_wasm_value();
+    }
+}
+
+impl WasmFunctionReturnType for () {
+    const WASM_TYPES: &'static [ValType] = &[];
+
+    fn write_return_values(self, _function_name: &str, _results: &mut [wasmi::Val]) {
+        // No return values to write
+    }
+}
+
+impl WasmFunctionReturnType for Result<i32> {
+    const WASM_TYPES: &'static [ValType] = &[<i32 as ToWasmValue>::WASM_VALUE_TYPE];
+
+    fn write_return_values(self, function_name: &str, results: &mut [wasmi::Val]) {
+        use std::result::Result::Ok;
+
+        match self {
+            Ok(value) => {
+                results[0] = Val::I32(value);
+            }
+            Err(err) => {
+                log::warn!("error while calling {}: {}", function_name, err);
+                results[0] = Val::I32(-1); // Indicate error with -1
+            }
+        }
+    }
+}
+
+impl WasmFunctionReturnType for Result<()> {
+    const WASM_TYPES: &'static [ValType] = &[];
+
+    fn write_return_values(self, function_name: &str, _results: &mut [wasmi::Val]) {
+        if let Err(err) = self {
+            log::warn!("error while calling {}: {}", function_name, err);
+        }
     }
 }
