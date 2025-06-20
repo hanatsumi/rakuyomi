@@ -9,6 +9,7 @@ use wasm_shared::{
     memory_reader::{read_string as read_memory_string, write_bytes},
 };
 use wasmi::{core::F64, Caller, Linker};
+use wasm_macros::{aidoku_wasm_function, register_wasm_function};
 
 use crate::source::{
     model::{Filter, FilterType, Manga, MangaPageResult},
@@ -34,44 +35,39 @@ trait FieldAsValue {
 }
 
 pub fn register_std_imports(linker: &mut Linker<WasmStore>) -> Result<()> {
-    linker.func_wrap("std", "copy", copy)?;
-    linker.func_wrap("std", "destroy", destroy)?;
-
-    linker.func_wrap("std", "create_null", create_null)?;
-    linker.func_wrap("std", "create_int", create_int)?;
-    linker.func_wrap("std", "create_float", create_float)?;
-    linker.func_wrap("std", "create_string", create_string)?;
-    linker.func_wrap("std", "create_bool", create_bool)?;
-    linker.func_wrap("std", "create_array", create_array)?;
-    linker.func_wrap("std", "create_object", create_object)?;
-    linker.func_wrap("std", "create_date", create_date)?;
-
-    linker.func_wrap("std", "typeof", type_of)?;
-
-    linker.func_wrap("std", "string_len", string_len)?;
-    linker.func_wrap("std", "read_string", read_string)?;
-    linker.func_wrap("std", "read_int", read_int)?;
-    linker.func_wrap("std", "read_float", read_float)?;
-    linker.func_wrap("std", "read_bool", read_bool)?;
-    linker.func_wrap("std", "read_date", read_date)?;
-    linker.func_wrap("std", "read_date_string", read_date_string)?;
-
-    linker.func_wrap("std", "object_len", object_len)?;
-    linker.func_wrap("std", "object_get", object_get)?;
-    linker.func_wrap("std", "object_set", object_set)?;
-    linker.func_wrap("std", "object_remove", object_remove)?;
-    linker.func_wrap("std", "object_keys", object_keys)?;
-    linker.func_wrap("std", "object_values", object_values)?;
-
-    linker.func_wrap("std", "array_len", array_len)?;
-    linker.func_wrap("std", "array_get", array_get)?;
-    linker.func_wrap("std", "array_set", array_set)?;
-    linker.func_wrap("std", "array_append", array_append)?;
-    linker.func_wrap("std", "array_remove", array_remove)?;
-
+    register_wasm_function!(linker, "std", "copy", copy)?;
+    register_wasm_function!(linker, "std", "destroy", destroy)?;
+    register_wasm_function!(linker, "std", "create_null", create_null)?;
+    register_wasm_function!(linker, "std", "create_int", create_int)?;
+    register_wasm_function!(linker, "std", "create_float", create_float)?;
+    register_wasm_function!(linker, "std", "create_string", create_string)?;
+    register_wasm_function!(linker, "std", "create_bool", create_bool)?;
+    register_wasm_function!(linker, "std", "create_array", create_array)?;
+    register_wasm_function!(linker, "std", "create_object", create_object)?;
+    register_wasm_function!(linker, "std", "create_date", create_date)?;
+    register_wasm_function!(linker, "std", "typeof", type_of)?;
+    register_wasm_function!(linker, "std", "string_len", string_len)?;
+    register_wasm_function!(linker, "std", "read_string", read_string)?;
+    register_wasm_function!(linker, "std", "read_int", read_int)?;
+    register_wasm_function!(linker, "std", "read_float", read_float)?;
+    register_wasm_function!(linker, "std", "read_bool", read_bool)?;
+    register_wasm_function!(linker, "std", "read_date", read_date)?;
+    register_wasm_function!(linker, "std", "read_date_string", read_date_string)?;
+    register_wasm_function!(linker, "std", "object_len", object_len)?;
+    register_wasm_function!(linker, "std", "object_get", object_get)?;
+    register_wasm_function!(linker, "std", "object_set", object_set)?;
+    register_wasm_function!(linker, "std", "object_remove", object_remove)?;
+    register_wasm_function!(linker, "std", "object_keys", object_keys)?;
+    register_wasm_function!(linker, "std", "object_values", object_values)?;
+    register_wasm_function!(linker, "std", "array_len", array_len)?;
+    register_wasm_function!(linker, "std", "array_get", array_get)?;
+    register_wasm_function!(linker, "std", "array_set", array_set)?;
+    register_wasm_function!(linker, "std", "array_append", array_append)?;
+    register_wasm_function!(linker, "std", "array_remove", array_remove)?;
     Ok(())
 }
 
+#[aidoku_wasm_function]
 fn copy(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     descriptor_i32
         .try_into()
@@ -86,24 +82,29 @@ fn copy(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
         .unwrap_or(-1)
 }
 
+#[aidoku_wasm_function]
 fn destroy(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) {
     if let Ok(descriptor) = descriptor_i32.try_into() {
         caller.data_mut().remove_std_value(descriptor);
     }
 }
 
+#[aidoku_wasm_function]
 fn create_null(caller: Caller<'_, WasmStore>) -> i32 {
     create_value(caller, Value::Null)
 }
 
+#[aidoku_wasm_function]
 fn create_int(caller: Caller<'_, WasmStore>, value: i64) -> i32 {
     create_value(caller, value.into())
 }
 
+#[aidoku_wasm_function]
 fn create_float(caller: Caller<'_, WasmStore>, value: F64) -> i32 {
     create_value(caller, value.to_float().into())
 }
 
+#[aidoku_wasm_function]
 fn create_string(mut caller: Caller<'_, WasmStore>, offset: i32, length: i32) -> i32 {
     if let Some(memory) = get_memory(&mut caller) {
         read_memory_string(&memory, &caller, offset as usize, length as usize)
@@ -114,14 +115,17 @@ fn create_string(mut caller: Caller<'_, WasmStore>, offset: i32, length: i32) ->
     }
 }
 
+#[aidoku_wasm_function]
 fn create_bool(caller: Caller<'_, WasmStore>, value_i32: i32) -> i32 {
     create_value(caller, Value::Bool(value_i32 != 0))
 }
 
+#[aidoku_wasm_function]
 fn create_array(caller: Caller<'_, WasmStore>) -> i32 {
     create_value(caller, Value::Array(Vec::default()))
 }
 
+#[aidoku_wasm_function]
 fn create_date(caller: Caller<'_, WasmStore>, seconds_since_1970: F64) -> i32 {
     let seconds_since_1970 = seconds_since_1970.to_float();
     let full_seconds = seconds_since_1970.floor() as i64;
@@ -139,10 +143,12 @@ fn create_value(mut caller: Caller<'_, WasmStore>, value: Value) -> i32 {
     wasm_store.store_std_value(value.into(), None) as i32
 }
 
+#[aidoku_wasm_function]
 fn create_object(caller: Caller<'_, WasmStore>) -> i32 {
     create_value(caller, ValueMap::default().into())
 }
 
+#[aidoku_wasm_function]
 fn type_of(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     || -> Option<ObjectType> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
@@ -164,6 +170,7 @@ fn type_of(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     .unwrap_or(ObjectType::Null) as i32
 }
 
+#[aidoku_wasm_function]
 fn string_len(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     || -> Option<i32> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
@@ -178,6 +185,7 @@ fn string_len(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     .unwrap_or(-1)
 }
 
+#[aidoku_wasm_function]
 fn read_string(
     mut caller: Caller<'_, WasmStore>,
     descriptor_i32: i32,
@@ -203,6 +211,7 @@ fn read_string(
     }();
 }
 
+#[aidoku_wasm_function]
 fn read_int(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i64 {
     || -> Option<i64> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
@@ -221,6 +230,7 @@ fn read_int(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i64 {
     .unwrap_or(-1)
 }
 
+#[aidoku_wasm_function]
 fn read_float(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> F64 {
     || -> Option<f64> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
@@ -239,6 +249,7 @@ fn read_float(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> F64 {
     .into()
 }
 
+#[aidoku_wasm_function]
 fn read_bool(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     || -> Option<i32> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
@@ -255,6 +266,7 @@ fn read_bool(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     .unwrap_or(0)
 }
 
+#[aidoku_wasm_function]
 fn read_date(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> F64 {
     || -> Option<f64> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
@@ -273,6 +285,7 @@ fn read_date(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> F64 {
     .into()
 }
 
+#[aidoku_wasm_function]
 fn read_date_string(
     mut caller: Caller<'_, WasmStore>,
     descriptor_i32: i32,
@@ -351,6 +364,7 @@ fn read_date_string(
 // FIXME this entire object part stinks, and is probably going to be buggy as hell because we copy stuff around
 // probably not stop being dumb!!!!!!!!!!!!
 // probably yeah because swift store classes by reference and we store them by value
+#[aidoku_wasm_function]
 fn object_len(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     || -> Option<i32> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
@@ -367,6 +381,7 @@ fn object_len(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     .unwrap_or(0)
 }
 
+#[aidoku_wasm_function]
 fn object_get(
     mut caller: Caller<'_, WasmStore>,
     descriptor_i32: i32,
@@ -420,6 +435,7 @@ fn object_get(
     .unwrap_or(-1)
 }
 
+#[aidoku_wasm_function]
 fn object_set(
     mut caller: Caller<'_, WasmStore>,
     descriptor_i32: i32,
@@ -456,6 +472,7 @@ fn object_set(
     }();
 }
 
+#[aidoku_wasm_function]
 fn object_remove(
     mut caller: Caller<'_, WasmStore>,
     descriptor_i32: i32,
@@ -489,6 +506,7 @@ fn object_remove(
     }();
 }
 
+#[aidoku_wasm_function]
 fn object_keys(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     || -> Option<i32> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
@@ -507,6 +525,7 @@ fn object_keys(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     .unwrap_or(-1)
 }
 
+#[aidoku_wasm_function]
 fn object_values(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     || -> Option<i32> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
@@ -525,6 +544,7 @@ fn object_values(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 
     .unwrap_or(-1)
 }
 
+#[aidoku_wasm_function]
 fn array_len(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     || -> Option<i32> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
@@ -538,6 +558,7 @@ fn array_len(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
     .unwrap_or(-1)
 }
 
+#[aidoku_wasm_function]
 fn array_get(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, index_i32: i32) -> i32 {
     || -> Option<i32> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
@@ -558,6 +579,7 @@ fn array_get(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, index_i32: 
     .unwrap_or(-1)
 }
 
+#[aidoku_wasm_function]
 fn array_set(
     mut caller: Caller<'_, WasmStore>,
     descriptor_i32: i32,
@@ -589,6 +611,7 @@ fn array_set(
     }();
 }
 
+#[aidoku_wasm_function]
 fn array_append(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, value_i32: i32) {
     || -> Option<()> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
@@ -617,6 +640,7 @@ fn array_append(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, value_i3
     }();
 }
 
+#[aidoku_wasm_function]
 fn array_remove(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, index_i32: i32) {
     || -> Option<()> {
         let descriptor: usize = descriptor_i32.try_into().ok()?;
