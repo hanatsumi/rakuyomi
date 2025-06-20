@@ -161,34 +161,15 @@ impl WasmStore {
         self.std_descriptors.insert(descriptor, data);
     }
 
-    pub fn store_std_value(&mut self, data: ValueRef, from: Option<usize>) -> usize {
+    pub fn store_std_value(&mut self, data: ValueRef, _from: Option<usize>) -> usize {
         let pointer = self.increase_and_get_std_desciptor_pointer();
         self.std_descriptors.insert(pointer, data);
-
-        if let Some(from_pointer) = from {
-            let refs = self.std_references.entry(from_pointer).or_default();
-
-            refs.push(pointer);
-        }
 
         pointer
     }
 
     pub fn remove_std_value(&mut self, descriptor: usize) {
-        let removed_value = self.std_descriptors.remove(&descriptor);
-
-        if let Some(references_to_descriptor) = self.std_references.remove(&descriptor) {
-            for reference in references_to_descriptor {
-                if reference == descriptor {
-                    panic!(
-                        "found self-reference at descriptor {descriptor}: value was {:?}",
-                        removed_value
-                    );
-                }
-
-                self.remove_std_value(reference);
-            }
-        };
+        self.std_descriptors.remove(&descriptor);
     }
 
     // This might be used by some Aidoku unimplemented functions
