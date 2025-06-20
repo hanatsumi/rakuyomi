@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Context, Result};
 
 use scraper::{Element, Html as ScraperHtml, Node, Selector};
 use url::Url;
@@ -53,12 +53,12 @@ pub fn register_html_imports(linker: &mut Linker<WasmStore>) -> Result<()> {
 }
 
 #[aidoku_wasm_function]
-fn parse(caller: Caller<'_, WasmStore>, data: Option<String>) -> i32 {
+fn parse(caller: Caller<'_, WasmStore>, data: Option<String>) -> Result<i32> {
     parse_with_uri(caller, data, None)
 }
 
 #[aidoku_wasm_function]
-fn parse_fragment(caller: Caller<'_, WasmStore>, data: Option<String>) -> i32 {
+fn parse_fragment(caller: Caller<'_, WasmStore>, data: Option<String>) -> Result<i32> {
     parse_fragment_with_uri(caller, data, None)
 }
 
@@ -67,25 +67,22 @@ fn parse_with_uri(
     mut caller: Caller<'_, WasmStore>,
     data: Option<String>,
     uri: Option<String>,
-) -> i32 {
-    || -> Option<i32> {
-        let document = ScraperHtml::parse_document(&data?);
-        let node_id = document.root_element().id();
-        let uri = match uri {
-            Some(uri) => Some(Url::parse(&uri).ok()?),
-            None => None,
-        };
-        let html_element = HTMLElement {
-            document: Html::from(document).into(),
-            node_id,
-            base_uri: uri,
-        };
+) -> Result<i32> {
+    let document =
+        ScraperHtml::parse_document(&data.context("data is required for parse_with_uri")?);
+    let node_id = document.root_element().id();
+    let uri = uri
+        .map(|u| Url::parse(&u).context("invalid URI"))
+        .transpose()?;
+    let html_element = HTMLElement {
+        document: Html::from(document).into(),
+        node_id,
+        base_uri: uri,
+    };
 
-        let wasm_store = caller.data_mut();
+    let wasm_store = caller.data_mut();
 
-        Some(wasm_store.store_std_value(Value::from(vec![html_element]).into(), None) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(vec![html_element]).into(), None) as i32)
 }
 
 #[aidoku_wasm_function]
@@ -93,122 +90,133 @@ fn parse_fragment_with_uri(
     mut caller: Caller<'_, WasmStore>,
     data: Option<String>,
     uri: Option<String>,
-) -> i32 {
-    || -> Option<i32> {
-        let fragment = ScraperHtml::parse_fragment(&data?);
-        let node_id = fragment.root_element().id();
-        let uri = match uri {
-            Some(uri) => Some(Url::parse(&uri).ok()?),
-            None => None,
-        };
-        let html_element = HTMLElement {
-            document: Html::from(fragment).into(),
-            node_id,
-            base_uri: uri,
-        };
+) -> Result<i32> {
+    let fragment =
+        ScraperHtml::parse_fragment(&data.context("data is required for parse_fragment_with_uri")?);
+    let node_id = fragment.root_element().id();
+    let uri = uri
+        .map(|u| Url::parse(&u).context("invalid URI"))
+        .transpose()?;
+    let html_element = HTMLElement {
+        document: Html::from(fragment).into(),
+        node_id,
+        base_uri: uri,
+    };
 
-        let wasm_store = caller.data_mut();
+    let wasm_store = caller.data_mut();
 
-        Some(wasm_store.store_std_value(Value::from(vec![html_element]).into(), None) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(vec![html_element]).into(), None) as i32)
 }
 
 #[aidoku_wasm_function]
-fn select(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, selector: Option<String>) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
-        let wasm_store = caller.data_mut();
-        let std_value = wasm_store.get_std_value(descriptor)?;
-        let html_elements = match std_value.as_ref() {
-            Value::HTMLElements(elements) => Some(elements),
-            _ => None,
-        }?;
+fn select(
+    mut caller: Caller<'_, WasmStore>,
+    descriptor_i32: i32,
+    selector: Option<String>,
+) -> Result<i32> {
+    let descriptor: usize = descriptor_i32
+        .try_into()
+        .context("couldn't convert descriptor to i32")?;
+    let wasm_store = caller.data_mut();
+    let std_value = wasm_store
+        .get_std_value(descriptor)
+        .ok_or_else(|| anyhow!("failed to get value from store"))?;
+    let html_elements = match std_value.as_ref() {
+        Value::HTMLElements(elements) => Some(elements),
+        _ => None,
+    }
+    .context("expected HTMLElements value")?;
 
-        // TODO NAMING IS PURE GARBAGE
-        let selector = Selector::parse(&selector?).ok()?;
-        let selected_elements: Vec<_> = html_elements
+    // TODO NAMING IS PURE GARBAGE
+    let selector = selector.context("selector is required for select function")?;
+    let selector = Selector::parse(&selector)
+        .map_err(|e| anyhow!(e.to_string()))
+        .with_context(|| format!("couldn't parse selector '{}'", selector))?;
+    let selected_elements: Vec<_> = html_elements
+        .iter()
+        .flat_map(|element| {
+            element
+                .element_ref()
+                .select(&selector)
+                .map(|selected_element_ref| HTMLElement {
+                    document: element.document.clone(),
+                    node_id: selected_element_ref.id(),
+                    base_uri: element.base_uri.clone(),
+                })
+        })
+        .collect();
+
+    Ok(wasm_store.store_std_value(Value::from(selected_elements).into(), Some(descriptor)) as i32)
+}
+
+#[aidoku_wasm_function]
+fn attr(
+    mut caller: Caller<'_, WasmStore>,
+    descriptor_i32: i32,
+    selector: Option<String>,
+) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
+    let selector = selector.context("selector is required for attr function")?;
+
+    let has_abs_prefix = selector.starts_with("abs:");
+    let selector = if has_abs_prefix {
+        selector.strip_prefix("abs:").unwrap().to_string()
+    } else {
+        selector
+    };
+
+    let wasm_store = caller.data_mut();
+    let std_value = wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get standard value")?;
+    let elements = match std_value.as_ref() {
+        Value::HTMLElements(elements) => Some(elements),
+        _ => None,
+    }
+    .context("expected HTMLElements value")?;
+
+    let attr = elements
+        .iter()
+        .map(|element| {
+            let element_value = element.element_ref().value();
+
+            element_value.attr(&selector)
+        })
+        .find(|element| element.is_some())
+        .flatten()
+        .context("attribute not found")?
+        .to_string();
+
+    let attr = if has_abs_prefix {
+        let base_uri = elements
             .iter()
-            .flat_map(|element| {
-                element
-                    .element_ref()
-                    .select(&selector)
-                    .map(|selected_element_ref| HTMLElement {
-                        document: element.document.clone(),
-                        node_id: selected_element_ref.id(),
-                        base_uri: element.base_uri.clone(),
-                    })
-            })
-            .collect();
+            .find_map(|element| element.base_uri.as_ref())
+            .context("base URI not found")?;
+        let attr_url = Url::parse(&attr).context("failed to parse attribute URL")?;
+        let absolute_url = base_uri
+            .join(attr_url.as_str())
+            .context("failed to join base URI and attribute URL")?;
 
-        Some(
-            wasm_store.store_std_value(Value::from(selected_elements).into(), Some(descriptor))
-                as i32,
-        )
-    }()
-    .unwrap_or(-1)
+        absolute_url.to_string()
+    } else {
+        attr
+    };
+
+    Ok(wasm_store.store_std_value(Value::from(attr).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
-fn attr(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32, selector: Option<String>) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
-        let selector = selector?;
+fn set_text(
+    mut _caller: Caller<'_, WasmStore>,
+    descriptor_i32: i32,
+    text: Option<String>,
+) -> Result<i32> {
+    let _descriptor: usize = descriptor_i32
+        .try_into()
+        .context("failed to convert to descriptor")?;
+    let _text = text.context("text is required")?;
 
-        // SwiftSoup uses "abs:" as a prefix for attributes that should be converted to
-        // absolute URLs (e.g. href, src). Some Aidoku extensions actually use this (for some stupid
-        // reason), so we need to support it.
-        let has_abs_prefix = selector.starts_with("abs:");
-        let selector = if has_abs_prefix {
-            selector.strip_prefix("abs:").unwrap().to_string()
-        } else {
-            selector
-        };
-
-        let wasm_store = caller.data_mut();
-        let std_value = wasm_store.get_std_value(descriptor)?;
-        let elements = match std_value.as_ref() {
-            Value::HTMLElements(elements) => Some(elements),
-            _ => None,
-        }?;
-
-        let attr = elements
-            .iter()
-            .map(|element| {
-                let element_value = element.element_ref().value();
-
-                element_value.attr(&selector)
-            })
-            .find(|element| element.is_some())?
-            .unwrap()
-            .to_string();
-
-        let attr = if has_abs_prefix {
-            let base_uri = elements
-                .iter()
-                .find_map(|element| element.base_uri.as_ref())?;
-            let attr_url = Url::parse(&attr).ok()?;
-            let absolute_url = base_uri.join(attr_url.as_str()).ok()?;
-
-            absolute_url.to_string()
-        } else {
-            attr
-        };
-
-        Some(wasm_store.store_std_value(Value::from(attr).into(), Some(descriptor)) as i32)
-    }()
-    .unwrap_or(-1)
-}
-
-#[aidoku_wasm_function]
-fn set_text(mut _caller: Caller<'_, WasmStore>, descriptor_i32: i32, text: Option<String>) -> i32 {
-    || -> Option<i32> {
-        let _descriptor: usize = descriptor_i32.try_into().ok()?;
-        let _text = text?;
-
-        todo!("modifying the HTML document is unsupported")
-    }()
-    .unwrap_or(-1)
+    todo!("modifying the HTML document is unsupported")
 }
 
 #[aidoku_wasm_function]
@@ -227,199 +235,207 @@ fn append(_caller: Caller<'_, WasmStore>, _descriptor_i32: i32, _text: Option<St
 }
 
 #[aidoku_wasm_function]
-fn first(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
+fn first(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
 
-        let wasm_store = caller.data_mut();
-        let std_value = wasm_store.get_std_value(descriptor)?;
-        // TODO should this work if we have only one element? i guess so..?
-        let element = match std_value.as_ref() {
-            Value::HTMLElements(elements) => Some(elements.first().unwrap().clone()),
-            _ => None,
-        }?;
+    let wasm_store = caller.data_mut();
+    let std_value = wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?;
+    let element = match std_value.as_ref() {
+        Value::HTMLElements(elements) => Some(elements.first().unwrap().clone()),
+        _ => None,
+    }
+    .context("expected HTMLElements value")?;
 
-        Some(wasm_store.store_std_value(Value::from(vec![element]).into(), Some(descriptor)) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(vec![element]).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
-fn last(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
+fn last(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
 
-        let wasm_store = caller.data_mut();
-        // TODO should this work if we have only one element? i guess so..?
-        let element = match wasm_store.get_std_value(descriptor)?.as_ref() {
-            Value::HTMLElements(elements) => Some(elements.last().unwrap().clone()),
-            _ => None,
-        }?;
+    let wasm_store = caller.data_mut();
+    let std_value = wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?;
+    let element = match std_value.as_ref() {
+        Value::HTMLElements(elements) => Some(elements.last().unwrap().clone()),
+        _ => None,
+    }
+    .context("expected HTMLElements value")?;
 
-        Some(wasm_store.store_std_value(Value::from(vec![element]).into(), Some(descriptor)) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(vec![element]).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
-fn next(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
+fn next(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
 
-        let wasm_store = caller.data_mut();
-        let std_value = wasm_store.get_std_value(descriptor)?;
-        let element = match std_value.as_ref() {
-            Value::HTMLElements(elements) if elements.len() == 1 => {
-                Some(elements.last().unwrap().clone())
-            }
-            _ => None,
-        }?;
+    let wasm_store = caller.data_mut();
+    let std_value = wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?;
+    let element = match std_value.as_ref() {
+        Value::HTMLElements(elements) if elements.len() == 1 => {
+            Some(elements.last().unwrap().clone())
+        }
+        _ => None,
+    }
+    .context("expected a single HTMLElement")?;
 
-        let next_sibling_node_id = element.element_ref().next_sibling_element()?.id();
-        let new_element = HTMLElement {
-            document: element.document.clone(),
-            node_id: next_sibling_node_id,
-            base_uri: element.base_uri.clone(),
-        };
+    let next_sibling_node_id = element
+        .element_ref()
+        .next_sibling_element()
+        .context("no next sibling element found")?
+        .id();
+    let new_element = HTMLElement {
+        document: element.document.clone(),
+        node_id: next_sibling_node_id,
+        base_uri: element.base_uri.clone(),
+    };
 
-        Some(
-            wasm_store.store_std_value(Value::from(vec![new_element]).into(), Some(descriptor))
-                as i32,
-        )
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(vec![new_element]).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
-fn previous(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
+fn previous(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
 
-        let wasm_store = caller.data_mut();
-        let element = match wasm_store.get_std_value(descriptor)?.as_ref() {
-            Value::HTMLElements(elements) if elements.len() == 1 => {
-                Some(elements.last().unwrap().clone())
-            }
-            _ => None,
-        }?;
+    let wasm_store = caller.data_mut();
+    let element = match wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?
+        .as_ref()
+    {
+        Value::HTMLElements(elements) if elements.len() == 1 => {
+            Some(elements.last().unwrap().clone())
+        }
+        _ => None,
+    }
+    .context("expected a single HTMLElement")?;
 
-        let next_sibling_node_id = element.element_ref().next_sibling_element()?.id();
-        let new_element = HTMLElement {
-            document: element.document.clone(),
-            node_id: next_sibling_node_id,
-            base_uri: element.base_uri.clone(),
-        };
+    let next_sibling_node_id = element
+        .element_ref()
+        .next_sibling_element()
+        .context("no next sibling element found")?
+        .id();
+    let new_element = HTMLElement {
+        document: element.document.clone(),
+        node_id: next_sibling_node_id,
+        base_uri: element.base_uri.clone(),
+    };
 
-        Some(
-            wasm_store.store_std_value(Value::from(vec![new_element]).into(), Some(descriptor))
-                as i32,
-        )
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(vec![new_element]).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
-fn base_uri(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
+fn base_uri(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
 
-        let wasm_store = caller.data_mut();
-        let element = match wasm_store.get_std_value(descriptor)?.as_ref() {
-            Value::HTMLElements(elements) if elements.len() == 1 => {
-                Some(elements.last().unwrap().clone())
-            }
-            _ => None,
-        }?;
+    let wasm_store = caller.data_mut();
+    let element = match wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?
+        .as_ref()
+    {
+        Value::HTMLElements(elements) if elements.len() == 1 => {
+            Some(elements.last().unwrap().clone())
+        }
+        _ => None,
+    }
+    .context("expected a single HTMLElement")?;
 
-        let base_uri = element.base_uri?.to_string();
+    let base_uri = element
+        .base_uri
+        .as_ref()
+        .context("base URI not found")?
+        .to_string();
 
-        Some(wasm_store.store_std_value(Value::from(base_uri).into(), Some(descriptor)) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(base_uri).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
-fn body(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
+fn body(caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
     select(caller, descriptor_i32, Some("body".into()))
 }
 
 #[aidoku_wasm_function]
-fn text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
+fn text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
 
-        let wasm_store = caller.data_mut();
-        let std_value = wasm_store.get_std_value(descriptor)?;
-        let elements = match std_value.as_ref() {
-            Value::HTMLElements(elements) => Some(elements),
-            _ => None,
-        }?;
+    let wasm_store = caller.data_mut();
+    let std_value = wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?;
+    let elements = match std_value.as_ref() {
+        Value::HTMLElements(elements) => Some(elements),
+        _ => None,
+    }
+    .context("expected HTMLElements value")?;
 
-        let text = elements
-            .iter()
-            .flat_map(|element| element.element_ref().text())
-            .map(|s| s.trim())
-            .collect::<Vec<_>>()
-            .join(" ");
+    let text = elements
+        .iter()
+        .flat_map(|element| element.element_ref().text())
+        .map(|s| s.trim())
+        .collect::<Vec<_>>()
+        .join(" ");
 
-        Some(wasm_store.store_std_value(Value::from(text).into(), Some(descriptor)) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(text).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
-fn untrimmed_text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
+fn untrimmed_text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
 
-        let wasm_store = caller.data_mut();
-        let std_value = wasm_store.get_std_value(descriptor)?;
-        let elements = match std_value.as_ref() {
-            Value::HTMLElements(elements) => Some(elements),
-            _ => None,
-        }?;
+    let wasm_store = caller.data_mut();
+    let std_value = wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?;
+    let elements = match std_value.as_ref() {
+        Value::HTMLElements(elements) => Some(elements),
+        _ => None,
+    }
+    .context("expected HTMLElements value")?;
 
-        let text = elements
-            .iter()
-            .flat_map(|element| element.element_ref().text())
-            .collect::<Vec<_>>()
-            .join(" ");
+    let text = elements
+        .iter()
+        .flat_map(|element| element.element_ref().text())
+        .collect::<Vec<_>>()
+        .join(" ");
 
-        Some(wasm_store.store_std_value(Value::from(text).into(), Some(descriptor)) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(text).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
-fn own_text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
+fn own_text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
 
-        let wasm_store = caller.data_mut();
-        let std_value = wasm_store.get_std_value(descriptor)?;
-        let own_text = match std_value.as_ref() {
-            Value::HTMLElements(elements) if elements.len() == 1 => {
-                let element = elements.first().unwrap();
-                let own_text = element
-                    .element_ref()
-                    .children()
-                    .filter_map(|node_ref| match node_ref.value() {
-                        // FIXME WHAT
-                        Node::Text(text) => Some(&**text),
-                        _ => None,
-                    })
-                    .collect::<Vec<_>>()
-                    .join("");
+    let wasm_store = caller.data_mut();
+    let std_value = wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?;
+    let own_text = match std_value.as_ref() {
+        Value::HTMLElements(elements) if elements.len() == 1 => {
+            let element = elements.first().unwrap();
+            let own_text = element
+                .element_ref()
+                .children()
+                .filter_map(|node_ref| match node_ref.value() {
+                    // FIXME WHAT
+                    Node::Text(text) => Some(&**text),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join("");
+            Some(own_text)
+        }
+        Value::String(s) => Some(s.to_string()),
+        _ => None,
+    }
+    .context("expected single HTMLElement or String value")?;
 
-                Some(own_text)
-            }
-            Value::String(s) => Some(s.to_string()), // what the fuck why is this valid i dont fucking know
-            _ => None,
-        }?;
-
-        Some(wasm_store.store_std_value(Value::String(own_text).into(), Some(descriptor)) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::String(own_text).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
@@ -428,193 +444,206 @@ fn data(_caller: Caller<'_, WasmStore>, _descriptor_i32: i32) -> i32 {
 }
 
 #[aidoku_wasm_function]
-fn array(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
+fn array(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
 
-        let wasm_store = caller.data_mut();
-        let std_value = wasm_store.get_std_value(descriptor)?;
-        let elements = match std_value.as_ref() {
-            // why
-            Value::HTMLElements(elements) => Some(elements),
-            _ => None,
-        }?;
+    let wasm_store = caller.data_mut();
+    let std_value = wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?;
+    let elements = match std_value.as_ref() {
+        Value::HTMLElements(elements) => Some(elements),
+        _ => None,
+    }
+    .context("expected HTMLElements value")?;
 
-        let array_value: Vec<Value> = elements
-            .iter()
-            .map(|element| vec![element.clone()].into())
-            .collect();
+    let array_value: Vec<Value> = elements
+        .iter()
+        .map(|element| vec![element.clone()].into())
+        .collect();
 
-        Some(wasm_store.store_std_value(Value::from(array_value).into(), Some(descriptor)) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(array_value).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
-fn html(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
+fn html(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
 
-        let wasm_store = caller.data_mut();
-        let std_value = wasm_store.get_std_value(descriptor)?;
-        let elements = match std_value.as_ref() {
-            Value::HTMLElements(elements) => Some(elements),
-            _ => None,
-        }?;
+    let wasm_store = caller.data_mut();
+    let std_value = wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?;
+    let elements = match std_value.as_ref() {
+        Value::HTMLElements(elements) => Some(elements),
+        _ => None,
+    }
+    .context("expected HTMLElements value")?;
 
-        let inner_htmls = elements
-            .iter()
-            .map(|element| element.element_ref().inner_html())
-            .collect::<Vec<_>>()
-            .join("\n");
+    let inner_htmls = elements
+        .iter()
+        .map(|element| element.element_ref().inner_html())
+        .collect::<Vec<_>>()
+        .join("\n");
 
-        Some(wasm_store.store_std_value(Value::from(inner_htmls).into(), Some(descriptor)) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(inner_htmls).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
-fn outer_html(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
+fn outer_html(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
 
-        let wasm_store = caller.data_mut();
-        let std_value = wasm_store.get_std_value(descriptor)?;
-        let elements = match std_value.as_ref() {
-            Value::HTMLElements(elements) => Some(elements),
-            _ => None,
-        }?;
+    let wasm_store = caller.data_mut();
+    let std_value = wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?;
+    let elements = match std_value.as_ref() {
+        Value::HTMLElements(elements) => Some(elements),
+        _ => None,
+    }
+    .context("expected HTMLElements value")?;
 
-        let htmls = elements
-            .iter()
-            .map(|element| element.element_ref().html())
-            .collect::<Vec<_>>()
-            .join("\n");
+    let htmls = elements
+        .iter()
+        .map(|element| element.element_ref().html())
+        .collect::<Vec<_>>()
+        .join("\n");
 
-        Some(wasm_store.store_std_value(Value::from(htmls).into(), Some(descriptor)) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(htmls).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
-fn escape(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
+fn escape(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
 
-        let wasm_store = caller.data_mut();
-        let text = match wasm_store.get_std_value(descriptor)?.as_ref() {
-            Value::HTMLElements(elements) => {
-                let text = elements
-                    .iter()
-                    .flat_map(|element| element.element_ref().text())
-                    .map(|s| s.trim())
-                    .collect::<Vec<_>>()
-                    .join(" ");
+    let wasm_store = caller.data_mut();
+    let text = match wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?
+        .as_ref()
+    {
+        Value::HTMLElements(elements) => {
+            let text = elements
+                .iter()
+                .flat_map(|element| element.element_ref().text())
+                .map(|s| s.trim())
+                .collect::<Vec<_>>()
+                .join(" ");
+            Some(text)
+        }
+        Value::String(s) => Some(s.to_owned()),
+        _ => None,
+    }
+    .context("expected HTMLElements or String value")?;
 
-                Some(text)
-            }
-            Value::String(s) => Some(s.to_owned()),
-            _ => None,
-        }?;
+    let escaped = html_escape::encode_safe(&text).to_string();
 
-        let escaped = html_escape::encode_safe(&text).to_string();
-
-        Some(wasm_store.store_std_value(Value::from(escaped).into(), Some(descriptor)) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(escaped).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
-fn unescape(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
+fn unescape(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
 
-        let wasm_store = caller.data_mut();
-        let text = match wasm_store.get_std_value(descriptor)?.as_ref() {
-            Value::HTMLElements(elements) => {
-                let text = elements
-                    .iter()
-                    .flat_map(|element| element.element_ref().text())
-                    .map(|s| s.trim())
-                    .collect::<Vec<_>>()
-                    .join(" ");
+    let wasm_store = caller.data_mut();
+    let text = match wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?
+        .as_ref()
+    {
+        Value::HTMLElements(elements) => {
+            let text = elements
+                .iter()
+                .flat_map(|element| element.element_ref().text())
+                .map(|s| s.trim())
+                .collect::<Vec<_>>()
+                .join(" ");
+            Some(text)
+        }
+        Value::String(s) => Some(s.to_owned()),
+        _ => None,
+    }
+    .context("expected HTMLElements or String value")?;
 
-                Some(text)
-            }
-            Value::String(s) => Some(s.to_owned()),
-            _ => None,
-        }?;
+    let unescaped = html_escape::decode_html_entities(&text).to_string();
 
-        let unescaped = html_escape::decode_html_entities(&text).to_string();
-
-        Some(wasm_store.store_std_value(Value::from(unescaped).into(), Some(descriptor)) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(unescaped).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
-fn id(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
+fn id(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
 
-        let wasm_store = caller.data_mut();
-        let element = match wasm_store.get_std_value(descriptor)?.as_ref() {
-            Value::HTMLElements(elements) if elements.len() == 1 => {
-                Some(elements.last().unwrap().clone())
-            }
-            _ => None,
-        }?;
+    let wasm_store = caller.data_mut();
+    let element = match wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?
+        .as_ref()
+    {
+        Value::HTMLElements(elements) if elements.len() == 1 => {
+            Some(elements.last().unwrap().clone())
+        }
+        _ => None,
+    }
+    .context("expected a single HTMLElement")?;
 
-        let id = element.element_ref().value().id()?.to_string();
+    let id = element
+        .element_ref()
+        .value()
+        .id()
+        .context("element has no id attribute")?
+        .to_string();
 
-        Some(wasm_store.store_std_value(Value::from(id).into(), Some(descriptor)) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(id).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
-fn tag_name(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
+fn tag_name(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
 
-        let wasm_store = caller.data_mut();
-        let element = match wasm_store.get_std_value(descriptor)?.as_ref() {
-            Value::HTMLElements(elements) if elements.len() == 1 => {
-                Some(elements.last().unwrap().clone())
-            }
-            _ => None,
-        }?;
+    let wasm_store = caller.data_mut();
+    let element = match wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?
+        .as_ref()
+    {
+        Value::HTMLElements(elements) if elements.len() == 1 => {
+            Some(elements.last().unwrap().clone())
+        }
+        _ => None,
+    }
+    .context("expected a single HTMLElement")?;
 
-        let tag_name = element.element_ref().value().name().to_string();
+    let tag_name = element.element_ref().value().name().to_string();
 
-        Some(wasm_store.store_std_value(Value::from(tag_name).into(), Some(descriptor)) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(tag_name).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
-fn class_name(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
+fn class_name(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
 
-        let wasm_store = caller.data_mut();
-        let element = match wasm_store.get_std_value(descriptor)?.as_ref() {
-            Value::HTMLElements(elements) if elements.len() == 1 => {
-                Some(elements.last().unwrap().clone())
-            }
-            _ => None,
-        }?;
+    let wasm_store = caller.data_mut();
+    let element = match wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?
+        .as_ref()
+    {
+        Value::HTMLElements(elements) if elements.len() == 1 => {
+            Some(elements.last().unwrap().clone())
+        }
+        _ => None,
+    }
+    .context("expected a single HTMLElement")?;
 
-        let class_name = element
-            .element_ref()
-            .value()
-            .attr("class")?
-            .trim()
-            .to_string();
+    let class_name = element
+        .element_ref()
+        .value()
+        .attr("class")
+        .context("element has no class attribute")?
+        .trim()
+        .to_string();
 
-        Some(wasm_store.store_std_value(Value::from(class_name).into(), Some(descriptor)) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(class_name).into(), Some(descriptor)) as i32)
 }
 
 #[aidoku_wasm_function]
@@ -622,28 +651,30 @@ fn has_class(
     mut caller: Caller<'_, WasmStore>,
     descriptor_i32: i32,
     class_name: Option<String>,
-) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
-        let class_name = class_name?;
+) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
+    let class_name = class_name.context("class_name is required")?;
 
-        let wasm_store = caller.data_mut();
-        let element = match wasm_store.get_std_value(descriptor)?.as_ref() {
-            Value::HTMLElements(elements) if elements.len() == 1 => {
-                Some(elements.last().unwrap().clone())
-            }
-            _ => None,
-        }?;
+    let wasm_store = caller.data_mut();
+    let element = match wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?
+        .as_ref()
+    {
+        Value::HTMLElements(elements) if elements.len() == 1 => {
+            Some(elements.last().unwrap().clone())
+        }
+        _ => None,
+    }
+    .context("expected a single HTMLElement")?;
 
-        let has_class = element
-            .element_ref()
-            .value()
-            .classes()
-            .any(|class| class == class_name);
+    let has_class = element
+        .element_ref()
+        .value()
+        .classes()
+        .any(|class| class == class_name);
 
-        Some(if has_class { 1 } else { 0 })
-    }()
-    .unwrap_or(0)
+    Ok(if has_class { 1 } else { 0 })
 }
 
 #[aidoku_wasm_function]
@@ -651,26 +682,28 @@ fn has_attr(
     mut caller: Caller<'_, WasmStore>,
     descriptor_i32: i32,
     attr_name: Option<String>,
-) -> i32 {
-    || -> Option<i32> {
-        let descriptor: usize = descriptor_i32.try_into().ok()?;
-        let attr_name = attr_name?;
+) -> Result<i32> {
+    let descriptor: usize = descriptor_i32.try_into().context("invalid descriptor")?;
+    let attr_name = attr_name.context("attr_name is required")?;
 
-        let wasm_store = caller.data_mut();
-        let element = match wasm_store.get_std_value(descriptor)?.as_ref() {
-            Value::HTMLElements(elements) if elements.len() == 1 => {
-                Some(elements.last().unwrap().clone())
-            }
-            _ => None,
-        }?;
+    let wasm_store = caller.data_mut();
+    let element = match wasm_store
+        .get_std_value(descriptor)
+        .context("failed to get value from store")?
+        .as_ref()
+    {
+        Value::HTMLElements(elements) if elements.len() == 1 => {
+            Some(elements.last().unwrap().clone())
+        }
+        _ => None,
+    }
+    .context("expected a single HTMLElement")?;
 
-        let has_attr = element
-            .element_ref()
-            .value()
-            .attrs()
-            .any(|(name, _)| name == attr_name);
+    let has_attr = element
+        .element_ref()
+        .value()
+        .attrs()
+        .any(|(name, _)| name == attr_name);
 
-        Some(if has_attr { 1 } else { 0 })
-    }()
-    .unwrap_or(0)
+    Ok(if has_attr { 1 } else { 0 })
 }
