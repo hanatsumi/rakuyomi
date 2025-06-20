@@ -1,7 +1,10 @@
 use anyhow::{anyhow, Ok, Result};
 use chrono::DateTime;
 use memory_reader::{read_bytes, read_string};
-use wasmi::{core::ValType, Caller, Extern, Memory, Val};
+use wasmi::{
+    core::{ValType, F64},
+    Caller, Extern, Memory, Val,
+};
 
 pub mod memory_reader;
 
@@ -171,6 +174,18 @@ impl<T> FromWasmValues<T> for f64 {
     }
 }
 
+impl<T> FromWasmValues<T> for F64 {
+    const WASM_VALUE_COUNT: usize = 1;
+
+    fn get_wasm_value_types() -> &'static [ValType] {
+        &[ValType::F64]
+    }
+
+    fn from_wasm_values(_caller: &mut Caller<'_, T>, values: &[Val]) -> Self {
+        values[0].f64().unwrap()
+    }
+}
+
 pub trait ToWasmValue {
     const WASM_VALUE_TYPE: ValType;
 
@@ -182,6 +197,22 @@ impl ToWasmValue for i32 {
 
     fn to_wasm_value(&self) -> Val {
         Val::I32(*self)
+    }
+}
+
+impl ToWasmValue for i64 {
+    const WASM_VALUE_TYPE: ValType = ValType::I64;
+
+    fn to_wasm_value(&self) -> Val {
+        Val::I64(*self)
+    }
+}
+
+impl ToWasmValue for F64 {
+    const WASM_VALUE_TYPE: ValType = ValType::F64;
+
+    fn to_wasm_value(&self) -> Val {
+        Val::F64(*self)
     }
 }
 
