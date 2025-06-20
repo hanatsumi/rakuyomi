@@ -259,6 +259,42 @@ impl WasmFunctionReturnType for Result<i32> {
     }
 }
 
+impl WasmFunctionReturnType for Result<i64> {
+    const WASM_TYPES: &'static [ValType] = &[<i64 as ToWasmValue>::WASM_VALUE_TYPE];
+
+    fn write_return_values(self, function_name: &str, results: &mut [wasmi::Val]) {
+        use std::result::Result::Ok;
+
+        match self {
+            Ok(value) => {
+                results[0] = Val::I64(value);
+            }
+            Err(err) => {
+                log::warn!("error while calling {}: {}", function_name, err);
+                results[0] = Val::I64(-1); // Indicate error with -1
+            }
+        }
+    }
+}
+
+impl WasmFunctionReturnType for Result<F64> {
+    const WASM_TYPES: &'static [ValType] = &[ValType::F64];
+
+    fn write_return_values(self, function_name: &str, results: &mut [wasmi::Val]) {
+        use std::result::Result::Ok;
+
+        match self {
+            Ok(value) => {
+                results[0] = Val::F64(value);
+            }
+            Err(err) => {
+                log::warn!("error while calling {}: {}", function_name, err);
+                results[0] = Val::F64(F64::from(-1.0)); // Indicate error with -1.0
+            }
+        }
+    }
+}
+
 impl WasmFunctionReturnType for Result<()> {
     const WASM_TYPES: &'static [ValType] = &[];
 

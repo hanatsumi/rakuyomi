@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use serde::de::{Deserialize, MapAccess, Visitor};
 use wasm_macros::{aidoku_wasm_function, register_wasm_function};
 use wasmi::{Caller, Linker};
@@ -12,15 +12,12 @@ pub fn register_json_imports(linker: &mut Linker<WasmStore>) -> Result<()> {
 }
 
 #[aidoku_wasm_function]
-fn parse(mut caller: Caller<'_, WasmStore>, json: Option<String>) -> i32 {
-    || -> Option<i32> {
-        let value: Value = serde_json::from_str(&json?).ok()?;
+fn parse(mut caller: Caller<'_, WasmStore>, json: Option<String>) -> Result<i32> {
+    let json = json.context("json string is required")?;
+    let value: Value = serde_json::from_str(&json).context("failed to parse JSON")?;
+    let wasm_store = caller.data_mut();
 
-        let wasm_store = caller.data_mut();
-
-        Some(wasm_store.store_std_value(value.into(), None) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(value.into(), None) as i32)
 }
 
 impl<'de> Deserialize<'de> for Value {

@@ -1,5 +1,5 @@
 use crate::{source::wasm_store::Html, util::has_internet_connection};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use futures::executor;
 use log::warn;
 use num_enum::FromPrimitive;
@@ -65,7 +65,7 @@ impl From<AidokuHttpMethod> for Method {
 }
 
 #[aidoku_wasm_function]
-fn init(mut caller: Caller<'_, WasmStore>, method: i32) -> i32 {
+fn init(mut caller: Caller<'_, WasmStore>, method: i32) -> Result<i32> {
     let method = method
         .try_into()
         .map(AidokuHttpMethod::from_primitive)
@@ -75,9 +75,12 @@ fn init(mut caller: Caller<'_, WasmStore>, method: i32) -> i32 {
     // TODO maybe also return a mut reference in create_request to building state?
     // should help with type safety down below. or maybe not idk ig its fine
     let request_descriptor = wasm_store.create_request();
-    let request = match wasm_store.get_mut_request(request_descriptor).unwrap() {
+    let request = match wasm_store
+        .get_mut_request(request_descriptor)
+        .context("failed to get request state")?
+    {
         RequestState::Building(building_state) => building_state,
-        _ => panic!("what the fuck"),
+        _ => anyhow::bail!("unexpected request state"),
     };
 
     request.method = Some(method.into());
@@ -85,37 +88,48 @@ fn init(mut caller: Caller<'_, WasmStore>, method: i32) -> i32 {
         .headers
         .insert("User-Agent".into(), DEFAULT_USER_AGENT.into());
 
-    request_descriptor as i32
+    Ok(request_descriptor as i32)
 }
 
 #[aidoku_wasm_function]
-fn close(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) {
-    || -> Option<()> {
-        let request_descriptor: usize = request_descriptor_i32.try_into().ok()?;
-        let wasm_store = caller.data_mut();
+fn close(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> Result<()> {
+    let request_descriptor: usize = request_descriptor_i32
+        .try_into()
+        .context("invalid request descriptor")?;
+    let wasm_store = caller.data_mut();
 
-        let request = wasm_store.get_mut_request(request_descriptor)?;
-        *request = RequestState::Closed;
+    let request = wasm_store
+        .get_mut_request(request_descriptor)
+        .context("failed to get request state")?;
+    *request = RequestState::Closed;
 
-        Some(())
-    }();
+    Ok(())
 }
 
 #[aidoku_wasm_function]
-fn set_url(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32, url: Option<String>) {
-    || -> Option<()> {
-        let request_descriptor: usize = request_descriptor_i32.try_into().ok()?;
-        let wasm_store = caller.data_mut();
+fn set_url(
+    mut caller: Caller<'_, WasmStore>,
+    request_descriptor_i32: i32,
+    url: Option<String>,
+) -> Result<()> {
+    let request_descriptor: usize = request_descriptor_i32
+        .try_into()
+        .context("invalid request descriptor")?;
+    let wasm_store = caller.data_mut();
 
-        let request_builder = match wasm_store.get_mut_request(request_descriptor)? {
-            RequestState::Building(builder) => Some(builder),
-            _ => None,
-        }?;
+    let request_builder = match wasm_store
+        .get_mut_request(request_descriptor)
+        .context("failed to get request state")?
+    {
+        RequestState::Building(builder) => Some(builder),
+        _ => None,
+    }
+    .context("request is not in building state")?;
 
-        request_builder.url = Some(Url::parse(&url?).ok()?);
+    request_builder.url =
+        Some(Url::parse(&url.context("url is required")?).context("invalid url")?);
 
-        Some(())
-    }();
+    Ok(())
 }
 
 #[aidoku_wasm_function]
@@ -124,20 +138,27 @@ fn set_header(
     request_descriptor_i32: i32,
     name: Option<String>,
     value: Option<String>,
-) {
-    || -> Option<()> {
-        let request_descriptor: usize = request_descriptor_i32.try_into().ok()?;
-        let wasm_store = caller.data_mut();
+) -> Result<()> {
+    let request_descriptor: usize = request_descriptor_i32
+        .try_into()
+        .context("invalid request descriptor")?;
+    let wasm_store = caller.data_mut();
 
-        let request_builder = match wasm_store.get_mut_request(request_descriptor)? {
-            RequestState::Building(builder) => Some(builder),
-            _ => None,
-        }?;
+    let request_builder = match wasm_store
+        .get_mut_request(request_descriptor)
+        .context("failed to get request state")?
+    {
+        RequestState::Building(builder) => Some(builder),
+        _ => None,
+    }
+    .context("request is not in building state")?;
 
-        request_builder.headers.insert(name?, value?);
+    request_builder.headers.insert(
+        name.context("header name is required")?,
+        value.context("header value is required")?,
+    );
 
-        Some(())
-    }();
+    Ok(())
 }
 
 #[aidoku_wasm_function]
@@ -145,137 +166,153 @@ fn set_body(
     mut caller: Caller<'_, WasmStore>,
     request_descriptor_i32: i32,
     bytes: Option<Vec<u8>>,
-) {
-    || -> Option<()> {
-        let request_descriptor: usize = request_descriptor_i32.try_into().ok()?;
-        let wasm_store = caller.data_mut();
+) -> Result<()> {
+    let request_descriptor: usize = request_descriptor_i32
+        .try_into()
+        .context("invalid request descriptor")?;
+    let wasm_store = caller.data_mut();
 
-        let request_builder = match wasm_store.get_mut_request(request_descriptor)? {
-            RequestState::Building(builder) => Some(builder),
-            _ => None,
-        }?;
+    let request_builder = match wasm_store
+        .get_mut_request(request_descriptor)
+        .context("failed to get request state")?
+    {
+        RequestState::Building(builder) => Some(builder),
+        _ => None,
+    }
+    .context("request is not in building state")?;
 
-        request_builder.body = Some(bytes?);
+    request_builder.body = Some(bytes.context("body bytes are required")?);
 
-        Some(())
-    }();
+    Ok(())
 }
 
 #[aidoku_wasm_function]
-fn set_rate_limit(_caller: Caller<'_, WasmStore>, _rate_limit: i32) {
+fn set_rate_limit(_caller: Caller<'_, WasmStore>, _rate_limit: i32) -> Result<()> {
     todo!("rate-limit functions are not supported at the moment")
 }
 
 #[aidoku_wasm_function]
-fn set_rate_limit_period(_caller: Caller<'_, WasmStore>, _rate_limit_period: i32) {
+fn set_rate_limit_period(_caller: Caller<'_, WasmStore>, _rate_limit_period: i32) -> Result<()> {
     todo!("rate-limit functions are not supported at the moment")
 }
 
 #[aidoku_wasm_function]
-fn send(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) {
-    || -> Option<()> {
-        let wasm_store = caller.data_mut();
-        let cancellation_token = wasm_store.context.cancellation_token.clone();
+fn send(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> Result<()> {
+    let wasm_store = caller.data_mut();
+    let cancellation_token = wasm_store.context.cancellation_token.clone();
 
-        // HACK Before everything, we want to fail fast if no internet connection is available.
-        // In theory, it would be easier to just let things fail naturally and move on
-        // with our lives; but DNS resolution takes forever (~5s or so) when we have no connection
-        // available - due to musl's `getaddrinfo()` call not realizing we have no connection and
-        // timing out (EAI_AGAIN). The overhead of checking for a connection here seems worth it.
-        let has_internet_connection =
-            executor::block_on(cancellation_token.run_until_cancelled(has_internet_connection()))?;
-        if !has_internet_connection {
-            return None;
-        }
+    // HACK Before everything, we want to fail fast if no internet connection is available.
+    // In theory, it would be easier to just let things fail naturally and move on
+    // with our lives; but DNS resolution takes forever (~5s or so) when we have no connection
+    // available - due to musl's `getaddrinfo()` call not realizing we have no connection and
+    // timing out (EAI_AGAIN). The overhead of checking for a connection here seems worth it.
+    let has_internet_connection =
+        executor::block_on(cancellation_token.run_until_cancelled(has_internet_connection()))
+            .context("failed to check internet connection")?;
+    if !has_internet_connection {
+        anyhow::bail!("no internet connection available");
+    }
 
-        let request_descriptor: usize = request_descriptor_i32.try_into().ok()?;
+    let request_descriptor: usize = request_descriptor_i32
+        .try_into()
+        .context("invalid request descriptor")?;
 
-        let request_state = wasm_store.get_mut_request(request_descriptor)?;
-        let request_builder = match request_state {
-            RequestState::Building(ref builder) => Some(builder),
-            _ => None,
-        }?;
+    let request_state = wasm_store
+        .get_mut_request(request_descriptor)
+        .context("failed to get request state")?;
+    let request_builder = match request_state {
+        RequestState::Building(ref builder) => Some(builder),
+        _ => None,
+    }
+    .context("request is not in building state")?;
 
-        let client = reqwest::Client::new();
-        let request = Request::try_from(request_builder).ok()?;
+    let client = reqwest::Client::new();
+    let request = Request::try_from(request_builder).context("failed to build request")?;
 
-        let warn_cancellation = || {
-            warn!(
-                "request to {:?} was cancelled mid-flight!",
-                &request_builder.url
-            );
-        };
+    let warn_cancellation = || {
+        warn!(
+            "request to {:?} was cancelled mid-flight!",
+            &request_builder.url
+        );
+    };
 
-        let response = match executor::block_on(
-            cancellation_token.run_until_cancelled(client.execute(request)),
-        ) {
-            Some(response) => response.ok()?,
+    let response =
+        match executor::block_on(cancellation_token.run_until_cancelled(client.execute(request))) {
+            Some(response) => response.context("failed to execute request")?,
             _ => {
                 warn_cancellation();
-
-                return None;
+                anyhow::bail!("request was cancelled mid-flight");
             }
         };
 
-        let response_data = ResponseData {
-            url: response.url().clone(),
-            headers: response.headers().clone(),
-            status_code: response.status(),
-            body: match executor::block_on(cancellation_token.run_until_cancelled(response.bytes()))
-            {
-                Some(bytes) => bytes.ok().map(|bytes| bytes.to_vec()),
-                _ => {
-                    warn_cancellation();
+    let response_data = ResponseData {
+        url: response.url().clone(),
+        headers: response.headers().clone(),
+        status_code: response.status(),
+        body: match executor::block_on(cancellation_token.run_until_cancelled(response.bytes())) {
+            Some(bytes) => bytes
+                .context("failed to read response bytes")
+                .map(|bytes| bytes.to_vec())
+                .ok(),
+            _ => {
+                warn_cancellation();
+                anyhow::bail!("request was cancelled mid-flight while reading body");
+            }
+        },
+        bytes_read: 0,
+    };
 
-                    return None;
-                }
-            },
-            bytes_read: 0,
-        };
+    *request_state = RequestState::Sent(response_data);
 
-        *request_state = RequestState::Sent(response_data);
-
-        Some(())
-    }();
+    Ok(())
 }
 
 #[aidoku_wasm_function]
-fn get_url(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let request_descriptor: usize = request_descriptor_i32.try_into().ok()?;
-        let wasm_store = caller.data_mut();
+fn get_url(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> Result<i32> {
+    let request_descriptor: usize = request_descriptor_i32
+        .try_into()
+        .context("invalid request descriptor")?;
+    let wasm_store = caller.data_mut();
 
-        let request = wasm_store.get_mut_request(request_descriptor)?;
-        // FIXME allow getting URLs from sent requests
-        let request_builder = match request {
-            RequestState::Building(ref builder) => Some(builder),
-            _ => None,
-        }?;
+    let request = wasm_store
+        .get_mut_request(request_descriptor)
+        .context("failed to get request state")?;
+    // FIXME allow getting URLs from sent requests
+    let request_builder = match request {
+        RequestState::Building(ref builder) => Some(builder),
+        _ => None,
+    }
+    .context("request is not in building state")?;
 
-        let url: String = request_builder.url.clone()?.into();
+    let url: String = request_builder.url.clone().context("url not set")?.into();
 
-        Some(wasm_store.store_std_value(Value::from(url).into(), None) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(url).into(), None) as i32)
 }
 
 #[aidoku_wasm_function]
-fn get_data_size(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let request_descriptor: usize = request_descriptor_i32.try_into().ok()?;
-        let wasm_store = caller.data_mut();
+fn get_data_size(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> Result<i32> {
+    let request_descriptor: usize = request_descriptor_i32
+        .try_into()
+        .context("invalid request descriptor")?;
+    let wasm_store = caller.data_mut();
 
-        let request = wasm_store.get_mut_request(request_descriptor)?;
-        let response = match request {
-            RequestState::Sent(response) => Some(response),
-            _ => None,
-        }?;
+    let request = wasm_store
+        .get_mut_request(request_descriptor)
+        .context("failed to get request state")?;
+    let response = match request {
+        RequestState::Sent(response) => Some(response),
+        _ => None,
+    }
+    .context("request is not in sent state")?;
 
-        let bytes_left = response.body.as_ref()?.len() - response.bytes_read;
+    let bytes_left = response
+        .body
+        .as_ref()
+        .context("response body not found")?
+        .len()
+        - response.bytes_read;
 
-        Some(bytes_left as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(bytes_left as i32)
 }
 
 #[aidoku_wasm_function]
@@ -284,34 +321,38 @@ fn get_data(
     request_descriptor_i32: i32,
     buffer: i32,
     size: i32,
-) {
-    || -> Option<()> {
-        let request_descriptor: usize = request_descriptor_i32.try_into().ok()?;
-        let buffer: usize = buffer.try_into().ok()?;
-        let size: usize = size.try_into().ok()?;
+) -> Result<()> {
+    let request_descriptor: usize = request_descriptor_i32
+        .try_into()
+        .context("invalid request descriptor")?;
+    let buffer: usize = buffer.try_into().context("invalid buffer")?;
+    let size: usize = size.try_into().context("invalid size")?;
 
-        let wasm_store = caller.data_mut();
+    let wasm_store = caller.data_mut();
 
-        let request = wasm_store.get_mut_request(request_descriptor)?;
-        let response = match request {
-            RequestState::Sent(response) => Some(response),
-            _ => None,
-        }?;
+    let request = wasm_store
+        .get_mut_request(request_descriptor)
+        .context("failed to get request state")?;
+    let response = match request {
+        RequestState::Sent(response) => Some(response),
+        _ => None,
+    }
+    .context("request is not in sent state")?;
 
-        let bytes = response.body.as_ref()?;
-        if response.bytes_read + size >= bytes.len() {
-            let slice = bytes[response.bytes_read..response.bytes_read + size].to_owned();
+    let bytes = response.body.as_ref().context("response body not found")?;
+    if response.bytes_read + size >= bytes.len() {
+        let slice = bytes[response.bytes_read..response.bytes_read + size].to_owned();
 
-            response.bytes_read += size;
+        response.bytes_read += size;
 
-            // FIXME technically we should do this before updating the size, but the
-            // borrow checker gets angy >:(
-            let memory = get_memory(&mut caller)?;
-            write_bytes(&memory, &mut caller, &slice, buffer)?;
-        }
+        // FIXME technically we should do this before updating the size, but the
+        // borrow checker gets angy >:(
+        let memory = get_memory(&mut caller).context("failed to get wasm memory")?;
+        write_bytes(&memory, &mut caller, &slice, buffer)
+            .context("failed to write bytes to wasm memory")?;
+    }
 
-        Some(())
-    }();
+    Ok(())
 }
 
 #[aidoku_wasm_function]
@@ -319,91 +360,114 @@ fn get_header(
     mut caller: Caller<'_, WasmStore>,
     request_descriptor_i32: i32,
     name: Option<String>,
-) -> i32 {
-    || -> Option<i32> {
-        let request_descriptor: usize = request_descriptor_i32.try_into().ok()?;
-        let wasm_store = caller.data_mut();
+) -> Result<i32> {
+    let request_descriptor: usize = request_descriptor_i32
+        .try_into()
+        .context("invalid request descriptor")?;
+    let wasm_store = caller.data_mut();
 
-        let request = wasm_store.get_mut_request(request_descriptor)?;
-        let response = match request {
-            RequestState::Sent(response) => Some(response),
-            _ => None,
-        }?;
+    let request = wasm_store
+        .get_mut_request(request_descriptor)
+        .context("failed to get request state")?;
+    let response = match request {
+        RequestState::Sent(response) => Some(response),
+        _ => None,
+    }
+    .context("request is not in sent state")?;
 
-        let value: String = response.headers.get(name?)?.to_str().ok()?.into();
+    let value: String = response
+        .headers
+        .get(name.context("header name is required")?)
+        .context("header not found")?
+        .to_str()
+        .context("header value is not valid utf-8")?
+        .into();
 
-        Some(wasm_store.store_std_value(Value::from(value).into(), None) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(value).into(), None) as i32)
 }
 
 #[aidoku_wasm_function]
-fn get_status_code(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let request_descriptor: usize = request_descriptor_i32.try_into().ok()?;
-        let wasm_store = caller.data_mut();
+fn get_status_code(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> Result<i32> {
+    let request_descriptor: usize = request_descriptor_i32
+        .try_into()
+        .context("invalid request descriptor")?;
+    let wasm_store = caller.data_mut();
 
-        let request = wasm_store.get_mut_request(request_descriptor)?;
-        let response = match request {
-            RequestState::Sent(response) => Some(response),
-            _ => None,
-        }?;
+    let request = wasm_store
+        .get_mut_request(request_descriptor)
+        .context("failed to get request state")?;
+    let response = match request {
+        RequestState::Sent(response) => Some(response),
+        _ => None,
+    }
+    .context("request is not in sent state")?;
 
-        let status_code = response.status_code.as_u16() as i64;
+    let status_code = response.status_code.as_u16() as i64;
 
-        Some(wasm_store.store_std_value(Value::from(status_code).into(), None) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(status_code).into(), None) as i32)
 }
 
 #[aidoku_wasm_function]
-fn json(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let request_descriptor: usize = request_descriptor_i32.try_into().ok()?;
-        let wasm_store = caller.data_mut();
+fn json(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> Result<i32> {
+    let request_descriptor: usize = request_descriptor_i32
+        .try_into()
+        .context("invalid request descriptor")?;
+    let wasm_store = caller.data_mut();
 
-        let request = wasm_store.get_mut_request(request_descriptor)?;
-        let response = match request {
-            RequestState::Sent(response) => Some(response),
-            _ => None,
-        }?;
+    let request = wasm_store
+        .get_mut_request(request_descriptor)
+        .context("failed to get request state")?;
+    let response = match request {
+        RequestState::Sent(response) => Some(response),
+        _ => None,
+    }
+    .context("request is not in sent state")?;
 
-        // PERF If we remove the response from the state, we can parse this with ownership of the body,
-        // which might enable some optimizations to be done by serde.
-        // Check if Aidoku's source allows us to read from the response _after_ we have read it.
-        let value: Value = serde_json::from_slice(response.body.as_ref()?.as_slice()).unwrap();
+    // PERF If we remove the response from the state, we can parse this with ownership of the body,
+    // which might enable some optimizations to be done by serde.
+    // Check if Aidoku's source allows us to read from the response _after_ we have read it.
+    let value: Value = serde_json::from_slice(
+        response
+            .body
+            .as_ref()
+            .context("response body not found")?
+            .as_slice(),
+    )
+    .context("failed to parse json")?;
 
-        Some(wasm_store.store_std_value(value.into(), None) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(value.into(), None) as i32)
 }
 
 #[aidoku_wasm_function]
-fn html(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> i32 {
-    || -> Option<i32> {
-        let request_descriptor: usize = request_descriptor_i32.try_into().ok()?;
-        let wasm_store = caller.data_mut();
+fn html(mut caller: Caller<'_, WasmStore>, request_descriptor_i32: i32) -> Result<i32> {
+    let request_descriptor: usize = request_descriptor_i32
+        .try_into()
+        .context("invalid request descriptor")?;
+    let wasm_store = caller.data_mut();
 
-        let request = wasm_store.get_mut_request(request_descriptor)?;
-        let response = match request {
-            RequestState::Sent(response) => Some(response),
-            _ => None,
-        }?;
+    let request = wasm_store
+        .get_mut_request(request_descriptor)
+        .context("failed to get request state")?;
+    let response = match request {
+        RequestState::Sent(response) => Some(response),
+        _ => None,
+    }
+    .context("request is not in sent state")?;
 
-        // FIXME we should consider the encoding that came on the request
-        let html_string: String = String::from_utf8(response.body.clone()?).ok()?;
+    // FIXME we should consider the encoding that came on the request
+    let html_string: String =
+        String::from_utf8(response.body.clone().context("response body not found")?)
+            .context("response body is not valid utf-8")?;
 
-        // FIXME this is duplicated from the html module. not sure it's really worth refactoring
-        // but here's a note
-        let document = ScraperHtml::parse_document(&html_string);
-        let node_id = document.root_element().id();
-        let html_element = HTMLElement {
-            document: Html::from(document).into(),
-            node_id,
-            base_uri: response.url.clone().into(),
-        };
+    // FIXME this is duplicated from the html module. not sure it's really worth refactoring
+    // but here's a note
+    let document = ScraperHtml::parse_document(&html_string);
+    let node_id = document.root_element().id();
+    let html_element = HTMLElement {
+        document: Html::from(document).into(),
+        node_id,
+        base_uri: response.url.clone().into(),
+    };
 
-        Some(wasm_store.store_std_value(Value::from(vec![html_element]).into(), None) as i32)
-    }()
-    .unwrap_or(-1)
+    Ok(wasm_store.store_std_value(Value::from(vec![html_element]).into(), None) as i32)
 }
