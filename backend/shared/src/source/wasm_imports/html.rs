@@ -242,11 +242,12 @@ fn first(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> 
     let std_value = wasm_store
         .get_std_value(descriptor)
         .context("failed to get value from store")?;
-    let element = match std_value.as_ref() {
-        Value::HTMLElements(elements) => Some(elements.first().unwrap().clone()),
-        _ => None,
-    }
-    .context("expected HTMLElements value")?;
+    let element = std_value
+        .try_unwrap_html_elements_ref()
+        .map_err(|_| anyhow!("expected HTMLElements value"))?
+        .first()
+        .cloned()
+        .context("no elements found in HTMLElements")?;
 
     Ok(wasm_store.store_std_value(Value::from(vec![element]).into(), Some(descriptor)) as i32)
 }
@@ -259,11 +260,12 @@ fn last(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
     let std_value = wasm_store
         .get_std_value(descriptor)
         .context("failed to get value from store")?;
-    let element = match std_value.as_ref() {
-        Value::HTMLElements(elements) => Some(elements.last().unwrap().clone()),
-        _ => None,
-    }
-    .context("expected HTMLElements value")?;
+    let element = std_value
+        .try_unwrap_html_elements_ref()
+        .map_err(|_| anyhow!("expected HTMLElements value"))?
+        .last()
+        .cloned()
+        .context("no elements found in HTMLElements")?;
 
     Ok(wasm_store.store_std_value(Value::from(vec![element]).into(), Some(descriptor)) as i32)
 }
@@ -315,14 +317,14 @@ fn previous(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i3
     }
     .context("expected a single HTMLElement")?;
 
-    let next_sibling_node_id = element
+    let prev_sibling_node_id = element
         .element_ref()
-        .next_sibling_element()
-        .context("no next sibling element found")?
+        .prev_sibling_element()
+        .context("no previous sibling element found")?
         .id();
     let new_element = HTMLElement {
         document: element.document.clone(),
-        node_id: next_sibling_node_id,
+        node_id: prev_sibling_node_id,
         base_uri: element.base_uri.clone(),
     };
 
