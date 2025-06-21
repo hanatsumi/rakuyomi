@@ -381,7 +381,9 @@ fn text(mut caller: Caller<'_, WasmStore>, descriptor_i32: i32) -> Result<i32> {
         .flat_map(|element| element.element_ref().text())
         .map(|s| s.trim())
         .collect::<Vec<_>>()
-        .join(" ");
+        .join(" ")
+        .trim()
+        .to_string();
 
     Ok(wasm_store.store_std_value(Value::from(text).into(), Some(descriptor)) as i32)
 }
