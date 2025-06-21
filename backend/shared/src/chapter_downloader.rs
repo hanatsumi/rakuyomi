@@ -40,6 +40,13 @@ pub async fn ensure_chapter_is_in_storage(
         .with_context(|| "Failed to get page list")
         .map_err(Error::DownloadError)?;
 
+    if pages.is_empty() {
+        return Err(Error::DownloadError(anyhow!(
+            "No pages found for chapter {}",
+            chapter_id.value()
+        )));
+    }
+
     // FIXME this logic should be contained entirely within the storage..? maybe we could return something that's writable
     // and then commit it into the storage (or maybe a implicit commit on drop, but i dont think it works well as there
     // could be errors while committing it)
