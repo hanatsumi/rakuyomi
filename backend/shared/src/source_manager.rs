@@ -18,9 +18,9 @@ pub struct SourceManager {
 
 impl SourceManager {
     pub fn from_folder(path: PathBuf, settings: Settings) -> Result<Self> {
-        fs::create_dir_all(&path)
-            .with_context(|| "while trying to ensure sources folder exists")?;
-        let sources_by_id = Self::load_all_sources(&path, &settings)?;
+        fs::create_dir_all(&path).context("while trying to ensure sources folder exists")?;
+        let sources_by_id =
+            Self::load_all_sources(&path, &settings).context("couldn't load sources")?;
 
         Ok(Self {
             sources_folder: path,

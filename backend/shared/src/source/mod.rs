@@ -135,8 +135,10 @@ struct BlockingSource {
 
 impl BlockingSource {
     pub fn from_aix_file(path: &Path, settings: Settings) -> Result<Self> {
-        let file = fs::File::open(path)?;
-        let mut archive = ZipArchive::new(file)?;
+        let file =
+            fs::File::open(path).with_context(|| format!("couldn't open {}", path.display()))?;
+        let mut archive = ZipArchive::new(file)
+            .with_context(|| format!("couldn't open source archive {}", path.display()))?;
 
         let manifest_file = archive
             .by_name("Payload/source.json")
