@@ -61,25 +61,28 @@ async fn main() -> anyhow::Result<()> {
 
     let args = Args::parse();
     fs::create_dir_all(&args.home_path)
-        .with_context(|| "while trying to ensure rakuyomi's home folder exists")?;
+        .context("while trying to ensure rakuyomi's home folder exists")?;
 
     let sources_path = args.home_path.join("sources");
     let database_path = args.home_path.join("database.db");
     let default_downloads_folder_path = args.home_path.join("downloads");
     let settings_path = args.home_path.join("settings.json");
 
-    let database = Database::new(&database_path).await?;
+    let database = Database::new(&database_path)
+        .await
+        .context("couldn't open database file")?;
     let settings = Settings::from_file(&settings_path)
-        .with_context(|| format!("Couldn't read settings file at {}", settings_path.display()))?;
-    let source_manager = SourceManager::from_folder(sources_path, settings.clone())?;
+        .with_context(|| format!("couldn't read settings file at {}", settings_path.display()))?;
+    let source_manager = SourceManager::from_folder(sources_path, settings.clone())
+        .context("couldn't create source manager")?;
 
     let downloads_folder_path = settings
         .storage_path
         .clone()
         .unwrap_or(default_downloads_folder_path);
 
-    let chapter_storage =
-        ChapterStorage::new(downloads_folder_path, settings.storage_size_limit.0)?;
+    let chapter_storage = ChapterStorage::new(downloads_folder_path, settings.storage_size_limit.0)
+        .context("couldn't initialize chapter storage")?;
 
     let state = State {
         source_manager: Arc::new(Mutex::new(source_manager)),
