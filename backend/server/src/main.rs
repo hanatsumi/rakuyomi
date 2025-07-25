@@ -105,7 +105,23 @@ async fn main() -> anyhow::Result<()> {
     // run our app with hyper, listening on the domain socket
     let _ = std::fs::remove_file(SOCKET_PATH)
         .inspect_err(|e| warn!("could not remove existing socket path: {}", e));
-    let listener = tokio::net::UnixListener::bind(SOCKET_PATH).unwrap();
+    let listener =
+        tokio::net::UnixListener::bind(SOCKET_PATH).context("failed to bind to Unix socket")?;
+
+    info!("server listening on Unix socket: {}", SOCKET_PATH);
+
+    // Optional: Add TCP listener for easier testing
+    if std::env::var("RAKUYOMI_ENABLE_TCP").is_ok() {
+        let tcp_listener = tokio::net::TcpListener::bind("127.0.0.1:8080")
+            .await
+            .context("failed to bind to TCP port")?;
+        info!("server also listening on TCP: 127.0.0.1:8080");
+
+        let app_clone = app.clone();
+        tokio::spawn(async move {
+            axum::serve(tcp_listener, app_clone).await.unwrap();
+        });
+    }
 
     axum::serve(listener, app).await?;
 

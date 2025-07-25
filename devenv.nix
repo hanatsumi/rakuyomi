@@ -49,7 +49,7 @@ let
   };
 in {
   # https://devenv.sh/packages/
-  packages = [koreader cargo-debugger] ++ (with pkgs; [ 
+  packages = [koreader cargo-debugger] ++ (with pkgs; [
     cargo-flamegraph
     clang
     gcc
@@ -93,7 +93,7 @@ in {
 
   # Enable cachix
   cachix = {
-    enable = true;
+    enable = false;
     push = "rakuyomi";
   };
 
@@ -109,8 +109,17 @@ in {
     '';
     fix-rust-format.exec = "cd $DEVENV_ROOT/backend && cargo fmt --all";
     fix-rust-lint.exec = "cd $DEVENV_ROOT/backend && cargo clippy --fix --allow-dirty -- -D warnings";
+
+    # Legacy combined command (kept for compatibility)
     dev.exec = "cd $DEVENV_ROOT && . tools/run-koreader-with-plugin.sh";
     debug.exec = "cd $DEVENV_ROOT && . tools/run-koreader-with-plugin.sh --debug";
+
+    # New separated development commands
+    dev-backend.exec = "cd $DEVENV_ROOT && . tools/dev-backend.sh";
+    dev-backend-debug.exec = "cd $DEVENV_ROOT && . tools/dev-backend.sh --debug";
+    dev-backend-tcp.exec = "cd $DEVENV_ROOT && . tools/dev-backend.sh --tcp";
+    dev-frontend.exec = "cd $DEVENV_ROOT && . tools/dev-frontend.sh";
+
     docs.exec = "cd $DEVENV_ROOT/docs && exec mdbook serve --open";
     prepare-sql-queries.exec = "cd $DEVENV_ROOT && . tools/prepare-sqlx-queries.sh";
     remote-install.exec = "cd $DEVENV_ROOT && python3 tools/install-into-remote-koreader.py";

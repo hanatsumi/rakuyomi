@@ -6,7 +6,7 @@ local util = require("util")
 local Paths = require("Paths")
 local Platform = require("Platform")
 
-local SERVER_STARTUP_TIMEOUT_SECONDS = tonumber(os.getenv('RAKUYOMI_SERVER_STARTUP_TIMEOUT') or 5)
+local SERVER_STARTUP_TIMEOUT_SECONDS = tonumber(os.getenv('RAKUYOMI_SERVER_STARTUP_TIMEOUT') or 300)
 
 --- @class Backend
 --- @field private server Server
@@ -428,7 +428,7 @@ function Backend.createDownloadScanlatorChaptersJob(source_id, manga_id, scanlat
     scanlator = scanlator,
     amount = amount
   }
-  
+
   return Backend.requestJson({
     path = "/jobs/download-scanlator-chapters",
     method = 'POST',
