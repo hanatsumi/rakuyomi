@@ -1,3 +1,6 @@
+> [!WARNING]
+> This project is no longer actively maintained. For continued development and an up-to-date version, please refer to [tachibana-shin's fork](https://github.com/tachibana-shin/rakuyomi).
+
 # rakuyomi
 
 **rakuyomi** is a manga reader plugin for [KOReader](https://github.com/koreader/koreader).
